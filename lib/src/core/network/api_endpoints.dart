@@ -1,0 +1,25 @@
+abstract final class ApiEndpoints {
+  static const sendSmsCode = '/plater/potline';
+  static const smsCodeLogin = '/plater/waterbird';
+  static const logout = '/plater/griding';
+  static const userDelete = '/plater/organizational';
+  static const homePage = '/plater/fas';
+  static const personalCenter = '/plater/barned';
+  static const uploadAndroidTag = '/plater/royalmast';
+  static const reCredit = '/plater/marries';
+  static const dialog = '/plater/pereiopods';
+  static const bannerClickRecord = '/plater/fuss';
+  static const getDeviceName = '/plater/threadier';
+  static const productApply = '/plater/informal';
+  static const productDetail = '/plater/maniacal';
+  static const basicPersonInfo = '/plater/causations';
+  static const uploadImage = '/plater/busywork';
+  static const saveBasicInfo = '/plater/violent';
+  static const orderList = '/plater/mainlined';
+  static const uploadLocation = '/plater/outmarching';
+  static const googleMarket = '/plater/pulpit';
+  static const buriedPoint = '/plater/rescinders';
+  static const uploadDeviceInfo = '/plater/sinapism';
+  static const uploadContacts = '/plater/hatlike';
+  static const uploadAppleToken = '/plater/flamen';
+}
