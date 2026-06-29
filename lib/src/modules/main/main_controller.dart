@@ -3,7 +3,6 @@ import 'package:get/get.dart';
 
 import '../../app_routes.dart';
 import '../../core/network/api_client.dart';
-import '../../core/network/api_endpoints.dart';
 
 class MainController extends GetxController with WidgetsBindingObserver {
   final selectedIndex = 0.obs;
@@ -55,8 +54,8 @@ class MainController extends GetxController with WidgetsBindingObserver {
     }
     _homeRefreshRequesting = true;
     try {
-      await _apiClient.get(ApiEndpoints.homePage);
-      await _apiClient.get(ApiEndpoints.dialog);
+      await _apiClient.homePage();
+      await _apiClient.dialog(loungy: 1);
     } catch (_) {
       // Home refresh failures must not block the home page.
     } finally {

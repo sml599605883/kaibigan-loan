@@ -84,8 +84,11 @@ class ApiSignature {
     if (provider != null) {
       return provider(length);
     }
+    return randomDigits(length);
+  }
+
+  static String randomDigits(int length) {
     final random = Random.secure();
     return List.generate(length, (_) => random.nextInt(10)).join();
   }
-
 }

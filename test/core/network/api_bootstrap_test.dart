@@ -38,11 +38,7 @@ void main() {
             };
           }
           expect(call.method, 'getProxySettings');
-          return <String, Object?>{
-            'enabled': false,
-            'host': '',
-            'port': 0,
-          };
+          return <String, Object?>{'enabled': false, 'host': '', 'port': 0};
         });
 
     final apiClient = await bootstrapApiClient(
@@ -51,6 +47,7 @@ void main() {
         apiBaseUrl: 'https://api.example.test',
         clientBridge: ClientBridge(platform: ClientPlatform.ios),
         deviceInfoStore: store,
+        randomDigitsProvider: (length) => '7' * length,
       ),
       dio: Dio()..httpClientAdapter = adapter,
       deviceInfoStore: store,
@@ -59,10 +56,13 @@ void main() {
     expect(Get.find<ApiClient>(), same(apiClient));
     expect(apiClient.proxyHost, isNull);
     expect(apiClient.proxyPort, isNull);
-    expect(adapter.lastRequest.path, 'https://api.example.test${ApiEndpoints.getDeviceName}');
+    expect(
+      adapter.lastRequest.path,
+      'https://api.example.test${ApiEndpoints.getDeviceName}',
+    );
     expect(adapter.lastRequest.method, 'POST');
     expect(adapter.lastRequest.queryParameters['unwits'], isNull);
-    expect(adapter.lastBody, {'unwits': 'iPhone10,3', 'stoups': 'BROKER'});
+    expect(adapter.lastBody, {'unwits': 'iPhone10,3', 'stoups': '777777'});
     expect(await store.gyrofrequency(), 'iPhone X');
     expect(await store.entertainers(), '375x812');
   });
@@ -85,14 +85,15 @@ void main() {
         });
 
     var bootstrapCompleted = false;
-    final bootstrap = bootstrapApiClient(
-      clientBridge: ClientBridge(platform: ClientPlatform.ios),
-      apiConfig: ApiConfig(deviceInfoStore: store),
-      deviceInfoStore: store,
-    ).then((apiClient) {
-      bootstrapCompleted = true;
-      return apiClient;
-    });
+    final bootstrap =
+        bootstrapApiClient(
+          clientBridge: ClientBridge(platform: ClientPlatform.ios),
+          apiConfig: ApiConfig(deviceInfoStore: store),
+          deviceInfoStore: store,
+        ).then((apiClient) {
+          bootstrapCompleted = true;
+          return apiClient;
+        });
 
     await Future<void>.delayed(Duration.zero);
     expect(bootstrapCompleted, isFalse);

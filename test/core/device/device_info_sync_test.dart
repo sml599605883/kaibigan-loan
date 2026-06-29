@@ -25,6 +25,7 @@ void main() {
           clientBridge: _FakeClientBridge(),
           deviceInfoStore: store,
           timestampProvider: () => 1700000000000,
+          randomDigitsProvider: (length) => '7' * length,
         ),
         dio: Dio()..httpClientAdapter = adapter,
       ),
@@ -33,16 +34,22 @@ void main() {
     );
   });
 
-  test('queries iOS device info by platform and stores response values', () async {
-    await sync.sync();
+  test(
+    'queries iOS device info by platform and stores response values',
+    () async {
+      await sync.sync();
 
-    expect(adapter.lastRequest.path, 'https://api.example.test${ApiEndpoints.getDeviceName}');
-    expect(adapter.lastRequest.method, 'POST');
-    expect(adapter.lastRequest.queryParameters['unwits'], isNull);
-    expect(adapter.lastBody, {'unwits': 'iPhone10,3', 'stoups': 'BROKER'});
-    expect(await store.gyrofrequency(), 'iPhone X');
-    expect(await store.entertainers(), '375x812');
-  });
+      expect(
+        adapter.lastRequest.path,
+        'https://api.example.test${ApiEndpoints.getDeviceName}',
+      );
+      expect(adapter.lastRequest.method, 'POST');
+      expect(adapter.lastRequest.queryParameters['unwits'], isNull);
+      expect(adapter.lastBody, {'unwits': 'iPhone10,3', 'stoups': '777777'});
+      expect(await store.gyrofrequency(), 'iPhone X');
+      expect(await store.entertainers(), '375x812');
+    },
+  );
 }
 
 class _RecordingAdapter implements HttpClientAdapter {

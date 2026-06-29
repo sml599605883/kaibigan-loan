@@ -1,5 +1,6 @@
 abstract final class ApiEndpoints {
   static const sendSmsCode = '/plater/potline';
+  static const supportDeliveryChannels = '/plater/footbaths';
   static const smsCodeLogin = '/plater/waterbird';
   static const logout = '/plater/griding';
   static const userDelete = '/plater/organizational';
@@ -15,6 +16,20 @@ abstract final class ApiEndpoints {
   static const basicPersonInfo = '/plater/causations';
   static const uploadImage = '/plater/busywork';
   static const saveBasicInfo = '/plater/violent';
+  static const checkBasicInfo = '/plater/stones';
+  static const getFaceToken = '/plater/viruliferous';
+  static const savePersonalInfo = '/plater/stigmasterol';
+  static const jobInfo = '/plater/preattuned';
+  static const saveJobInfo = '/plater/religiosities';
+  static const contactInfo = '/plater/commensurate';
+  static const saveContactInfo = '/plater/anchovetta';
+  static const bankInfo = '/plater/cabdrivers';
+  static const saveBankInfo = '/plater/bloomeries';
+  static const userAccountList = '/plater/omissible';
+  static const changeOrderAccount = '/plater/biontic';
+  static const retainPopup = '/plater/restless';
+  static const trustdecisionReport = '/plater/ghillies';
+  static const orderRedirect = '/plater/geometrically';
   static const orderList = '/plater/mainlined';
   static const uploadLocation = '/plater/outmarching';
   static const googleMarket = '/plater/pulpit';
@@ -22,4 +37,5 @@ abstract final class ApiEndpoints {
   static const uploadDeviceInfo = '/plater/sinapism';
   static const uploadContacts = '/plater/hatlike';
   static const uploadAppleToken = '/plater/flamen';
+  static const originalCardRetry = '/plater/dodgy';
 }

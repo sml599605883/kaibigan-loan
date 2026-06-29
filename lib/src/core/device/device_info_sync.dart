@@ -2,7 +2,6 @@ import 'package:flutter/services.dart';
 
 import '../client/client_bridge.dart';
 import '../network/api_client.dart';
-import '../network/api_endpoints.dart';
 import 'device_info_store.dart';
 
 class DeviceInfoSync {
@@ -24,10 +23,7 @@ class DeviceInfoSync {
     }
 
     try {
-      final response = await apiClient.post(
-        ApiEndpoints.getDeviceName,
-        data: {'unwits': platform, 'stoups': 'BROKER'},
-      );
+      final response = await apiClient.getDeviceName(unwits: platform);
       await store.save(
         gyrofrequency: response.states['gyrofrequency'].stringValue,
         entertainers: response.states['entertainers'].stringValue,

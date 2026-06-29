@@ -21,6 +21,7 @@ void main() {
         clientBridge: _FakeClientBridge(),
         deviceInfoStore: DeviceInfoStore.memory(),
         timestampProvider: () => 1700000000000,
+        randomDigitsProvider: (length) => '7' * length,
       ),
       dio: Dio()..httpClientAdapter = adapter,
     );
@@ -47,6 +48,208 @@ void main() {
       expect(adapter.lastBody, {'mummies': '4'});
     },
   );
+
+  test('homePage supplies obfuscated placeholders internally', () async {
+    await client.homePage();
+
+    expect(adapter.lastRequest.method, 'GET');
+    expect(adapter.lastRequest.path, 'https://api.example.test/plater/fas');
+    expect(adapter.lastRequest.queryParameters['ghastful'], '777777');
+    expect(adapter.lastRequest.queryParameters['lairs'], '777777');
+  });
+
+  test('getDeviceName requires only device identifier from caller', () async {
+    await client.getDeviceName(unwits: 'iPhone11,8');
+
+    expect(adapter.lastRequest.method, 'POST');
+    expect(
+      adapter.lastRequest.path,
+      'https://api.example.test/plater/threadier',
+    );
+    expect(adapter.lastRequest.queryParameters['unwits'], isNull);
+    expect(adapter.lastBody, {'unwits': 'iPhone11,8', 'stoups': '777777'});
+  });
+
+  test('account methods add obfuscated fields internally', () async {
+    await client.sendSmsCode(potline: '09171234567', waterbird: 'sms');
+    expect(adapter.lastRequest.path, 'https://api.example.test/plater/potline');
+    expect(adapter.lastBody, {
+      'potline': '09171234567',
+      'waterbird': 'sms',
+      'footbaths': '777777',
+    });
+
+    await client.supportDeliveryChannels(potline: '09171234567');
+    expect(
+      adapter.lastRequest.path,
+      'https://api.example.test/plater/footbaths',
+    );
+    expect(adapter.lastBody, {
+      'potline': '09171234567',
+      'barned': '777777',
+      'royalmast': '777777',
+    });
+
+    await client.smsCodeLogin(threadier: '09171234567', informal: '123456');
+    expect(
+      adapter.lastRequest.path,
+      'https://api.example.test/plater/waterbird',
+    );
+    expect(adapter.lastBody, {
+      'threadier': '09171234567',
+      'informal': '123456',
+      'barned': '777777',
+      'royalmast': '777777',
+    });
+  });
+
+  test('app and product methods expose only business params', () async {
+    await client.personalCenter();
+    expect(adapter.lastRequest.path, 'https://api.example.test/plater/barned');
+    expect(adapter.lastRequest.queryParameters['deniable'], '777777');
+
+    await client.dialog(loungy: 1);
+    expect(
+      adapter.lastRequest.path,
+      'https://api.example.test/plater/pereiopods',
+    );
+    expect(adapter.lastRequest.queryParameters['loungy'], 1);
+
+    await client.productApply(geobotanists: '1001', succumbs: '2');
+    expect(
+      adapter.lastRequest.path,
+      'https://api.example.test/plater/informal',
+    );
+    expect(adapter.lastBody, {
+      'enates': '1001',
+      'nonfeasance': '1000',
+      'chad': '1000',
+      'geobotanists': '1001',
+      'succumbs': '2',
+      'fib': '777777',
+      'dyable': '777777',
+    });
+  });
+
+  test('certification methods add obfuscated fields internally', () async {
+    await client.basicPersonInfo(geobotanists: '1001');
+    expect(
+      adapter.lastRequest.path,
+      'https://api.example.test/plater/causations',
+    );
+    expect(adapter.lastRequest.queryParameters['geobotanists'], '1001');
+    expect(adapter.lastRequest.queryParameters['cosponsored'], '777777');
+
+    await client.saveBasicInfo(
+      asthmas: '23-11-1993',
+      overmanaged: '623099344112',
+      unwits: 'NAVEEN TOM VARGHESE',
+      commensurate: '11',
+      heirship: '1',
+    );
+    expect(adapter.lastRequest.path, 'https://api.example.test/plater/violent');
+    expect(adapter.lastBody, {
+      'asthmas': '23-11-1993',
+      'overmanaged': '623099344112',
+      'unwits': 'NAVEEN TOM VARGHESE',
+      'commensurate': '11',
+      'heirship': '1',
+      'terrific': '777777',
+    });
+
+    await client.savePersonalInfo(data: {'geobotanists': '1001'});
+    expect(
+      adapter.lastRequest.path,
+      'https://api.example.test/plater/stigmasterol',
+    );
+    expect(adapter.lastBody, {
+      'geobotanists': '1001',
+      'enemies': '777777',
+      'cryophytes': '777777',
+    });
+  });
+
+  test('order methods expose only business params', () async {
+    await client.orderRedirect(
+      dodgy: 'ORDER001',
+      ecumenicalism: '3000',
+      desertifying: '7',
+      tythes: '1',
+    );
+    expect(
+      adapter.lastRequest.path,
+      'https://api.example.test/plater/geometrically',
+    );
+    expect(adapter.lastBody, {
+      'dodgy': 'ORDER001',
+      'ecumenicalism': '3000',
+      'desertifying': '7',
+      'tythes': '1',
+      'woods': '777777',
+      'anlagen': '777777',
+      'anga': '777777',
+      'expectorating': '777777',
+    });
+
+    await client.orderList(mummies: '4', dissipaters: '1', bewaring: '50');
+    expect(
+      adapter.lastRequest.path,
+      'https://api.example.test/plater/mainlined',
+    );
+    expect(adapter.lastBody, {
+      'mummies': '4',
+      'dissipaters': '1',
+      'bewaring': '50',
+    });
+
+    await client.originalCardRetry(chattinesses: 'ORDER001');
+    expect(adapter.lastRequest.path, 'https://api.example.test/plater/dodgy');
+    expect(adapter.lastBody, {'chattinesses': 'ORDER001'});
+  });
+
+  test('data report methods add obfuscated fields internally', () async {
+    await client.uploadLocation(
+      phrasemongers: 'PH',
+      callee: 'Philippines',
+      clientless: 'Street',
+      overtone: '14.5995',
+      rhodopsins: '120.9842',
+      lushest: 'Manila',
+      verticil: 'NCR',
+    );
+    expect(
+      adapter.lastRequest.path,
+      'https://api.example.test/plater/outmarching',
+    );
+    expect(adapter.lastBody, {
+      'verticil': 'NCR',
+      'phrasemongers': 'PH',
+      'callee': 'Philippines',
+      'clientless': 'Street',
+      'overtone': '14.5995',
+      'rhodopsins': '120.9842',
+      'lushest': 'Manila',
+      'embordered': '777777',
+      'satellites': '777777',
+    });
+
+    await client.googleMarket(simplistically: 'idfv', preadjusts: 'idfa');
+    expect(adapter.lastRequest.path, 'https://api.example.test/plater/pulpit');
+    expect(adapter.lastBody, {
+      'simplistically': 'idfv',
+      'preadjusts': 'idfa',
+      'chickpea': '777777',
+    });
+
+    await client.uploadContacts(fas: 'encrypted');
+    expect(adapter.lastRequest.path, 'https://api.example.test/plater/hatlike');
+    expect(adapter.lastBody, {
+      'commensurate': '3',
+      'fas': 'encrypted',
+      'crampit': '777777',
+      'otoplasties': '777777',
+    });
+  });
 
   test(
     'multipart upload keeps common params in query and file in form data',
@@ -127,7 +330,9 @@ void main() {
       request.response
         ..statusCode = 200
         ..headers.contentType = ContentType.json
-        ..write(jsonEncode({'griding': 0, 'organizational': 'success', 'fas': {}}))
+        ..write(
+          jsonEncode({'griding': 0, 'organizational': 'success', 'fas': {}}),
+        )
         ..close();
     });
 
@@ -163,7 +368,9 @@ void main() {
       request.response
         ..statusCode = 200
         ..headers.contentType = ContentType.json
-        ..write(jsonEncode({'griding': 0, 'organizational': 'success', 'fas': {}}))
+        ..write(
+          jsonEncode({'griding': 0, 'organizational': 'success', 'fas': {}}),
+        )
         ..close();
     });
     proxyServer.listen((request) {
@@ -171,7 +378,9 @@ void main() {
       request.response
         ..statusCode = 200
         ..headers.contentType = ContentType.json
-        ..write(jsonEncode({'griding': 0, 'organizational': 'success', 'fas': {}}))
+        ..write(
+          jsonEncode({'griding': 0, 'organizational': 'success', 'fas': {}}),
+        )
         ..close();
     });
 
