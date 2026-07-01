@@ -75,12 +75,179 @@ void main() {
     expect(adapter.dialogRequestCount, 2);
   });
 
+  testWidgets('pull to refresh requests home page and dialog', (tester) async {
+    await _pumpApp(tester);
+
+    expect(adapter.homeRequestCount, 1);
+    expect(adapter.dialogRequestCount, 1);
+
+    await tester.drag(find.byType(Scrollable).first, const Offset(0, 360));
+    await tester.pump();
+    await tester.pump(const Duration(seconds: 1));
+    await tester.pumpAndSettle();
+
+    expect(adapter.homeRequestCount, 2);
+    expect(adapter.dialogRequestCount, 2);
+  });
+
+  testWidgets('renders delivered banner and records banner tap', (
+    tester,
+  ) async {
+    adapter.homePayload = {
+      'religiosities': [
+        {
+          'commensurate': 'Moorages',
+          'anchovetta': [
+            {
+              'cabdrivers': 'banner-1',
+              'bloomeries': 'https://h5.example.test/banner',
+              'centerlines': 'https://cdn.example.test/banner-a.png',
+            },
+            {
+              'cabdrivers': 'banner-2',
+              'bloomeries': 'https://h5.example.test/banner-b',
+              'centerlines': 'https://cdn.example.test/banner-b.png',
+            },
+          ],
+        },
+      ],
+    };
+
+    await _pumpApp(tester);
+
+    expect(find.byKey(const ValueKey('home_promo_banner_0')), findsOneWidget);
+
+    await tester.tap(find.byKey(const ValueKey('home_promo_banner_0')));
+    await tester.pumpAndSettle();
+
+    expect(adapter.bannerClickRecordCount, 1);
+    expect(adapter.lastBannerId, 'banner-1');
+  });
+
+  testWidgets('sizes delivered banner from available width ratio', (
+    tester,
+  ) async {
+    adapter.homePayload = {
+      'religiosities': [
+        {
+          'commensurate': 'Moorages',
+          'anchovetta': [
+            {
+              'cabdrivers': 'banner-1',
+              'bloomeries': 'https://h5.example.test/banner',
+              'centerlines': 'https://cdn.example.test/banner-a.png',
+            },
+          ],
+        },
+      ],
+    };
+
+    await _pumpApp(tester);
+
+    final bannerSize = tester.getSize(
+      find.byKey(const ValueKey('home_promo_banner_0')),
+    );
+
+    expect(bannerSize.width, 335);
+    expect(bannerSize.height, closeTo(96, 0.01));
+  });
+
+  testWidgets('ignores original banner element type before obfuscation', (
+    tester,
+  ) async {
+    adapter.homePayload = {
+      'religiosities': [
+        {
+          'commensurate': 'BANNER',
+          'anchovetta': [
+            {
+              'cabdrivers': 'banner-1',
+              'bloomeries': 'https://h5.example.test/banner',
+              'centerlines': 'https://cdn.example.test/banner-a.png',
+            },
+          ],
+        },
+      ],
+    };
+
+    await _pumpApp(tester);
+
+    expect(find.byKey(const ValueKey('home_promo_banner_0')), findsNothing);
+  });
+
+  testWidgets(
+    'renders loan process list when large card humpiness is not empty',
+    (tester) async {
+      adapter.homePayload = {
+        'religiosities': [
+          {
+            'commensurate': 'CatechisticOverlooking',
+            'anchovetta': [
+              {
+                'humpiness': [
+                  {
+                    'primogenitor': 'Limit granted',
+                    'pyknoses': '₱ 30,000',
+                    'vixenish': 1,
+                  },
+                  {
+                    'primogenitor': 'Verify to unlock',
+                    'pyknoses': '₱ 40,000',
+                    'vixenish': 0,
+                  },
+                ],
+              },
+            ],
+          },
+        ],
+      };
+
+      await _pumpApp(tester);
+
+      expect(
+        find.byKey(const ValueKey('home_loan_process_list')),
+        findsOneWidget,
+      );
+      expect(
+        find.image(const AssetImage(AppAssets.homeProcessPanel)),
+        findsNothing,
+      );
+      expect(find.text('Limit granted'), findsOneWidget);
+      expect(find.text('₱ 30,000'), findsOneWidget);
+      expect(find.text('Verify to unlock'), findsOneWidget);
+      expect(find.text('₱ 40,000'), findsOneWidget);
+    },
+  );
+
+  testWidgets('renders loan process image when large card humpiness is empty', (
+    tester,
+  ) async {
+    adapter.homePayload = {
+      'religiosities': [
+        {
+          'commensurate': 'CatechisticOverlooking',
+          'anchovetta': [
+            {'humpiness': <Map<String, dynamic>>[]},
+          ],
+        },
+      ],
+    };
+
+    await _pumpApp(tester);
+
+    expect(find.byKey(const ValueKey('home_loan_process_list')), findsNothing);
+    expect(
+      find.image(const AssetImage(AppAssets.homeProcessPanel)),
+      findsOneWidget,
+    );
+  });
+
   testWidgets('requests home page and dialog after returning to visible home', (
     tester,
   ) async {
     await _pumpApp(tester);
 
-    await tester.tap(find.text('Find a suitable loan offer'));
+    await tester.tap(find.text('Apply Now'));
     await tester.pumpAndSettle();
     expect(Get.currentRoute, AppRoutes.detail);
 
@@ -97,12 +264,8 @@ void main() {
   ) async {
     await _pumpApp(tester);
 
-    tester.binding.handleAppLifecycleStateChanged(
-      AppLifecycleState.paused,
-    );
-    tester.binding.handleAppLifecycleStateChanged(
-      AppLifecycleState.resumed,
-    );
+    tester.binding.handleAppLifecycleStateChanged(AppLifecycleState.paused);
+    tester.binding.handleAppLifecycleStateChanged(AppLifecycleState.resumed);
     await tester.pumpAndSettle();
 
     expect(adapter.homeRequestCount, 2);
@@ -110,12 +273,8 @@ void main() {
 
     await tester.tap(find.image(const AssetImage(AppAssets.ordersNormal)));
     await tester.pumpAndSettle();
-    tester.binding.handleAppLifecycleStateChanged(
-      AppLifecycleState.paused,
-    );
-    tester.binding.handleAppLifecycleStateChanged(
-      AppLifecycleState.resumed,
-    );
+    tester.binding.handleAppLifecycleStateChanged(AppLifecycleState.paused);
+    tester.binding.handleAppLifecycleStateChanged(AppLifecycleState.resumed);
     await tester.pumpAndSettle();
 
     expect(adapter.homeRequestCount, 2);
@@ -136,6 +295,9 @@ Future<void> _pumpApp(WidgetTester tester) async {
 class _RecordingAdapter implements HttpClientAdapter {
   int homeRequestCount = 0;
   int dialogRequestCount = 0;
+  int bannerClickRecordCount = 0;
+  String? lastBannerId;
+  Map<String, dynamic> homePayload = <String, dynamic>{};
 
   @override
   void close({bool force = false}) {}
@@ -152,8 +314,19 @@ class _RecordingAdapter implements HttpClientAdapter {
     if (options.path == 'https://api.example.test${ApiEndpoints.dialog}') {
       dialogRequestCount++;
     }
+    if (options.path ==
+        'https://api.example.test${ApiEndpoints.bannerClickRecord}') {
+      bannerClickRecordCount++;
+      lastBannerId = options.data is Map
+          ? options.data['mesial'] as String?
+          : null;
+    }
     return ResponseBody.fromString(
-      jsonEncode({'griding': 0, 'organizational': 'success', 'fas': {}}),
+      jsonEncode({
+        'griding': 0,
+        'organizational': 'success',
+        'fas': homePayload,
+      }),
       200,
       headers: {
         Headers.contentTypeHeader: [Headers.jsonContentType],

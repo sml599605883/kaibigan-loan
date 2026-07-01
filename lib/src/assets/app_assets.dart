@@ -9,4 +9,18 @@ abstract final class AppAssets {
   static const arrowRight = 'assets/arrow_right.png';
   static const featurePrimary = 'assets/feature_primary.png';
   static const featureSecondary = 'assets/feature_secondary.png';
+  static const homeLoanCardBackground = 'assets/home_loan_card_bg.png';
+  static const homePromoBanner = 'assets/home_promo_banner.png';
+  static const homePromoIllustration = 'assets/home_promo_illustration.png';
+  static const homeProcessPanel = 'assets/home_process_panel.png';
+  static const titleLine = 'assets/title_line.png';
+  static const homeServiceIcon = 'assets/home_service_icon.png';
+  static const profileSummaryCard = 'assets/profile_summary_card.png';
+  static const profileAvatar = 'assets/profile_avatar.png';
+  static const profileOrderAll = 'assets/profile_order_all.png';
+  static const profileOrderOutstanding = 'assets/profile_order_outstanding.png';
+  static const profileOrderSettled = 'assets/profile_order_settled.png';
+  static const profileServiceOnline = 'assets/profile_service_online.png';
+  static const profileServiceSetting = 'assets/profile_service_setting.png';
+  static const profileServicePrivacy = 'assets/profile_service_privacy.png';
 }

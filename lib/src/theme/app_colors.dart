@@ -6,6 +6,16 @@ abstract final class AppColors {
   static const tabShadow = Color(0x1F0B4F7A);
   static const textPrimary = Color(0xFF10364D);
   static const textSecondary = Color(0xB310364D);
+  static const homeCardPanel = Color(0xFFDBF3FF);
+  static const homeCardBorder = Color(0xFFBEDEF0);
+  static const homeProcessPanel = Color(0xFF7BCFFF);
+  static const homeProcessBorder = Color(0xFFA2DDFF);
+  static const homeProcessTrack = Color(0xFFADE1FF);
+  static const homeProcessDot = Color(0xFF40F4E6);
+  static const homeProcessInactiveText = Color(0xFFD7F0FF);
+  static const homeProcessAmountMuted = Color(0xFFA9A049);
+  static const homeBannerText = Color(0xFF131560);
+  static const homeBannerAccent = Color(0xFFFF712E);
   static const selectedText = Color(0xFF168EEA);
   static const normalText = Color(0xFF9AA8B1);
   static const ordersBackground = Color(0xFFFFFFFF);
@@ -29,4 +39,9 @@ abstract final class AppColors {
   static const ordersTitleText = Color(0xFF000000);
   static const ordersStrongText = Color(0xFF303030);
   static const ordersLightText = Color(0xFFC2C2C2);
+  static const profileHeaderText = Color(0xFF292929);
+  static const profileServicePanel = Color(0xFF7BCFFF);
+  static const profileServiceBorder = Color(0xFFA2DDFF);
+  static const profileServiceText = Color(0xFF333333);
+  static const profileArrowTint = Color(0xFFE0EAE6);
 }

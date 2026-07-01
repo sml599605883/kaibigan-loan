@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:kaibigan_loan/main.dart';
-import 'package:kaibigan_loan/src/assets/app_assets.dart';
 
 void main() {
   testWidgets('main shell renders three GetX tabs', (tester) async {
@@ -12,9 +11,12 @@ void main() {
 
     await tester.pumpWidget(const KaibiganLoanApp());
 
-    expect(find.text('Kaibigan Loan'), findsOneWidget);
+    expect(find.text('Hi! Welcome'), findsOneWidget);
+    expect(find.text('Apply Now'), findsOneWidget);
 
-    await tester.tap(find.image(const AssetImage(AppAssets.ordersNormal)));
+    await tester.tap(
+      find.image(const AssetImage('assets/bar/orders_normal.png')),
+    );
     await tester.pumpAndSettle();
 
     expect(find.text('Hi! Welcome'), findsOneWidget);
@@ -45,5 +47,19 @@ void main() {
 
     expect(find.text('Loan Amount'), findsNothing);
     expect(find.text('No orders yet'), findsOneWidget);
+
+    await tester.tap(
+      find.image(const AssetImage('assets/bar/profile_normal.png')),
+    );
+    await tester.pumpAndSettle();
+
+    expect(find.text('962****1300'), findsOneWidget);
+    expect(find.text('All order'), findsOneWidget);
+    expect(find.text('Outstanding'), findsOneWidget);
+    expect(find.text('Settled'), findsOneWidget);
+    expect(find.text('Our Service'), findsOneWidget);
+    expect(find.text('Online Services'), findsOneWidget);
+    expect(find.text('Setting'), findsOneWidget);
+    expect(find.text('Privacy Agreement'), findsOneWidget);
   });
 }

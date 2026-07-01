@@ -53,4 +53,59 @@ void main() {
     expect(adapter.sp(16), 32);
     expect(adapter.size(35, 30), const Size(70, 60));
   });
+
+  testWidgets('supports concise context and num extensions', (tester) async {
+    late BuildContext capturedContext;
+
+    await tester.pumpWidget(
+      MaterialApp(
+        home: MediaQuery(
+          data: const MediaQueryData(size: Size(750, 1624)),
+          child: Builder(
+            builder: (context) {
+              capturedContext = context;
+              return const SizedBox.shrink();
+            },
+          ),
+        ),
+      ),
+    );
+
+    expect(capturedContext.screen.w(20), 40);
+    expect(20.wOf(capturedContext), 40);
+    expect(24.hOf(capturedContext), 48);
+    expect(8.rOf(capturedContext), 16);
+    expect(16.spOf(capturedContext), 32);
+    expect(
+      20.insetsOnlyOf(capturedContext, top: 24, bottom: 132),
+      const EdgeInsets.only(left: 40, top: 48, bottom: 264),
+    );
+  });
+
+  testWidgets('supports initialized context-free num extensions', (
+    tester,
+  ) async {
+    await tester.pumpWidget(
+      MaterialApp(
+        home: MediaQuery(
+          data: const MediaQueryData(size: Size(750, 1624)),
+          child: Builder(
+            builder: (context) {
+              ScreenAdapter.init(context);
+              return const SizedBox.shrink();
+            },
+          ),
+        ),
+      ),
+    );
+
+    expect(20.w, 40);
+    expect(24.h, 48);
+    expect(8.r, 16);
+    expect(16.sp, 32);
+    expect(
+      20.insetsOnly(top: 24, bottom: 132),
+      const EdgeInsets.only(left: 40, top: 48, bottom: 264),
+    );
+  });
 }
