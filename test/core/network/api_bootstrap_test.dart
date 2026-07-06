@@ -6,7 +6,7 @@ import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:get/get.dart';
 import 'package:kaibigan_loan/src/core/client/client_bridge.dart';
-import 'package:kaibigan_loan/src/core/device/device_info_store.dart';
+import 'package:kaibigan_loan/src/core/session/session_store.dart';
 import 'package:kaibigan_loan/src/core/network/api_bootstrap.dart';
 import 'package:kaibigan_loan/src/core/network/api_client.dart';
 import 'package:kaibigan_loan/src/core/network/api_config.dart';
@@ -25,7 +25,7 @@ void main() {
 
   test('bootstraps ApiClient with native proxy before returning', () async {
     final adapter = _RecordingAdapter();
-    final store = DeviceInfoStore.memory();
+    final store = SessionStore.memory();
     TestDefaultBinaryMessengerBinding.instance.defaultBinaryMessenger
         .setMockMethodCallHandler(channel, (call) async {
           if (call.method == 'getPlatformInfo') {
@@ -46,14 +46,15 @@ void main() {
       apiConfig: ApiConfig(
         apiBaseUrl: 'https://api.example.test',
         clientBridge: ClientBridge(platform: ClientPlatform.ios),
-        deviceInfoStore: store,
+        sessionStore: store,
         randomDigitsProvider: (length) => '7' * length,
       ),
       dio: Dio()..httpClientAdapter = adapter,
-      deviceInfoStore: store,
+      sessionStore: store,
     );
 
     expect(Get.find<ApiClient>(), same(apiClient));
+    expect(ApiClient.instance, same(apiClient));
     expect(apiClient.proxyHost, isNull);
     expect(apiClient.proxyPort, isNull);
     expect(
@@ -69,7 +70,7 @@ void main() {
 
   test('does not return before native proxy lookup completes', () async {
     final completer = Completer<Map<String, Object?>>();
-    final store = DeviceInfoStore.memory();
+    final store = SessionStore.memory();
     TestDefaultBinaryMessengerBinding.instance.defaultBinaryMessenger
         .setMockMethodCallHandler(channel, (call) async {
           if (call.method == 'getPlatformInfo') {
@@ -88,8 +89,8 @@ void main() {
     final bootstrap =
         bootstrapApiClient(
           clientBridge: ClientBridge(platform: ClientPlatform.ios),
-          apiConfig: ApiConfig(deviceInfoStore: store),
-          deviceInfoStore: store,
+          apiConfig: ApiConfig(sessionStore: store),
+          sessionStore: store,
         ).then((apiClient) {
           bootstrapCompleted = true;
           return apiClient;

@@ -44,4 +44,22 @@ abstract final class AppColors {
   static const profileServiceBorder = Color(0xFFA2DDFF);
   static const profileServiceText = Color(0xFF333333);
   static const profileArrowTint = Color(0xFFE0EAE6);
+  static const settingLogoBackground = Color(0xFFD5D5D5);
+  static const settingLogoBorder = Color(0xFFC7DFED);
+  static const settingInfoPanel = Color(0xFFECECEC);
+  static const settingLabelText = Color(0xFFB2B2B2);
+  static const settingValueText = Color(0xFF333333);
+  static const settingDeactivateText = Color(0xFFA1A1A1);
+  static const settingDeactivateBorder = Color(0xFFE3E3E3);
+  static const loginPanel = Color(0xFF7BCFFF);
+  static const loginPanelBorder = Color(0xFFA2DDFF);
+  static const loginTitleText = Color(0xFF10425E);
+  static const loginFieldBackground = Color(0xFFFFFFFF);
+  static const loginInputText = Color(0xFF000000);
+  static const loginPlaceholderText = Color(0xFFC5C5C5);
+  static const loginDivider = Color(0xFFD8D8D8);
+  static const loginButtonDisabled = Color(0xFF668D9F);
+  static const loginButtonEnabled = Color(0xFFFFF275);
+  static const loginAgreementText = Color(0xFFFFFFFF);
+  static const loginAgreementLink = Color(0xFFFCD52F);
 }

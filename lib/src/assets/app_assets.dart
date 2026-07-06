@@ -23,4 +23,8 @@ abstract final class AppAssets {
   static const profileServiceOnline = 'assets/profile_service_online.png';
   static const profileServiceSetting = 'assets/profile_service_setting.png';
   static const profileServicePrivacy = 'assets/profile_service_privacy.png';
+  static const settingLogo = 'assets/setting_logo.png';
+  static const loginLogo = 'assets/login_logo.png';
+  static const loginBack = 'assets/login_back.png';
+  static const loginAgreementChecked = 'assets/login_agreement_checked.png';
 }

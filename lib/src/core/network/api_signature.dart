@@ -26,14 +26,15 @@ class ApiSignature {
 
   Future<Map<String, dynamic>> _commonParams() async {
     final platformInfo = await _getPlatformInfo();
-    final storedDeviceName = await config.deviceInfoStore.gyrofrequency();
+    final storedDeviceName = await config.sessionStore.gyrofrequency();
+    final bungee = await config.sessionStore.bungee();
     return <String, dynamic>{
       'hereat': platformInfo?.appVersion ?? '',
       'gyrofrequency': storedDeviceName,
       'uncurling': platformInfo?.deviceId ?? '',
       'wrongness': platformInfo?.systemVersion ?? '',
       'justing': 'appstore-ph-kaibigan-loan-ios',
-      'bungee': '',
+      'bungee': bungee,
       'killicks': platformInfo?.deviceId ?? '',
     };
   }

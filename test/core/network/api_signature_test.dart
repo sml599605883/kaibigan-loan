@@ -1,7 +1,7 @@
 import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:kaibigan_loan/src/core/client/client_bridge.dart';
-import 'package:kaibigan_loan/src/core/device/device_info_store.dart';
+import 'package:kaibigan_loan/src/core/session/session_store.dart';
 import 'package:kaibigan_loan/src/core/network/api_config.dart';
 import 'package:kaibigan_loan/src/core/network/api_signature.dart';
 
@@ -32,13 +32,17 @@ void main() {
             };
           });
 
-      final store = DeviceInfoStore.memory();
-      await store.save(gyrofrequency: 'iPhone X', entertainers: '375x812');
+      final store = SessionStore.memory();
+      await store.saveDeviceInfo(
+        gyrofrequency: 'iPhone X',
+        entertainers: '375x812',
+      );
+      await store.saveBungee('login-token');
 
       final config = ApiConfig(
         signatureSecret: 'secret',
         clientBridge: ClientBridge(platform: ClientPlatform.ios),
-        deviceInfoStore: store,
+        sessionStore: store,
         timestampProvider: () => 1700000000000,
       );
 
@@ -51,7 +55,7 @@ void main() {
       expect(query['uncurling'], 'idfv');
       expect(query['wrongness'], '17.0');
       expect(query['justing'], 'appstore-ph-kaibigan-loan-ios');
-      expect(query['bungee'], '');
+      expect(query['bungee'], 'login-token');
       expect(query['killicks'], 'idfv');
       expect(query['curveballed'], '1700000000000');
       expect(query['sublimers'], isNull);
@@ -66,7 +70,7 @@ void main() {
           'uncurling': 'idfv',
           'wrongness': '17.0',
           'justing': 'appstore-ph-kaibigan-loan-ios',
-          'bungee': '',
+          'bungee': 'login-token',
           'killicks': 'idfv',
           'curveballed': '1700000000000',
           'sublimers': '/v4/index/home-page',

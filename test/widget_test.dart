@@ -1,13 +1,21 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:get/get.dart';
 import 'package:kaibigan_loan/main.dart';
+import 'package:kaibigan_loan/src/core/session/session_store.dart';
 
 void main() {
+  tearDown(Get.reset);
+
   testWidgets('main shell renders three GetX tabs', (tester) async {
     tester.view.physicalSize = const Size(375, 812);
     tester.view.devicePixelRatio = 1;
     addTearDown(tester.view.resetPhysicalSize);
     addTearDown(tester.view.resetDevicePixelRatio);
+
+    final sessionStore = SessionStore.memory();
+    await sessionStore.setLoggedIn(true);
+    Get.put<SessionStore>(sessionStore);
 
     await tester.pumpWidget(const KaibiganLoanApp());
 
@@ -61,5 +69,16 @@ void main() {
     expect(find.text('Online Services'), findsOneWidget);
     expect(find.text('Setting'), findsOneWidget);
     expect(find.text('Privacy Agreement'), findsOneWidget);
+
+    await tester.tap(find.text('Setting'));
+    await tester.pumpAndSettle();
+
+    expect(find.text('Kaibigan Loan'), findsOneWidget);
+    expect(find.text('Website'), findsOneWidget);
+    expect(find.text('E-mail'), findsOneWidget);
+    expect(find.text('Version'), findsOneWidget);
+    expect(find.text('V1.1.1'), findsOneWidget);
+    expect(find.text('Deactivate Account'), findsOneWidget);
+    expect(find.text('Logout'), findsOneWidget);
   });
 }

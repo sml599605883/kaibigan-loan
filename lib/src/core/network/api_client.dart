@@ -3,6 +3,7 @@ import 'dart:io';
 
 import 'package:dio/dio.dart';
 import 'package:dio/io.dart';
+import 'package:get/get.dart' as getx;
 
 import '../json/json.dart';
 import 'api_config.dart';
@@ -19,6 +20,8 @@ class ApiClient {
       ..contentType = Headers.formUrlEncodedContentType
       ..validateStatus = (_) => true;
   }
+
+  static ApiClient get instance => getx.Get.find<ApiClient>();
 
   final ApiConfig config;
   final Dio dio;

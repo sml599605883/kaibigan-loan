@@ -1,11 +1,13 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:flutter_easyloading/flutter_easyloading.dart';
 import 'package:get/get.dart';
 
 import 'src/app_routes.dart';
 import 'src/core/network/api_bootstrap.dart';
 import 'src/modules/main/main_controller.dart';
 import 'src/theme/app_colors.dart';
+import 'src/utils/app_toast.dart';
 import 'src/utils/screen_adapter.dart';
 
 Future<void> main() async {
@@ -14,6 +16,7 @@ Future<void> main() async {
     DeviceOrientation.portraitUp,
   ]);
   await bootstrapApiClient();
+  configureAppToast();
   runApp(const KaibiganLoanApp());
 }
 
@@ -38,6 +41,14 @@ class KaibiganLoanApp extends StatelessWidget {
           defaultTransition: Transition.rightToLeft,
           transitionDuration: const Duration(milliseconds: 260),
           popGesture: false,
+          builder: (context, child) {
+            final easyLoadingChild = EasyLoading.init()(context, child);
+            return GestureDetector(
+              behavior: HitTestBehavior.translucent,
+              onTap: () => FocusManager.instance.primaryFocus?.unfocus(),
+              child: easyLoadingChild,
+            );
+          },
           theme: ThemeData(
             useMaterial3: true,
             scaffoldBackgroundColor: AppColors.appBackground,

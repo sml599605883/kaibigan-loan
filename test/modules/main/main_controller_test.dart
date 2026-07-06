@@ -9,10 +9,11 @@ import 'package:kaibigan_loan/main.dart';
 import 'package:kaibigan_loan/src/app_routes.dart';
 import 'package:kaibigan_loan/src/assets/app_assets.dart';
 import 'package:kaibigan_loan/src/core/client/client_bridge.dart';
-import 'package:kaibigan_loan/src/core/device/device_info_store.dart';
 import 'package:kaibigan_loan/src/core/network/api_client.dart';
 import 'package:kaibigan_loan/src/core/network/api_config.dart';
 import 'package:kaibigan_loan/src/core/network/api_endpoints.dart';
+import 'package:kaibigan_loan/src/core/session/session_store.dart';
+import 'package:kaibigan_loan/src/modules/main/main_controller.dart';
 
 void main() {
   TestWidgetsFlutterBinding.ensureInitialized();
@@ -21,6 +22,7 @@ void main() {
 
   late _RecordingAdapter adapter;
   late ApiClient apiClient;
+  late SessionStore sessionStore;
 
   setUp(() {
     Get.testMode = true;
@@ -35,16 +37,18 @@ void main() {
           };
         });
     adapter = _RecordingAdapter();
+    sessionStore = SessionStore.memory();
     apiClient = ApiClient(
       ApiConfig(
         apiBaseUrl: 'https://api.example.test',
         signatureSecret: 'secret',
         clientBridge: ClientBridge(platform: ClientPlatform.ios),
-        deviceInfoStore: DeviceInfoStore.memory(),
+        sessionStore: sessionStore,
         timestampProvider: () => 1700000000000,
       ),
       dio: Dio()..httpClientAdapter = adapter,
     );
+    Get.put<SessionStore>(sessionStore);
     Get.put<ApiClient>(apiClient);
   });
 
@@ -62,6 +66,8 @@ void main() {
     expect(adapter.homeRequestCount, 1);
     expect(adapter.dialogRequestCount, 1);
 
+    await sessionStore.setLoggedIn(true);
+
     await tester.tap(find.image(const AssetImage(AppAssets.ordersNormal)));
     await tester.pumpAndSettle();
 
@@ -73,6 +79,19 @@ void main() {
 
     expect(adapter.homeRequestCount, 2);
     expect(adapter.dialogRequestCount, 2);
+  });
+
+  testWidgets('redirects unauthenticated tab taps to login page', (
+    tester,
+  ) async {
+    await _pumpApp(tester);
+
+    await tester.tap(find.image(const AssetImage(AppAssets.ordersNormal)));
+    await tester.pumpAndSettle();
+
+    expect(Get.currentRoute, AppRoutes.login);
+    expect(find.text('Hi!  Welcome'), findsOneWidget);
+    expect(Get.find<MainController>().selectedIndex.value, 0);
   });
 
   testWidgets('pull to refresh requests home page and dialog', (tester) async {
@@ -242,12 +261,81 @@ void main() {
     );
   });
 
+  testWidgets('renders order status from process list module', (tester) async {
+    adapter.homePayload = {
+      'religiosities': [
+        {
+          'commensurate': 'PROCESS_LIST',
+          'anchovetta': [
+            {
+              'cabdrivers': 'order-1',
+              'macromeres': 'Kaibigan Loan',
+              'ecumenicalism': '₱ 20,000',
+              'origin_end_time': '2026/05/06',
+              'fictitiousness': 'Past Due',
+              'dismasts': 'https://h5.example.test/order',
+            },
+          ],
+        },
+      ],
+    };
+
+    await _pumpApp(tester);
+
+    expect(find.byKey(const ValueKey('home_order_status_section')), findsOne);
+    expect(find.text('Order Status'), findsOne);
+    expect(find.text('Kaibigan Loan'), findsOne);
+    expect(find.text('₱ 20,000'), findsOne);
+    expect(find.text('2026/05/06'), findsOne);
+    expect(find.text('Past Due'), findsOne);
+    expect(find.text('Repay'), findsOne);
+  });
+
+  testWidgets('renders recommendation products from product list module', (
+    tester,
+  ) async {
+    adapter.homePayload = {
+      'religiosities': [
+        {
+          'commensurate': 'PRODUCT_LIST',
+          'anchovetta': [
+            {
+              'geobotanists': 'product-1',
+              'omissible': 'Kaibigan Loan',
+              'ghillies': '₱ 20,000',
+              'mainlined': '180 Days',
+              'pulpit': '≤ 0.5% / Day',
+            },
+            {
+              'geobotanists': 'product-2',
+              'omissible': 'Partner Loan',
+              'ghillies': '₱ 30,000',
+              'mainlined': '120 Days',
+              'pulpit': '≤ 0.4% / Day',
+            },
+          ],
+        },
+      ],
+    };
+
+    await _pumpApp(tester);
+
+    expect(find.byKey(const ValueKey('home_recommendation_section')), findsOne);
+    expect(find.text('Recommendation'), findsOne);
+    expect(find.text('Kaibigan Loan'), findsOne);
+    expect(find.text('Partner Loan'), findsOne);
+    expect(find.text('₱ 20,000'), findsOne);
+    expect(find.text('₱ 30,000'), findsOne);
+    expect(find.text('180 Days'), findsOne);
+    expect(find.text('≤ 0.4% / Day'), findsOne);
+  });
+
   testWidgets('requests home page and dialog after returning to visible home', (
     tester,
   ) async {
     await _pumpApp(tester);
 
-    await tester.tap(find.text('Apply Now'));
+    await tester.tap(find.byKey(const ValueKey('home_loan_card')));
     await tester.pumpAndSettle();
     expect(Get.currentRoute, AppRoutes.detail);
 
@@ -271,6 +359,7 @@ void main() {
     expect(adapter.homeRequestCount, 2);
     expect(adapter.dialogRequestCount, 2);
 
+    await sessionStore.setLoggedIn(true);
     await tester.tap(find.image(const AssetImage(AppAssets.ordersNormal)));
     await tester.pumpAndSettle();
     tester.binding.handleAppLifecycleStateChanged(AppLifecycleState.paused);

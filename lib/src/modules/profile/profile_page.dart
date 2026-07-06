@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
+import 'package:get/get.dart';
 
+import '../../app_routes.dart';
 import '../../assets/app_assets.dart';
 import '../../theme/app_colors.dart';
 import '../../utils/screen_adapter.dart';
@@ -169,6 +171,7 @@ class _ServiceSection extends StatelessWidget {
       asset: AppAssets.profileServiceSetting,
       iconWidth: 17,
       iconHeight: 18,
+      routeName: AppRoutes.setting,
     ),
     _ServiceItemData(
       title: 'Privacy Agreement',
@@ -222,10 +225,12 @@ class _ServiceListItem extends StatelessWidget {
       color: Colors.transparent,
       child: InkWell(
         borderRadius: screen.borderRadiusAll(20),
-        onTap: () {},
+        onTap: data.routeName == null
+            ? null
+            : () => Get.toNamed<void>(data.routeName!),
         child: Ink(
           height: screen.h(42),
-          padding: screen.edgeInsetsFromLTRB(27, 12, 23, 11),
+          padding: screen.edgeInsetsFromLTRB(13, 12, 13, 11),
           decoration: BoxDecoration(
             color: AppColors.tabBackground,
             borderRadius: screen.borderRadiusAll(20),
@@ -243,7 +248,7 @@ class _ServiceListItem extends StatelessWidget {
                   ),
                 ),
               ),
-              SizedBox(width: screen.w(30)),
+              SizedBox(width: screen.w(14)),
               Expanded(
                 child: Text(
                   data.title,
@@ -257,10 +262,10 @@ class _ServiceListItem extends StatelessWidget {
                   ),
                 ),
               ),
-              Icon(
-                Icons.arrow_forward_rounded,
-                color: AppColors.profileArrowTint,
-                size: screen.r(28),
+              Image.asset(
+                AppAssets.arrowRight,
+                width: screen.w(16),
+                height: screen.h(12),
               ),
             ],
           ),
@@ -276,10 +281,12 @@ class _ServiceItemData {
     required this.asset,
     required this.iconWidth,
     required this.iconHeight,
+    this.routeName,
   });
 
   final String title;
   final String asset;
   final double iconWidth;
   final double iconHeight;
+  final String? routeName;
 }

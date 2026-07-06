@@ -39,6 +39,7 @@ dependencies:
   encrypt: ^5.0.3
   get: ^4.7.3
   shared_preferences: ^2.5.5
+  flutter_easyloading: ^3.0.5
 
 dev_dependencies:
   flutter_test:

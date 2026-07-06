@@ -7,7 +7,9 @@ import 'main_controller.dart';
 import 'widgets/home_header.dart';
 import 'widgets/loan_card.dart';
 import 'widgets/loan_process_section.dart';
+import 'widgets/order_status_section.dart';
 import 'widgets/promo_banner.dart';
+import 'widgets/recommendation_section.dart';
 
 class HomePage extends StatelessWidget {
   const HomePage({super.key});
@@ -26,7 +28,11 @@ class HomePage extends StatelessWidget {
           const LoanCard(),
           SizedBox(height: 20.h),
           const PromoBanner(),
-          SizedBox(height: 28.h),
+          SizedBox(height: 32.h),
+          const OrderStatusSection(),
+          SizedBox(height: 32.h),
+          const RecommendationSection(),
+          SizedBox(height: 12.h),
           const LoanProcessSection(),
         ],
       ),

@@ -11,29 +11,39 @@ class LoanCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Container(
-      key: const ValueKey('home_loan_card'),
-      width: double.infinity,
-      decoration: const BoxDecoration(
-        image: DecorationImage(
-          image: AssetImage(AppAssets.homeLoanCardBackground),
-          fit: BoxFit.scaleDown,
-          alignment: Alignment.topCenter,
-        ),
-      ),
-      child: Padding(
-        padding: EdgeInsets.only(top: 119.w),
-        child: Column(
-          children: [
-            const _AmountPanel(),
-            SizedBox(height: 21.w),
-            const _LoanFacts(),
-            SizedBox(height: 19.w),
-            Padding(
-              padding: EdgeInsets.symmetric(horizontal: 60.w),
-              child: _ApplyButton(onTap: () => Get.toNamed(AppRoutes.detail)),
+    void openDetail() => Get.toNamed(AppRoutes.detail);
+
+    return Semantics(
+      button: true,
+      label: 'Apply Now',
+      child: GestureDetector(
+        behavior: HitTestBehavior.opaque,
+        onTap: openDetail,
+        child: Container(
+          key: const ValueKey('home_loan_card'),
+          width: double.infinity,
+          decoration: const BoxDecoration(
+            image: DecorationImage(
+              image: AssetImage(AppAssets.homeLoanCardBackground),
+              fit: BoxFit.scaleDown,
+              alignment: Alignment.topCenter,
             ),
-          ],
+          ),
+          child: Padding(
+            padding: EdgeInsets.only(top: 119.w),
+            child: Column(
+              children: [
+                const _AmountPanel(),
+                SizedBox(height: 21.w),
+                const _LoanFacts(),
+                SizedBox(height: 19.w),
+                Padding(
+                  padding: EdgeInsets.symmetric(horizontal: 60.w),
+                  child: _ApplyButton(onTap: openDetail),
+                ),
+              ],
+            ),
+          ),
         ),
       ),
     );

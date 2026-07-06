@@ -1,7 +1,7 @@
 import 'package:shared_preferences/shared_preferences.dart';
 
 import '../client/client_bridge.dart';
-import '../device/device_info_store.dart';
+import '../session/session_store.dart';
 
 typedef AuthExpiredHandler = Future<void> Function();
 typedef TimestampProvider = int Function();
@@ -16,12 +16,12 @@ class ApiConfig {
     this.encryptKey = 'c1a4f87da09bab88',
     this.encryptIv = 'e250269f537f3f9b',
     ClientBridge? clientBridge,
-    DeviceInfoStore? deviceInfoStore,
+    SessionStore? sessionStore,
     this.authExpiredHandler,
     this.timestampProvider,
     this.randomDigitsProvider,
   }) : clientBridge = clientBridge ?? ClientBridge(),
-       _deviceInfoStore = deviceInfoStore;
+       _sessionStore = sessionStore;
 
   String apiBaseUrl;
   String webBaseUrl;
@@ -30,12 +30,12 @@ class ApiConfig {
   String encryptKey;
   String encryptIv;
   ClientBridge clientBridge;
-  DeviceInfoStore? _deviceInfoStore;
+  SessionStore? _sessionStore;
   AuthExpiredHandler? authExpiredHandler;
   TimestampProvider? timestampProvider;
   RandomDigitsProvider? randomDigitsProvider;
 
-  DeviceInfoStore get deviceInfoStore {
-    return _deviceInfoStore ??= DeviceInfoStore(SharedPreferencesAsync());
+  SessionStore get sessionStore {
+    return _sessionStore ??= SessionStore(SharedPreferencesAsync());
   }
 }

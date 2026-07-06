@@ -4,7 +4,7 @@ import 'dart:io';
 import 'package:dio/dio.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:kaibigan_loan/src/core/client/client_bridge.dart';
-import 'package:kaibigan_loan/src/core/device/device_info_store.dart';
+import 'package:kaibigan_loan/src/core/session/session_store.dart';
 import 'package:kaibigan_loan/src/core/network/api_client.dart';
 import 'package:kaibigan_loan/src/core/network/api_config.dart';
 
@@ -19,7 +19,7 @@ void main() {
         apiBaseUrl: 'https://api.example.test',
         signatureSecret: 'secret',
         clientBridge: _FakeClientBridge(),
-        deviceInfoStore: DeviceInfoStore.memory(),
+        sessionStore: SessionStore.memory(),
         timestampProvider: () => 1700000000000,
         randomDigitsProvider: (length) => '7' * length,
       ),
@@ -340,7 +340,7 @@ void main() {
       ApiConfig(
         apiBaseUrl: 'http://127.0.0.1:${targetServer.port}',
         signatureSecret: 'secret',
-        deviceInfoStore: DeviceInfoStore.memory(),
+        sessionStore: SessionStore.memory(),
       ),
     )..setProxy(host: '127.0.0.1', port: proxyServer.port);
 
@@ -388,7 +388,7 @@ void main() {
       ApiConfig(
         apiBaseUrl: 'http://127.0.0.1:${targetServer.port}',
         signatureSecret: 'secret',
-        deviceInfoStore: DeviceInfoStore.memory(),
+        sessionStore: SessionStore.memory(),
       ),
     );
 

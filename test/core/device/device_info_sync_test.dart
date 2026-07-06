@@ -3,7 +3,7 @@ import 'dart:convert';
 import 'package:dio/dio.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:kaibigan_loan/src/core/client/client_bridge.dart';
-import 'package:kaibigan_loan/src/core/device/device_info_store.dart';
+import 'package:kaibigan_loan/src/core/session/session_store.dart';
 import 'package:kaibigan_loan/src/core/device/device_info_sync.dart';
 import 'package:kaibigan_loan/src/core/network/api_client.dart';
 import 'package:kaibigan_loan/src/core/network/api_config.dart';
@@ -11,19 +11,19 @@ import 'package:kaibigan_loan/src/core/network/api_endpoints.dart';
 
 void main() {
   late _RecordingAdapter adapter;
-  late DeviceInfoStore store;
+  late SessionStore store;
   late DeviceInfoSync sync;
 
   setUp(() async {
     adapter = _RecordingAdapter();
-    store = DeviceInfoStore.memory();
+    store = SessionStore.memory();
     sync = DeviceInfoSync(
       apiClient: ApiClient(
         ApiConfig(
           apiBaseUrl: 'https://api.example.test',
           signatureSecret: 'secret',
           clientBridge: _FakeClientBridge(),
-          deviceInfoStore: store,
+          sessionStore: store,
           timestampProvider: () => 1700000000000,
           randomDigitsProvider: (length) => '7' * length,
         ),

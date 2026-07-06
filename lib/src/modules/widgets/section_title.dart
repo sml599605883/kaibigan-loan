@@ -25,11 +25,14 @@ class AppSectionTitle extends StatelessWidget {
           ),
         ),
         SizedBox(width: screen.w(22)),
-        Image.asset(
-          AppAssets.titleLine,
-          width: screen.w(84),
-          height: screen.h(8),
-          fit: BoxFit.fill,
+        Flexible(
+          child: Image.asset(
+            AppAssets.titleLine,
+            width: screen.w(84),
+            height: screen.h(8),
+            fit: BoxFit.fill,
+            alignment: Alignment.centerLeft,
+          ),
         ),
       ],
     );
