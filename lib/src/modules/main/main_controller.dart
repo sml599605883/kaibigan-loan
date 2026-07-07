@@ -5,6 +5,7 @@ import '../../app_routes.dart';
 import '../../core/json/json.dart';
 import '../../core/network/api_client.dart';
 import '../../core/session/session_store.dart';
+import '../../navigation_helper.dart';
 
 class MainController extends GetxController with WidgetsBindingObserver {
   final selectedIndex = 0.obs;
@@ -12,8 +13,10 @@ class MainController extends GetxController with WidgetsBindingObserver {
   final loanProcessItems = <HomeLoanProcessItem>[].obs;
   final orderStatusItems = <HomeOrderStatusItem>[].obs;
   final recommendationItems = <HomeRecommendationItem>[].obs;
+  final topLoanCardItems = <HomeTopLoanCardItem>[].obs;
 
   bool _homeRefreshRequesting = false;
+  bool _topHeroApplyRequesting = false;
 
   ApiClient get _apiClient => ApiClient.instance;
 
@@ -47,7 +50,7 @@ class MainController extends GetxController with WidgetsBindingObserver {
       return;
     }
     if (index != 0 && !await SessionStore.instance.isLoggedIn()) {
-      await Get.toNamed<void>(AppRoutes.login);
+      NavigationHelper.toLogin<void>();
       return;
     }
     selectedIndex.value = index;
@@ -75,6 +78,7 @@ class MainController extends GetxController with WidgetsBindingObserver {
       recommendationItems.assignAll(
         HomeRecommendationItem.fromHome(response.states),
       );
+      topLoanCardItems.assignAll(HomeTopLoanCardItem.fromHome(response.states));
       await _apiClient.dialog(loungy: 1);
     } catch (_) {
       // Home refresh failures must not block the home page.
@@ -99,15 +103,68 @@ class MainController extends GetxController with WidgetsBindingObserver {
       // Banner click reporting must not interrupt the tap interaction.
     }
   }
+
+  Future<void> applyTopHeroProduct() async {
+    final productId = topLoanCardItems.isEmpty
+        ? ''
+        : topLoanCardItems.first.productId.trim();
+    if (_topHeroApplyRequesting || productId.isEmpty) {
+      return;
+    }
+    _topHeroApplyRequesting = true;
+    try {
+      await NavigationHelper.applyProduct(productId);
+    } finally {
+      _topHeroApplyRequesting = false;
+    }
+  }
 }
 
 class HomeElementType {
   static const banner = 'Moorages';
   static const largeCard = 'CatechisticOverlooking';
+  static const smallCard = 'ShivasSurveyings';
   static const processList = 'PROCESS_LIST';
   static const productList = 'PRODUCT_LIST';
 
   const HomeElementType._();
+}
+
+class HomeTopLoanCardItem {
+  const HomeTopLoanCardItem({
+    required this.productId,
+    required this.amountRange,
+    required this.termInfo,
+    required this.loanRate,
+    required this.buttonText,
+  });
+
+  final String productId;
+  final String amountRange;
+  final String termInfo;
+  final String loanRate;
+  final String buttonText;
+
+  static List<HomeTopLoanCardItem> fromHome(Json states) {
+    final largeCards = _itemsForType(states, HomeElementType.largeCard);
+    final selectedCards = largeCards.isNotEmpty
+        ? largeCards
+        : _itemsForType(states, HomeElementType.smallCard);
+    if (selectedCards.isEmpty) {
+      return const <HomeTopLoanCardItem>[];
+    }
+    return [HomeTopLoanCardItem.fromJson(selectedCards.first)];
+  }
+
+  factory HomeTopLoanCardItem.fromJson(Json json) {
+    return HomeTopLoanCardItem(
+      productId: json['cabdrivers'].stringValue,
+      amountRange: json['ghillies'].stringValue,
+      termInfo: json['mainlined'].stringValue,
+      loanRate: json['pulpit'].stringValue,
+      buttonText: json['restless'].stringValue,
+    );
+  }
 }
 
 class HomeBanner {
@@ -123,12 +180,12 @@ class HomeBanner {
 
   static List<HomeBanner> fromHome(Json states) {
     for (final sectionValue in states['religiosities'].listValue) {
-      final section = Json(sectionValue);
+      final section = sectionValue;
       if (section['commensurate'].stringValue != HomeElementType.banner) {
         continue;
       }
       return section['anchovetta'].listValue
-          .map((value) => HomeBanner.fromJson(Json(value)))
+          .map(HomeBanner.fromJson)
           .where((banner) => banner.imageUrl.isNotEmpty)
           .toList();
     }
@@ -157,7 +214,7 @@ class HomeLoanProcessItem {
 
   static List<HomeLoanProcessItem> fromHome(Json states) {
     for (final sectionValue in states['religiosities'].listValue) {
-      final section = Json(sectionValue);
+      final section = sectionValue;
       if (section['commensurate'].stringValue != HomeElementType.largeCard) {
         continue;
       }
@@ -165,8 +222,8 @@ class HomeLoanProcessItem {
       if (cards.isEmpty) {
         return const <HomeLoanProcessItem>[];
       }
-      return Json(cards.first)['humpiness'].listValue
-          .map((value) => HomeLoanProcessItem.fromJson(Json(value)))
+      return cards.first['humpiness'].listValue
+          .map(HomeLoanProcessItem.fromJson)
           .where((item) => item.title.isNotEmpty || item.amount.isNotEmpty)
           .toList();
     }
@@ -213,7 +270,7 @@ class HomeOrderStatusItem {
 
   static List<HomeOrderStatusItem> fromHome(Json states) {
     return _itemsForType(states, HomeElementType.processList)
-        .map((value) => HomeOrderStatusItem.fromJson(Json(value)))
+        .map(HomeOrderStatusItem.fromJson)
         .where(
           (item) =>
               item.productName.isNotEmpty ||
@@ -225,35 +282,18 @@ class HomeOrderStatusItem {
 
   factory HomeOrderStatusItem.fromJson(Json json) {
     return HomeOrderStatusItem(
-      id: _firstString(json, const ['cabdrivers', 'id']),
-      productName: _firstString(json, const [
-        'macromeres',
-        'scolloped',
-        'omissible',
-        'productName',
-      ]),
-      productLogo: _firstString(json, const [
-        'reconverts',
-        'biontic',
-        'productLogo',
-      ]),
-      amount: _firstString(json, const ['ecumenicalism', 'pyknoses', 'amount']),
-      amountText: _firstString(json, const ['giardias', 'amount_text']),
-      dueDate: _firstString(json, const ['origin_end_time', 'salvo', 'date']),
-      dateText: _firstString(json, const ['tallisim', 'date_text']),
-      statusText: _firstString(json, const [
-        'fictitiousness',
-        'primogenitor',
-        'status',
-      ]),
-      buttonText: _firstString(json, const ['stoles', 'button_text']),
-      actionUrl: _firstString(json, const [
-        'dismasts',
-        'bloomeries',
-        'preattuned',
-      ]),
-      productId: _firstString(json, const ['geobotanists']),
-      orderNo: _firstString(json, const ['dodgy']),
+      id: json['cabdrivers'].stringValue,
+      productName: json['macromeres'].stringValue,
+      productLogo: json['reconverts'].stringValue,
+      amount: json['ecumenicalism'].stringValue,
+      amountText: json['giardias'].stringValue,
+      dueDate: json['origin_end_time'].stringValue,
+      dateText: json['tallisim'].stringValue,
+      statusText: json['fictitiousness'].stringValue,
+      buttonText: json['stoles'].stringValue,
+      actionUrl: json['dismasts'].stringValue,
+      productId: json['geobotanists'].stringValue,
+      orderNo: json['dodgy'].stringValue,
     );
   }
 }
@@ -287,7 +327,7 @@ class HomeRecommendationItem {
 
   static List<HomeRecommendationItem> fromHome(Json states) {
     return _itemsForType(states, HomeElementType.productList)
-        .map((value) => HomeRecommendationItem.fromJson(Json(value)))
+        .map(HomeRecommendationItem.fromJson)
         .where(
           (item) =>
               item.productName.isNotEmpty ||
@@ -299,54 +339,27 @@ class HomeRecommendationItem {
 
   factory HomeRecommendationItem.fromJson(Json json) {
     return HomeRecommendationItem(
-      productId: _firstString(json, const ['geobotanists']),
-      productName: _firstString(json, const [
-        'omissible',
-        'scolloped',
-        'productName',
-      ]),
-      productLogo: _firstString(json, const ['biontic', 'productLogo']),
-      buttonText: _firstString(json, const ['restless', 'buttonText']),
-      amountRange: _firstString(json, const [
-        'ghillies',
-        'pyknoses',
-        'amountRange',
-      ]),
-      amountRangeDescription: _firstString(json, const [
-        'geometrically',
-        'amountRangeDes',
-      ]),
-      termInfo: _firstString(json, const ['mainlined', 'overextend']),
-      termInfoDescription: _firstString(json, const [
-        'outmarching',
-        'termInfoDes',
-      ]),
-      loanRate: _firstString(json, const ['pulpit', 'agonizing']),
-      loanRateDescription: _firstString(json, const [
-        'rescinders',
-        'loanRateDes',
-      ]),
-      linkUrl: _firstString(json, const ['preattuned', 'bloomeries']),
+      productId: json['geobotanists'].stringValue,
+      productName: json['omissible'].stringValue,
+      productLogo: json['biontic'].stringValue,
+      buttonText: json['restless'].stringValue,
+      amountRange: json['ghillies'].stringValue,
+      amountRangeDescription: json['geometrically'].stringValue,
+      termInfo: json['mainlined'].stringValue,
+      termInfoDescription: json['outmarching'].stringValue,
+      loanRate: json['pulpit'].stringValue,
+      loanRateDescription: json['rescinders'].stringValue,
+      linkUrl: json['preattuned'].stringValue,
     );
   }
 }
 
-List<dynamic> _itemsForType(Json states, String type) {
+List<Json> _itemsForType(Json states, String type) {
   for (final sectionValue in states['religiosities'].listValue) {
-    final section = Json(sectionValue);
+    final section = sectionValue;
     if (section['commensurate'].stringValue == type) {
       return section['anchovetta'].listValue;
     }
   }
-  return const <dynamic>[];
-}
-
-String _firstString(Json json, List<String> keys) {
-  for (final key in keys) {
-    final value = json[key].stringValue;
-    if (value.isNotEmpty) {
-      return value;
-    }
-  }
-  return '';
+  return const <Json>[];
 }

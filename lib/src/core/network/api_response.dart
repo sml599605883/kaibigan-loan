@@ -21,7 +21,7 @@ class ApiResponse {
 
   static ApiResponse fromRaw(dynamic raw) {
     final json = Json(raw);
-    final map = json.mapOrNull;
+    final map = json.rawMapOrNull;
     if (map == null) {
       return ApiResponse(
         code: invalidFormatCode,

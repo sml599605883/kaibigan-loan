@@ -14,6 +14,7 @@ import 'package:kaibigan_loan/src/core/network/api_config.dart';
 import 'package:kaibigan_loan/src/core/network/api_endpoints.dart';
 import 'package:kaibigan_loan/src/core/session/session_store.dart';
 import 'package:kaibigan_loan/src/modules/main/main_controller.dart';
+import 'package:kaibigan_loan/src/utils/app_toast.dart';
 
 void main() {
   TestWidgetsFlutterBinding.ensureInitialized();
@@ -23,6 +24,7 @@ void main() {
   late _RecordingAdapter adapter;
   late ApiClient apiClient;
   late SessionStore sessionStore;
+  late _RecordingToastPresenter toastPresenter;
 
   setUp(() {
     Get.testMode = true;
@@ -37,6 +39,8 @@ void main() {
           };
         });
     adapter = _RecordingAdapter();
+    toastPresenter = _RecordingToastPresenter();
+    AppToast.presenter = toastPresenter;
     sessionStore = SessionStore.memory();
     apiClient = ApiClient(
       ApiConfig(
@@ -55,6 +59,7 @@ void main() {
   tearDown(() {
     TestDefaultBinaryMessengerBinding.instance.defaultBinaryMessenger
         .setMockMethodCallHandler(channel, null);
+    AppToast.presenter = const EasyLoadingToastPresenter();
     Get.reset();
   });
 
@@ -330,11 +335,182 @@ void main() {
     expect(find.text('≤ 0.4% / Day'), findsOne);
   });
 
-  testWidgets('requests home page and dialog after returning to visible home', (
+  testWidgets('applies recommendation product on card tap', (tester) async {
+    adapter.homePayload = {
+      'religiosities': [
+        {
+          'commensurate': 'PRODUCT_LIST',
+          'anchovetta': [
+            {
+              'geobotanists': 'product-1',
+              'omissible': 'Kaibigan Loan',
+              'ghillies': '₱ 20,000',
+              'mainlined': '180 Days',
+              'pulpit': '≤ 0.5% / Day',
+            },
+          ],
+        },
+      ],
+    };
+
+    await _pumpApp(tester);
+
+    await tester.tap(
+      find.byKey(const ValueKey('home_recommendation_product-1')),
+    );
+    await tester.pumpAndSettle();
+
+    expect(adapter.productApplyRequestCount, 1);
+    expect(adapter.productDetailRequestCount, 1);
+    expect(adapter.lastProductApplyId, 'product-1');
+    expect(Get.currentRoute, AppRoutes.detail);
+    expect(Get.arguments, {
+      'geobotanists': 'product-1',
+      'scolloped': 'Kaibigan Loan',
+    });
+  });
+
+  testWidgets('applies top hero product on loan card tap', (tester) async {
+    adapter.homePayload = {
+      'religiosities': [
+        {
+          'commensurate': 'CatechisticOverlooking',
+          'anchovetta': [
+            {
+              'cabdrivers': 'hero-product',
+              'humpiness': <Map<String, dynamic>>[],
+            },
+          ],
+        },
+      ],
+    };
+
+    await _pumpApp(tester);
+
+    await tester.tap(find.byKey(const ValueKey('home_loan_card')));
+    await tester.pumpAndSettle();
+
+    expect(adapter.productApplyRequestCount, 1);
+    expect(adapter.productDetailRequestCount, 1);
+    expect(adapter.lastProductApplyId, 'hero-product');
+    expect(Get.currentRoute, AppRoutes.detail);
+    expect(Get.arguments, {
+      'geobotanists': 'hero-product',
+      'scolloped': 'Kaibigan Loan',
+    });
+  });
+
+  testWidgets('top loan card prefers large card over small card', (
+    tester,
+  ) async {
+    adapter.homePayload = {
+      'religiosities': [
+        {
+          'commensurate': 'ShivasSurveyings',
+          'anchovetta': [
+            {
+              'cabdrivers': 'small-product',
+              'ghillies': '₱ 10,000',
+              'mainlined': '90 Days',
+              'pulpit': '≤ 0.9% / Day',
+              'restless': 'Small Apply',
+            },
+          ],
+        },
+        {
+          'commensurate': 'CatechisticOverlooking',
+          'anchovetta': [
+            {
+              'cabdrivers': 'large-product',
+              'ghillies': '₱ 80,000',
+              'mainlined': '210 Days',
+              'pulpit': '≤ 0.2% / Day',
+              'restless': 'Large Apply',
+            },
+          ],
+        },
+      ],
+    };
+
+    await _pumpApp(tester);
+
+    expect(find.text('₱ 80,000'), findsOneWidget);
+    expect(find.text('210 Days'), findsOneWidget);
+    expect(find.text('≤ 0.2% / Day'), findsOneWidget);
+    expect(find.text('Large Apply'), findsOneWidget);
+    expect(find.text('₱ 10,000'), findsNothing);
+
+    await tester.tap(find.byKey(const ValueKey('home_loan_card')));
+    await tester.pumpAndSettle();
+
+    expect(adapter.lastProductApplyId, 'large-product');
+  });
+
+  testWidgets(
+    'top loan card falls back to small card when large card is absent',
+    (tester) async {
+      adapter.homePayload = {
+        'religiosities': [
+          {
+            'commensurate': 'ShivasSurveyings',
+            'anchovetta': [
+              {
+                'cabdrivers': 'small-product',
+                'ghillies': '₱ 12,000',
+                'mainlined': '100 Days',
+                'pulpit': '≤ 0.8% / Day',
+                'restless': 'Small Apply',
+              },
+            ],
+          },
+        ],
+      };
+
+      await _pumpApp(tester);
+
+      expect(find.text('₱ 12,000'), findsOneWidget);
+      expect(find.text('100 Days'), findsOneWidget);
+      expect(find.text('≤ 0.8% / Day'), findsOneWidget);
+      expect(find.text('Small Apply'), findsOneWidget);
+
+      await tester.tap(find.byKey(const ValueKey('home_loan_card')));
+      await tester.pumpAndSettle();
+
+      expect(adapter.lastProductApplyId, 'small-product');
+    },
+  );
+
+  testWidgets('ignores top hero tap when large card product id is empty', (
     tester,
   ) async {
     await _pumpApp(tester);
 
+    await tester.tap(find.byKey(const ValueKey('home_loan_card')));
+    await tester.pumpAndSettle();
+
+    expect(adapter.productApplyRequestCount, 0);
+    expect(adapter.productDetailRequestCount, 0);
+    expect(Get.currentRoute, AppRoutes.main);
+  });
+
+  testWidgets('requests home page and dialog after returning to visible home', (
+    tester,
+  ) async {
+    adapter.homePayload = {
+      'religiosities': [
+        {
+          'commensurate': 'CatechisticOverlooking',
+          'anchovetta': [
+            {
+              'cabdrivers': 'hero-product',
+              'humpiness': <Map<String, dynamic>>[],
+            },
+          ],
+        },
+      ],
+    };
+
+    await _pumpApp(tester);
     await tester.tap(find.byKey(const ValueKey('home_loan_card')));
     await tester.pumpAndSettle();
     expect(Get.currentRoute, AppRoutes.detail);
@@ -385,7 +561,10 @@ class _RecordingAdapter implements HttpClientAdapter {
   int homeRequestCount = 0;
   int dialogRequestCount = 0;
   int bannerClickRecordCount = 0;
+  int productApplyRequestCount = 0;
+  int productDetailRequestCount = 0;
   String? lastBannerId;
+  String? lastProductApplyId;
   Map<String, dynamic> homePayload = <String, dynamic>{};
 
   @override
@@ -410,6 +589,44 @@ class _RecordingAdapter implements HttpClientAdapter {
           ? options.data['mesial'] as String?
           : null;
     }
+    if (options.path ==
+        'https://api.example.test${ApiEndpoints.productApply}') {
+      productApplyRequestCount++;
+      lastProductApplyId = options.data is Map
+          ? options.data['geobotanists'] as String?
+          : null;
+      return ResponseBody.fromString(
+        jsonEncode({
+          'griding': 0,
+          'organizational': 'success',
+          'fas': <String, dynamic>{'threats': 200},
+        }),
+        200,
+        headers: {
+          Headers.contentTypeHeader: [Headers.jsonContentType],
+        },
+      );
+    }
+    if (options.path ==
+        'https://api.example.test${ApiEndpoints.productDetail}') {
+      productDetailRequestCount++;
+      return ResponseBody.fromString(
+        jsonEncode({
+          'griding': 0,
+          'organizational': 'success',
+          'fas': {
+            'geobotanists': options.data is Map
+                ? options.data['geobotanists']
+                : '',
+            'scolloped': 'Kaibigan Loan',
+          },
+        }),
+        200,
+        headers: {
+          Headers.contentTypeHeader: [Headers.jsonContentType],
+        },
+      );
+    }
     return ResponseBody.fromString(
       jsonEncode({
         'griding': 0,
@@ -422,4 +639,15 @@ class _RecordingAdapter implements HttpClientAdapter {
       },
     );
   }
+}
+
+class _RecordingToastPresenter implements ToastPresenter {
+  @override
+  Future<void> show(String message, {required bool isError}) async {}
+
+  @override
+  Future<void> showLoading(String? message) async {}
+
+  @override
+  Future<void> dismissLoading() async {}
 }

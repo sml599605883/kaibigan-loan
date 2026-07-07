@@ -1,24 +1,33 @@
 import 'package:flutter/material.dart';
-import 'package:get/get.dart';
 
-import '../../../app_routes.dart';
 import '../../../assets/app_assets.dart';
 import '../../../theme/app_colors.dart';
 import '../../../utils/screen_adapter.dart';
 
 class LoanCard extends StatelessWidget {
-  const LoanCard({super.key});
+  const LoanCard({
+    super.key,
+    required this.onApply,
+    this.amountRange = '₱ 60,000',
+    this.termInfo = '91-180 Days',
+    this.loanRate = '≤ 0.05% / Day',
+    this.buttonText = 'Apply Now',
+  });
+
+  final VoidCallback onApply;
+  final String amountRange;
+  final String termInfo;
+  final String loanRate;
+  final String buttonText;
 
   @override
   Widget build(BuildContext context) {
-    void openDetail() => Get.toNamed(AppRoutes.detail);
-
     return Semantics(
       button: true,
       label: 'Apply Now',
       child: GestureDetector(
         behavior: HitTestBehavior.opaque,
-        onTap: openDetail,
+        onTap: onApply,
         child: Container(
           key: const ValueKey('home_loan_card'),
           width: double.infinity,
@@ -33,13 +42,13 @@ class LoanCard extends StatelessWidget {
             padding: EdgeInsets.only(top: 119.w),
             child: Column(
               children: [
-                const _AmountPanel(),
+                _AmountPanel(amountRange: amountRange),
                 SizedBox(height: 21.w),
-                const _LoanFacts(),
+                _LoanFacts(termInfo: termInfo, loanRate: loanRate),
                 SizedBox(height: 19.w),
                 Padding(
                   padding: EdgeInsets.symmetric(horizontal: 60.w),
-                  child: _ApplyButton(onTap: openDetail),
+                  child: _ApplyButton(onTap: onApply, buttonText: buttonText),
                 ),
               ],
             ),
@@ -51,7 +60,9 @@ class LoanCard extends StatelessWidget {
 }
 
 class _AmountPanel extends StatelessWidget {
-  const _AmountPanel();
+  const _AmountPanel({required this.amountRange});
+
+  final String amountRange;
 
   @override
   Widget build(BuildContext context) {
@@ -79,7 +90,7 @@ class _AmountPanel extends StatelessWidget {
             child: FittedBox(
               fit: BoxFit.scaleDown,
               child: Text(
-                '₱ 60,000',
+                amountRange.isEmpty ? '₱ 60,000' : amountRange,
                 style: TextStyle(
                   color: AppColors.ordersTitleText,
                   fontSize: 40.sp,
@@ -96,25 +107,28 @@ class _AmountPanel extends StatelessWidget {
 }
 
 class _LoanFacts extends StatelessWidget {
-  const _LoanFacts();
+  const _LoanFacts({required this.termInfo, required this.loanRate});
+
+  final String termInfo;
+  final String loanRate;
 
   @override
   Widget build(BuildContext context) {
     return Row(
       children: [
         SizedBox(width: 29.w),
-        const Expanded(
+        Expanded(
           child: _LoanFactPill(
             icon: Icons.calendar_month_rounded,
-            title: '91-180 Days',
+            title: termInfo.isEmpty ? '91-180 Days' : termInfo,
             subtitle: 'Loan Term',
           ),
         ),
         SizedBox(width: 14.w),
-        const Expanded(
+        Expanded(
           child: _LoanFactPill(
             icon: Icons.percent_rounded,
-            title: '≤ 0.05% / Day',
+            title: loanRate.isEmpty ? '≤ 0.05% / Day' : loanRate,
             subtitle: 'Low Interest',
           ),
         ),
@@ -199,9 +213,10 @@ class _LoanFactPill extends StatelessWidget {
 }
 
 class _ApplyButton extends StatelessWidget {
-  const _ApplyButton({required this.onTap});
+  const _ApplyButton({required this.onTap, required this.buttonText});
 
   final VoidCallback onTap;
+  final String buttonText;
 
   @override
   Widget build(BuildContext context) {
@@ -225,10 +240,10 @@ class _ApplyButton extends StatelessWidget {
         child: InkWell(
           borderRadius: BorderRadius.circular(24),
           onTap: onTap,
-          child: const Center(
+          child: Center(
             child: Text(
-              'Apply Now',
-              style: TextStyle(
+              buttonText.isEmpty ? 'Apply Now' : buttonText,
+              style: const TextStyle(
                 color: AppColors.ordersTitleText,
                 fontSize: 18,
                 fontWeight: FontWeight.w800,

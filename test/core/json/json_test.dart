@@ -13,6 +13,8 @@ void main() {
       expect(json['items'][0].intValue, 1);
       expect(json['items'][4].isNull(), isTrue);
       expect(json['missing']['nested'].stringValue, '');
+      expect(json.mapValue['user']?['name'].stringValue, 'Ana');
+      expect(json['items'].listValue.first.intValue, 1);
     });
 
     test('parses bytes and degrades parse failures to null', () {

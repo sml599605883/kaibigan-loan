@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 
+import '../../../navigation_helper.dart';
 import '../../../theme/app_colors.dart';
 import '../../../utils/screen_adapter.dart';
 import '../../widgets/section_title.dart';
@@ -43,85 +44,92 @@ class _RecommendationCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final buttonText = item.buttonText.isEmpty ? 'Apply Now' : item.buttonText;
-    return SizedBox(
-      height: 105.h,
-      child: Stack(
-        children: [
-          Positioned(
-            top: 11.h,
-            right: 0,
-            child: Container(
-              width: 168.w,
-              height: 83.h,
-              alignment: Alignment.centerRight,
-              padding: EdgeInsets.only(right: 12.w),
-              decoration: BoxDecoration(
-                gradient: const LinearGradient(
-                  begin: Alignment.centerLeft,
-                  end: Alignment.centerRight,
-                  colors: [AppColors.ordersYellow, AppColors.ordersYellowEnd],
-                ),
-                borderRadius: BorderRadius.circular(20.r),
-              ),
-              child: SizedBox(
-                width: 72.w,
-                child: Text(
-                  buttonText,
-                  maxLines: 2,
-                  textAlign: TextAlign.center,
-                  style: TextStyle(
-                    color: AppColors.ordersActionBlueText,
-                    fontSize: 16.sp,
-                    fontWeight: FontWeight.w800,
-                    height: 19 / 16,
+    return GestureDetector(
+      key: ValueKey('home_recommendation_${item.productId}'),
+      behavior: HitTestBehavior.opaque,
+      onTap: item.productId.isEmpty
+          ? null
+          : () => NavigationHelper.applyProduct(item.productId),
+      child: SizedBox(
+        height: 105.h,
+        child: Stack(
+          children: [
+            Positioned(
+              top: 11.h,
+              right: 0,
+              child: Container(
+                width: 168.w,
+                height: 83.h,
+                alignment: Alignment.centerRight,
+                padding: EdgeInsets.only(right: 12.w),
+                decoration: BoxDecoration(
+                  gradient: const LinearGradient(
+                    begin: Alignment.centerLeft,
+                    end: Alignment.centerRight,
+                    colors: [AppColors.ordersYellow, AppColors.ordersYellowEnd],
                   ),
+                  borderRadius: BorderRadius.circular(20.r),
                 ),
-              ),
-            ),
-          ),
-          Positioned.fill(
-            right: 77.w,
-            child: Container(
-              padding: EdgeInsets.fromLTRB(20.w, 10.h, 16.w, 10.h),
-              decoration: BoxDecoration(
-                color: AppColors.tabBackground,
-                borderRadius: BorderRadius.only(
-                  topLeft: Radius.circular(20.r),
-                  bottomLeft: Radius.circular(20.r),
-                  topRight: Radius.circular(8.r),
-                  bottomRight: Radius.circular(8.r),
-                ),
-                border: Border.all(color: AppColors.ordersCardBorder),
-              ),
-              child: Row(
-                children: [
-                  Expanded(child: _ProductSummary(item: item)),
-                  SizedBox(width: 12.w),
-                  SizedBox(
-                    width: 130.w,
-                    child: Column(
-                      children: [
-                        _InfoPill(
-                          value: item.termInfo,
-                          label: item.termInfoDescription.isEmpty
-                              ? 'Loan Term'
-                              : item.termInfoDescription,
-                        ),
-                        SizedBox(height: 10.h),
-                        _InfoPill(
-                          value: item.loanRate,
-                          label: item.loanRateDescription.isEmpty
-                              ? 'Interest rate'
-                              : item.loanRateDescription,
-                        ),
-                      ],
+                child: SizedBox(
+                  width: 72.w,
+                  child: Text(
+                    buttonText,
+                    maxLines: 2,
+                    textAlign: TextAlign.center,
+                    style: TextStyle(
+                      color: AppColors.ordersActionBlueText,
+                      fontSize: 16.sp,
+                      fontWeight: FontWeight.w800,
+                      height: 19 / 16,
                     ),
                   ),
-                ],
+                ),
               ),
             ),
-          ),
-        ],
+            Positioned.fill(
+              right: 77.w,
+              child: Container(
+                padding: EdgeInsets.fromLTRB(20.w, 10.h, 16.w, 10.h),
+                decoration: BoxDecoration(
+                  color: AppColors.tabBackground,
+                  borderRadius: BorderRadius.only(
+                    topLeft: Radius.circular(20.r),
+                    bottomLeft: Radius.circular(20.r),
+                    topRight: Radius.circular(8.r),
+                    bottomRight: Radius.circular(8.r),
+                  ),
+                  border: Border.all(color: AppColors.ordersCardBorder),
+                ),
+                child: Row(
+                  children: [
+                    Expanded(child: _ProductSummary(item: item)),
+                    SizedBox(width: 12.w),
+                    SizedBox(
+                      width: 130.w,
+                      child: Column(
+                        children: [
+                          _InfoPill(
+                            value: item.termInfo,
+                            label: item.termInfoDescription.isEmpty
+                                ? 'Loan Term'
+                                : item.termInfoDescription,
+                          ),
+                          SizedBox(height: 10.h),
+                          _InfoPill(
+                            value: item.loanRate,
+                            label: item.loanRateDescription.isEmpty
+                                ? 'Interest rate'
+                                : item.loanRateDescription,
+                          ),
+                        ],
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ),
+          ],
+        ),
       ),
     );
   }

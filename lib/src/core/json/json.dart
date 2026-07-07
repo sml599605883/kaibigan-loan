@@ -23,9 +23,29 @@ class Json {
 
   dynamic get value => _value;
 
-  Map<String, dynamic> get mapValue => mapOrNull ?? <String, dynamic>{};
+  Map<String, Json> get mapValue => mapOrNull ?? <String, Json>{};
 
-  Map<String, dynamic>? get mapOrNull {
+  Map<String, Json>? get mapOrNull {
+    final value = _value;
+    if (value is Map) {
+      return value.map((key, item) => MapEntry(key.toString(), Json(item)));
+    }
+    return null;
+  }
+
+  List<Json> get listValue => listOrNull ?? <Json>[];
+
+  List<Json>? get listOrNull {
+    final value = _value;
+    if (value is List) {
+      return value.map(Json.new).toList();
+    }
+    return null;
+  }
+
+  Map<String, dynamic> get rawMapValue => rawMapOrNull ?? <String, dynamic>{};
+
+  Map<String, dynamic>? get rawMapOrNull {
     final value = _value;
     if (value is Map) {
       return value.map((key, item) => MapEntry(key.toString(), item));
@@ -33,9 +53,9 @@ class Json {
     return null;
   }
 
-  List<dynamic> get listValue => listOrNull ?? <dynamic>[];
+  List<dynamic> get rawListValue => rawListOrNull ?? <dynamic>[];
 
-  List<dynamic>? get listOrNull {
+  List<dynamic>? get rawListOrNull {
     final value = _value;
     if (value is List) {
       return value;

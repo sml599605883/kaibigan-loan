@@ -16,16 +16,28 @@ class HomePage extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final controller = Get.find<MainController>();
     return RefreshIndicator(
       color: AppColors.appBackground,
       backgroundColor: AppColors.tabBackground,
-      onRefresh: () => Get.find<MainController>().requestHomeDataIfVisible(),
+      onRefresh: controller.requestHomeDataIfVisible,
       child: ListView(
         physics: const AlwaysScrollableScrollPhysics(),
         padding: const EdgeInsets.fromLTRB(16, 28, 16, 96),
         children: [
           const HomeHeader(),
-          const LoanCard(),
+          Obx(() {
+            final topCard = controller.topLoanCardItems.isEmpty
+                ? null
+                : controller.topLoanCardItems.first;
+            return LoanCard(
+              onApply: controller.applyTopHeroProduct,
+              amountRange: topCard?.amountRange ?? '',
+              termInfo: topCard?.termInfo ?? '',
+              loanRate: topCard?.loanRate ?? '',
+              buttonText: topCard?.buttonText ?? '',
+            );
+          }),
           SizedBox(height: 20.h),
           const PromoBanner(),
           SizedBox(height: 32.h),

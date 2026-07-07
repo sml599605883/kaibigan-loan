@@ -1,8 +1,8 @@
 import 'package:flutter/material.dart';
-import 'package:get/get.dart';
 
 import '../../app_routes.dart';
 import '../../assets/app_assets.dart';
+import '../../navigation_helper.dart';
 import '../../theme/app_colors.dart';
 import '../../utils/screen_adapter.dart';
 import '../widgets/section_title.dart';
@@ -227,7 +227,7 @@ class _ServiceListItem extends StatelessWidget {
         borderRadius: screen.borderRadiusAll(20),
         onTap: data.routeName == null
             ? null
-            : () => Get.toNamed<void>(data.routeName!),
+            : () => NavigationHelper.toNamed<void>(data.routeName!),
         child: Ink(
           height: screen.h(42),
           padding: screen.edgeInsetsFromLTRB(13, 12, 13, 11),
