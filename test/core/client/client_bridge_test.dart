@@ -79,4 +79,35 @@ void main() {
       const ClientProxySettings(enabled: true, host: '127.0.0.1', port: 8888),
     );
   });
+
+  test('runs iOS TrustDecision liveness and normalizes result', () async {
+    final calls = <MethodCall>[];
+    TestDefaultBinaryMessengerBinding.instance.defaultBinaryMessenger
+        .setMockMethodCallHandler(channel, (call) async {
+          calls.add(call);
+          return <String, Object?>{
+            'success': true,
+            'code': 0,
+            'message': 'ok',
+            'image': 'image-base64',
+            'sequence_id': 'seq-1',
+            'liveness_id': 'live-1',
+            'raw': <String, Object?>{'liveness_id': 'live-1'},
+          };
+        });
+
+    final bridge = ClientBridge(platform: ClientPlatform.ios);
+    final result = await bridge.showTrustDecisionLiveness('td-license');
+
+    expect(calls, hasLength(1));
+    expect(calls.single.method, 'showTrustDecisionLiveness');
+    expect(calls.single.arguments, 'td-license');
+    expect(result.success, isTrue);
+    expect(result.code, 0);
+    expect(result.message, 'ok');
+    expect(result.image, 'image-base64');
+    expect(result.sequenceId, 'seq-1');
+    expect(result.livenessId, 'live-1');
+    expect(result.raw, {'liveness_id': 'live-1'});
+  });
 }

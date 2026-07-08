@@ -7,6 +7,8 @@ import 'app_routes.dart';
 import 'core/json/json.dart';
 import 'core/network/api_client.dart';
 import 'core/network/api_exception.dart';
+import 'core/session/product_detail_cache.dart';
+import 'core/session/session_store.dart';
 import 'modules/main/main_controller.dart';
 import 'utils/app_toast.dart';
 
@@ -62,6 +64,10 @@ class NavigationHelper {
         return toDetail<T>();
       case AppRoutes.setting:
         return toSetting<T>();
+      case AppRoutes.certificationIdentity:
+        return toCertificationIdentity<T>();
+      case AppRoutes.certificationFace:
+        return toCertificationFace<T>();
       case AppRoutes.main:
         return offAllToMain<T>();
       default:
@@ -82,6 +88,7 @@ class NavigationHelper {
       final response = await ApiClient.instance.productDetail(
         geobotanists: normalizedProductId,
       );
+      await _cacheProductDetail(response.states);
       toDetail<void>(arguments: response.states.rawMapValue);
     });
   }
@@ -115,6 +122,7 @@ class NavigationHelper {
       final detailResponse = await ApiClient.instance.productDetail(
         geobotanists: normalizedProductId,
       );
+      await _cacheProductDetail(detailResponse.states);
       toDetail<void>(arguments: detailResponse.states.rawMapValue);
     });
   }
@@ -146,6 +154,27 @@ class NavigationHelper {
 
   static Future<T?>? toSetting<T extends Object?>() {
     return _toNamedIfNotCurrent<T>(AppRoutes.setting);
+  }
+
+  static Future<T?>? toCertificationIdentity<T extends Object?>({
+    String? productId,
+  }) {
+    final arguments = productId == null || productId.trim().isEmpty
+        ? null
+        : <String, String>{'geobotanists': productId.trim()};
+    return Get.toNamed<T>(
+      AppRoutes.certificationIdentity,
+      arguments: arguments,
+    );
+  }
+
+  static Future<T?>? toCertificationFace<T extends Object?>({
+    String? productId,
+  }) {
+    final arguments = productId == null || productId.trim().isEmpty
+        ? null
+        : <String, String>{'geobotanists': productId.trim()};
+    return Get.toNamed<T>(AppRoutes.certificationFace, arguments: arguments);
   }
 
   static Future<T?>? offAllToMain<T extends Object?>() {
@@ -184,27 +213,58 @@ class NavigationHelper {
     final response = await ApiClient.instance.productDetail(
       geobotanists: productId,
     );
+    await _cacheProductDetail(response.states);
     await _handleProductDetailFlow(response.states);
+  }
+
+  static Future<void> _cacheProductDetail(Json productDetail) async {
+    if (!Get.isRegistered<SessionStore>()) {
+      return;
+    }
+    await SessionStore.instance.saveProductDetailCache(
+      ProductDetailCache.fromJson(productDetail.value),
+    );
   }
 
   static Future<void> _handleProductDetailFlow(Json productDetail) async {
     final rawDetail = productDetail.rawMapValue;
-    final nextStepCode = productDetail['grinner']['unconfusing'].stringValue
-        .trim();
+    final cachedDetail = Get.isRegistered<SessionStore>()
+        ? SessionStore.instance.productDetailCache()
+        : null;
+    final product = productDetail['sensitized'];
+    final nextStepCode = _firstNonEmpty(
+      cachedDetail?.nextStep['taskType']?.toString(),
+      productDetail['grinner']['unconfusing'].stringValue,
+    );
     if (nextStepCode.isNotEmpty) {
-      _handleProductDetailNextStep(nextStepCode, rawDetail);
+      final productId = _firstNonEmpty(
+        cachedDetail?.productid,
+        product['cabdrivers'].stringValue,
+      );
+      _handleProductDetailNextStep(nextStepCode, productId);
       return;
     }
 
     if (productDetail['threats'].intValue == 200) {
-      final product = productDetail['sensitized'];
-      final orderNo = product['chattinesses'].stringValue.trim();
+      final orderNo = _firstNonEmpty(
+        cachedDetail?.orderNo,
+        product['chattinesses'].stringValue,
+      );
       if (orderNo.isNotEmpty) {
         final redirect = await ApiClient.instance.orderRedirect(
           dodgy: orderNo,
-          ecumenicalism: product['ecumenicalism'].stringValue,
-          desertifying: product['desertifying'].stringValue,
-          tythes: product['tythes'].stringValue,
+          ecumenicalism: _firstNonEmpty(
+            cachedDetail?.amount,
+            product['ecumenicalism'].stringValue,
+          ),
+          desertifying: _firstNonEmpty(
+            cachedDetail?.term,
+            product['desertifying'].stringValue,
+          ),
+          tythes: _firstNonEmpty(
+            cachedDetail?.termType,
+            product['tythes'].stringValue,
+          ),
         );
         final redirectTarget = redirect.states['bloomeries'].stringValue.trim();
         if (redirectTarget.isNotEmpty) {
@@ -236,17 +296,27 @@ class NavigationHelper {
         .trim();
   }
 
-  static void _handleProductDetailNextStep(
-    String rawCode,
-    Map<String, dynamic> productDetail,
-  ) {
+  static void _handleProductDetailNextStep(String rawCode, String productId) {
     final routeKey = _productDetailAuthStepCodes[rawCode.trim()];
-    final productId = Json(
-      productDetail,
-    )['sensitized']['cabdrivers'].stringValue.trim();
+    if (routeKey == 'public') {
+      toCertificationIdentity<void>(productId: productId);
+      return;
+    }
+    if (routeKey == 'face') {
+      toCertificationFace<void>(productId: productId);
+      return;
+    }
     logger(
       'product detail next step: code=$rawCode, routeKey=${routeKey ?? 'unknown'}, productId=$productId',
     );
+  }
+
+  static String _firstNonEmpty(String? primary, String fallback) {
+    final normalizedPrimary = primary?.trim() ?? '';
+    if (normalizedPrimary.isNotEmpty) {
+      return normalizedPrimary;
+    }
+    return fallback.trim();
   }
 
   static String? _routeForRawTarget(String rawTarget) {
@@ -301,6 +371,10 @@ class NavigationHelper {
       case 'setting':
       case 'AmoxicillinHistamines':
         return AppRoutes.setting;
+      case AppRoutes.certificationFace:
+      case 'face':
+      case 'Vesicated':
+        return AppRoutes.certificationFace;
     }
     return null;
   }

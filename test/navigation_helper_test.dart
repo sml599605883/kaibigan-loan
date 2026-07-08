@@ -8,6 +8,7 @@ import 'package:kaibigan_loan/src/core/network/api_client.dart';
 import 'package:kaibigan_loan/src/core/network/api_config.dart';
 import 'package:kaibigan_loan/src/core/network/api_exception.dart';
 import 'package:kaibigan_loan/src/core/network/api_response.dart';
+import 'package:kaibigan_loan/src/core/session/session_store.dart';
 import 'package:kaibigan_loan/src/modules/main/main_controller.dart';
 import 'package:kaibigan_loan/src/navigation_helper.dart';
 import 'package:kaibigan_loan/src/utils/app_toast.dart';
@@ -20,6 +21,7 @@ void main() {
     Get.testMode = true;
     apiClient = _FakeApiClient();
     toastPresenter = _FakeToastPresenter();
+    Get.put<SessionStore>(SessionStore.memory());
     Get.put<ApiClient>(apiClient);
     AppToast.presenter = toastPresenter;
   });
@@ -127,6 +129,101 @@ void main() {
     );
     await tester.pumpAndSettle();
     expect(Get.currentRoute, AppRoutes.login);
+  });
+
+  testWidgets('product detail public step opens identity verification', (
+    tester,
+  ) async {
+    apiClient.productDetailStates = {
+      'grinner': {'unconfusing': 'MistermEncystment'},
+      'metallurgists': {'aimless': 'Upload product-10 ID front.'},
+      'sensitized': {
+        'ecumenicalism': '3000',
+        'cabdrivers': 'product-10',
+        'chattinesses': 'ORDER010',
+        'joyriding': 'loan-name',
+        'desertifying': '91',
+        'tythes': '1',
+      },
+    };
+    await _pumpRoutes(tester);
+
+    await NavigationHelper.navigateRawTarget(
+      'ph://kaibigan-loan/ios/AlderwomenProtozoology?geobotanists=product-10',
+    );
+    await tester.pumpAndSettle();
+
+    expect(apiClient.productDetailIds, ['product-10']);
+    expect(Get.currentRoute, AppRoutes.certificationIdentity);
+    expect(Get.arguments, {'geobotanists': 'product-10'});
+    expect(SessionStore.instance.productDetailCache()!.productid, 'product-10');
+    expect(
+      SessionStore.instance.productDetailCache()!.note['base'],
+      'Upload product-10 ID front.',
+    );
+  });
+
+  testWidgets('product detail face step opens face verification', (
+    tester,
+  ) async {
+    apiClient.productDetailStates = {
+      'grinner': {'unconfusing': 'Vesicated'},
+      'metallurgists': {'periodontal': 'Start live face verification.'},
+      'sensitized': {'cabdrivers': 'product-face'},
+    };
+    await _pumpRoutes(tester);
+
+    await NavigationHelper.navigateRawTarget(
+      'ph://kaibigan-loan/ios/AlderwomenProtozoology?geobotanists=product-face',
+    );
+    await tester.pumpAndSettle();
+
+    expect(apiClient.productDetailIds, ['product-face']);
+    expect(Get.currentRoute, AppRoutes.certificationFace);
+    expect(Get.arguments, {'geobotanists': 'product-face'});
+    expect(
+      SessionStore.instance.productDetailCache()!.note['face'],
+      'Start live face verification.',
+    );
+  });
+
+  testWidgets('product detail flow reads product fields from cache', (
+    tester,
+  ) async {
+    apiClient.productDetailStates = {
+      'threats': 200,
+      'ecumenicalism': '5000',
+      'cabdrivers': 'cached-product',
+      'chattinesses': 'ORDER-CACHED',
+      'desertifying': '14',
+      'tythes': '2',
+    };
+    apiClient.orderRedirectStates = {
+      'bloomeries': 'https://h5.example.test/cached-confirm',
+    };
+    final launchedUris = <Uri>[];
+    NavigationHelper.rawTargetLauncher = (uri) async {
+      launchedUris.add(uri);
+      return true;
+    };
+    await _pumpRoutes(tester);
+
+    await NavigationHelper.navigateRawTarget(
+      'ph://kaibigan-loan/ios/AlderwomenProtozoology?geobotanists=cached-product',
+    );
+    await tester.pumpAndSettle();
+
+    expect(apiClient.orderRedirectRequests, [
+      {
+        'dodgy': 'ORDER-CACHED',
+        'ecumenicalism': '5000',
+        'desertifying': '14',
+        'tythes': '2',
+      },
+    ]);
+    expect(launchedUris.map((uri) => uri.toString()), [
+      'https://h5.example.test/cached-confirm',
+    ]);
   });
 
   testWidgets('product detail scheme handles grinner unconfusing first', (
@@ -319,6 +416,14 @@ Future<void> _pumpRoutes(WidgetTester tester) async {
         GetPage(name: AppRoutes.login, page: () => const _LoginPageStub()),
         GetPage(name: AppRoutes.detail, page: () => const _DetailPageStub()),
         GetPage(name: AppRoutes.setting, page: () => const _SettingPageStub()),
+        GetPage(
+          name: AppRoutes.certificationIdentity,
+          page: () => const _CertificationIdentityPageStub(),
+        ),
+        GetPage(
+          name: AppRoutes.certificationFace,
+          page: () => const _CertificationFacePageStub(),
+        ),
       ],
     ),
   );
@@ -361,6 +466,24 @@ class _SettingPageStub extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return const SizedBox(key: Key('settingPageStub'));
+  }
+}
+
+class _CertificationIdentityPageStub extends StatelessWidget {
+  const _CertificationIdentityPageStub();
+
+  @override
+  Widget build(BuildContext context) {
+    return const SizedBox(key: Key('certificationIdentityPageStub'));
+  }
+}
+
+class _CertificationFacePageStub extends StatelessWidget {
+  const _CertificationFacePageStub();
+
+  @override
+  Widget build(BuildContext context) {
+    return const SizedBox(key: Key('certificationFacePageStub'));
   }
 }
 

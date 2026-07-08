@@ -1,11 +1,17 @@
 import CFNetwork
 import Flutter
 import Security
+import TDMobRisk
 import UIKit
 import Darwin
 
 final class ClientBridgeRegistrar {
   static let shared = ClientBridgeRegistrar()
+
+  private let trustDecisionPartnerCode = "boqin_ph"
+  private let trustDecisionPartnerKey = "1dc25522f2adc77f5347816c0f7fa31b"
+  private lazy var trustDecisionManager = TDMobRiskManager.sharedManager()
+  private var hasConfiguredTrustDecision = false
 
   private init() {}
 
@@ -34,10 +40,102 @@ final class ClientBridgeRegistrar {
         ])
       case "getProxySettings":
         result(self.currentProxySettings())
+      case "showTrustDecisionLiveness":
+        self.showTrustDecisionLiveness(call.arguments, result: result)
       default:
         result(FlutterMethodNotImplemented)
       }
     }
+
+    DispatchQueue.main.async { [weak self] in
+      self?.configureTrustDecisionIfNeeded()
+    }
+  }
+
+  private func configureTrustDecisionIfNeeded() {
+    guard !hasConfiguredTrustDecision else {
+      return
+    }
+    hasConfiguredTrustDecision = true
+    var params: [String: Any] = [
+      "partner": trustDecisionPartnerCode,
+      "appKey": trustDecisionPartnerKey,
+      "country": "sg",
+      "language": "en"
+    ]
+#if DEBUG
+    params["allowed"] = true
+#endif
+    trustDecisionManager?.pointee.initWithOptions(params)
+  }
+
+  private func showTrustDecisionLiveness(
+    _ arguments: Any?,
+    result: @escaping FlutterResult
+  ) {
+    configureTrustDecisionIfNeeded()
+    let license = arguments as? String
+    guard let viewController = topViewController() else {
+      result([
+        "success": false,
+        "code": -1,
+        "message": "find ViewController Error",
+        "image": "",
+        "sequence_id": "",
+        "liveness_id": "",
+        "raw": [:]
+      ])
+      return
+    }
+
+    trustDecisionManager?.pointee.showLivenessWithShowStyle(
+      viewController,
+      license,
+      TDLivenessShowStylePresent,
+      { successResult in
+        result(self.wrapLivenessResult(success: true, payload: successResult))
+      },
+      { failResult in
+        result(self.wrapLivenessResult(success: false, payload: failResult))
+      }
+    )
+  }
+
+  private func wrapLivenessResult(success: Bool, payload: [AnyHashable: Any]?) -> [String: Any] {
+    let raw = (payload as? [String: Any]) ?? [:]
+    let code = (raw["code"] as? NSNumber)?.intValue ?? (success ? 0 : -1)
+    let message = raw["message"] as? String ?? ""
+    let image = raw["image"] as? String ?? ""
+    let sequenceId = raw["sequence_id"] as? String ?? ""
+    let livenessId = raw["liveness_id"] as? String ?? ""
+    return [
+      "success": success,
+      "code": code,
+      "message": message,
+      "image": image,
+      "sequence_id": sequenceId,
+      "liveness_id": livenessId,
+      "raw": raw
+    ]
+  }
+
+  private func topViewController(
+    from viewController: UIViewController? = UIApplication.shared.connectedScenes
+      .compactMap { $0 as? UIWindowScene }
+      .flatMap { $0.windows }
+      .first(where: \.isKeyWindow)?
+      .rootViewController
+  ) -> UIViewController? {
+    if let navigationController = viewController as? UINavigationController {
+      return topViewController(from: navigationController.visibleViewController)
+    }
+    if let tabBarController = viewController as? UITabBarController {
+      return topViewController(from: tabBarController.selectedViewController)
+    }
+    if let presentedViewController = viewController?.presentedViewController {
+      return topViewController(from: presentedViewController)
+    }
+    return viewController
   }
 
   private func currentProxySettings() -> [String: Any] {

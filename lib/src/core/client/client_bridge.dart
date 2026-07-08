@@ -2,6 +2,8 @@ import 'dart:io' show Platform;
 
 import 'package:flutter/services.dart';
 
+import '../json/json.dart';
+
 enum ClientPlatform { ios, android, other }
 
 class ClientPlatformInfo {
@@ -95,6 +97,26 @@ class ClientProxySettings {
   int get hashCode => Object.hash(enabled, host, port);
 }
 
+class TrustDecisionLivenessResult {
+  const TrustDecisionLivenessResult({
+    required this.success,
+    required this.code,
+    required this.message,
+    required this.image,
+    required this.sequenceId,
+    required this.livenessId,
+    required this.raw,
+  });
+
+  final bool success;
+  final int code;
+  final String message;
+  final String image;
+  final String sequenceId;
+  final String livenessId;
+  final Map<String, dynamic> raw;
+}
+
 class ClientBridge {
   ClientBridge({ClientPlatform? platform, MethodChannel? channel})
     : _platform = platform ?? _currentPlatform(),
@@ -136,6 +158,73 @@ class ClientBridge {
       'getProxySettings',
     );
     return ClientProxySettings.fromMap(result ?? const <Object?, Object?>{});
+  }
+
+  Future<TrustDecisionLivenessResult> showTrustDecisionLiveness(
+    String license,
+  ) async {
+    if (!supportsNativeBridge) {
+      return const TrustDecisionLivenessResult(
+        success: false,
+        code: -1,
+        message: 'Liveness verification is only available on iOS.',
+        image: '',
+        sequenceId: '',
+        livenessId: '',
+        raw: <String, dynamic>{},
+      );
+    }
+
+    try {
+      final result = await _channel.invokeMapMethod<Object?, Object?>(
+        'showTrustDecisionLiveness',
+        license,
+      );
+      if (result == null) {
+        return const TrustDecisionLivenessResult(
+          success: false,
+          code: -1,
+          message: 'Liveness returned no result',
+          image: '',
+          sequenceId: '',
+          livenessId: '',
+          raw: <String, dynamic>{},
+        );
+      }
+      final json = Json(result);
+      return TrustDecisionLivenessResult(
+        success: json['success'].boolOrNull ?? false,
+        code: json['code'].intOrNull ?? -1,
+        message: json['message'].stringValue,
+        image: json['image'].stringValue,
+        sequenceId: json['sequence_id'].stringValue,
+        livenessId: json['liveness_id'].stringValue,
+        raw: json['raw'].rawMapValue,
+      );
+    } on PlatformException catch (error) {
+      return TrustDecisionLivenessResult(
+        success: false,
+        code: -1,
+        message: error.message ?? 'Failed to start liveness verification',
+        image: '',
+        sequenceId: '',
+        livenessId: '',
+        raw: <String, dynamic>{
+          'code': error.code,
+          if (error.details != null) 'details': error.details,
+        },
+      );
+    } on MissingPluginException {
+      return const TrustDecisionLivenessResult(
+        success: false,
+        code: -1,
+        message: 'Liveness verification is unavailable.',
+        image: '',
+        sequenceId: '',
+        livenessId: '',
+        raw: <String, dynamic>{},
+      );
+    }
   }
 
   static ClientPlatform _currentPlatform() {

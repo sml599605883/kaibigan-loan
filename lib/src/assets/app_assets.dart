@@ -7,6 +7,15 @@ abstract final class AppAssets {
   static const profileNormal = 'assets/bar/profile_normal.png';
   static const complianceLogos = 'assets/compliance_logos.png';
   static const arrowRight = 'assets/arrow_right.png';
+  static const idTypeDot = 'assets/id_type_dot.png';
+  static const certificationPromptIcon = 'assets/certification_prompt_icon.png';
+  static const certificationIdUploadDemo =
+      'assets/certification_id_upload_demo.png';
+  static const certificationUploadAlbum =
+      'assets/certification_upload_album.png';
+  static const certificationUploadCamera =
+      'assets/certification_upload_camera.png';
+  static const certificationFaceGuide = 'assets/certification_face_guide.png';
   static const featurePrimary = 'assets/feature_primary.png';
   static const featureSecondary = 'assets/feature_secondary.png';
   static const homeLoanCardBackground = 'assets/home_loan_card_bg.png';

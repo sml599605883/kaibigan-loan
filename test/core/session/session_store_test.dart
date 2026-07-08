@@ -1,5 +1,6 @@
 import 'package:flutter_test/flutter_test.dart';
 import 'package:get/get.dart';
+import 'package:kaibigan_loan/src/core/session/product_detail_cache.dart';
 import 'package:kaibigan_loan/src/core/session/session_store.dart';
 
 void main() {
@@ -48,5 +49,48 @@ void main() {
     expect(await store.gyrofrequency(), '');
     expect(await store.entertainers(), '');
     expect(await store.bungee(), '');
+  });
+
+  test('stores product detail cache in temporary memory only', () async {
+    final store = SessionStore.memory();
+    final detail = ProductDetailCache.fromJson({
+      'sensitized': {
+        'ecumenicalism': '3000',
+        'cabdrivers': 'product-1',
+        'chattinesses': 'ORDER001',
+        'joyriding': 'loan-name',
+        'desertifying': '91',
+        'tythes': '1',
+      },
+      'metallurgists': {'aimless': 'Upload your PRC ID front.'},
+      'grinner': {'unconfusing': 'MistermEncystment'},
+    });
+
+    await store.saveProductDetailCache(detail);
+
+    expect(store.productDetailCache(), isNotNull);
+    expect(store.productDetailCache()!.productid, 'product-1');
+    expect(store.productDetailCache()!.amount, '3000');
+    expect(store.productDetailCache()!.orderNo, 'ORDER001');
+    expect(store.productDetailCache()!.orderId, 'loan-name');
+    expect(store.productDetailCache()!.term, '91');
+    expect(store.productDetailCache()!.termType, '1');
+    expect(
+      store.productDetailCache()!.note['base'],
+      'Upload your PRC ID front.',
+    );
+    expect(store.productDetailCache()!.note.containsKey('aimless'), isFalse);
+    expect(
+      store.productDetailCache()!.nextStep['taskType'],
+      'MistermEncystment',
+    );
+    expect(
+      store.productDetailCache()!.nextStep.containsKey('unconfusing'),
+      isFalse,
+    );
+
+    await store.clearCache();
+
+    expect(store.productDetailCache(), isNull);
   });
 }

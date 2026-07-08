@@ -1,6 +1,8 @@
 import 'package:get/get.dart' as getx;
 import 'package:shared_preferences/shared_preferences.dart';
 
+import 'product_detail_cache.dart';
+
 class SessionStore {
   SessionStore(this._preferences) : _persistentMemory = null;
 
@@ -15,6 +17,7 @@ class SessionStore {
   static const bungeeKey = 'session.bungee';
   static const gyrofrequencyKey = 'device_info.gyrofrequency';
   static const entertainersKey = 'device_info.entertainers';
+  static const productDetailCacheKey = 'cache.product_detail';
 
   final SharedPreferencesAsync? _preferences;
   final Map<String, Object?>? _persistentMemory;
@@ -75,6 +78,15 @@ class SessionStore {
 
   Object? cacheValue(String key) {
     return _cache[key];
+  }
+
+  Future<void> saveProductDetailCache(ProductDetailCache value) async {
+    await saveCacheValue(productDetailCacheKey, value);
+  }
+
+  ProductDetailCache? productDetailCache() {
+    final value = cacheValue(productDetailCacheKey);
+    return value is ProductDetailCache ? value : null;
   }
 
   Future<void> clearPersistent() async {
