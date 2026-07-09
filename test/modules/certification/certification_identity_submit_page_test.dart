@@ -73,6 +73,11 @@ void main() {
   testWidgets('submits edited id info to save basic info endpoint', (
     tester,
   ) async {
+    apiClient.productDetailStates = {
+      'grinner': {'unconfusing': 'Vesicated'},
+      'metallurgists': {'periodontal': 'Start face verification.'},
+      'sensitized': {'cabdrivers': 'product-2'},
+    };
     await _pumpPage(
       tester,
       arguments: {
@@ -107,11 +112,12 @@ void main() {
         heirship: 'PRC',
       ),
     ]);
-    expect(toastPresenter.loadingMessages, [null]);
-    expect(toastPresenter.dismissCount, 1);
+    expect(toastPresenter.loadingMessages, [null, null]);
+    expect(toastPresenter.dismissCount, 2);
     expect(toastPresenter.messages, ['saved']);
+    expect(apiClient.productDetailIds, ['product-2']);
     expect(Get.currentRoute, AppRoutes.certificationFace);
-    expect(Get.arguments, {'geobotanists': 'product-2', 'cardType': 'PRC'});
+    expect(Get.arguments, {'geobotanists': 'product-2'});
   });
 
   testWidgets('birthday field logs date picker placeholder when tapped', (
@@ -202,6 +208,8 @@ class _FakeApiClient extends ApiClient {
   _FakeApiClient() : super(ApiConfig(), dio: Dio());
 
   final saveRequests = <_SaveRequest>[];
+  final productDetailIds = <String>[];
+  Map<String, dynamic>? productDetailStates;
   Object? error;
 
   @override
@@ -226,6 +234,16 @@ class _FakeApiClient extends ApiClient {
       throw requestError;
     }
     return ApiResponse(code: 0, message: 'saved', states: Json(null));
+  }
+
+  @override
+  Future<ApiResponse> productDetail({required String geobotanists}) async {
+    productDetailIds.add(geobotanists);
+    return ApiResponse(
+      code: 0,
+      message: 'success',
+      states: Json(productDetailStates ?? <String, dynamic>{}),
+    );
   }
 }
 
@@ -268,6 +286,7 @@ class _FakeToastPresenter implements ToastPresenter {
   @override
   Future<void> show(String message, {required bool isError}) async {
     if (isError) {
+      dismissCount++;
       errors.add(message);
     } else {
       messages.add(message);

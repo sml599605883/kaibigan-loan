@@ -10,6 +10,7 @@ import 'package:kaibigan_loan/src/core/network/api_exception.dart';
 import 'package:kaibigan_loan/src/core/network/api_response.dart';
 import 'package:kaibigan_loan/src/core/session/session_store.dart';
 import 'package:kaibigan_loan/src/modules/main/main_controller.dart';
+import 'package:kaibigan_loan/src/modules/orders/order_list_models.dart';
 import 'package:kaibigan_loan/src/navigation_helper.dart';
 import 'package:kaibigan_loan/src/utils/app_toast.dart';
 
@@ -60,6 +61,20 @@ void main() {
     await tester.pumpAndSettle();
 
     expect(Get.currentRoute, AppRoutes.setting);
+  });
+
+  testWidgets('pushes mine order list with initial status argument', (
+    tester,
+  ) async {
+    await _pumpRoutes(tester);
+
+    NavigationHelper.toMineOrderList<void>(
+      initialStatus: OrderListStatus.outstanding,
+    );
+    await tester.pumpAndSettle();
+
+    expect(Get.currentRoute, AppRoutes.mineOrderList);
+    expect(Get.arguments, {'initialStatus': '7'});
   });
 
   testWidgets('does not push duplicate login route', (tester) async {
@@ -129,6 +144,12 @@ void main() {
     );
     await tester.pumpAndSettle();
     expect(Get.currentRoute, AppRoutes.login);
+
+    await NavigationHelper.navigateRawTarget(
+      'ph://kaibigan-loan/ios/orderList',
+    );
+    await tester.pumpAndSettle();
+    expect(Get.currentRoute, AppRoutes.mineOrderList);
   });
 
   testWidgets('product detail public step opens identity verification', (
@@ -185,6 +206,44 @@ void main() {
       SessionStore.instance.productDetailCache()!.note['face'],
       'Start live face verification.',
     );
+  });
+
+  testWidgets('product detail personal step opens personal information', (
+    tester,
+  ) async {
+    apiClient.productDetailStates = {
+      'grinner': {'unconfusing': 'Penalization'},
+      'sensitized': {'cabdrivers': 'product-personal'},
+    };
+    await _pumpRoutes(tester);
+
+    await NavigationHelper.navigateRawTarget(
+      'ph://kaibigan-loan/ios/AlderwomenProtozoology?geobotanists=product-personal',
+    );
+    await tester.pumpAndSettle();
+
+    expect(apiClient.productDetailIds, ['product-personal']);
+    expect(Get.currentRoute, AppRoutes.certificationPersonalInfo);
+    expect(Get.arguments, {'geobotanists': 'product-personal'});
+  });
+
+  testWidgets('product detail work step opens work information', (
+    tester,
+  ) async {
+    apiClient.productDetailStates = {
+      'grinner': {'unconfusing': 'Suppressive'},
+      'sensitized': {'cabdrivers': 'product-work'},
+    };
+    await _pumpRoutes(tester);
+
+    await NavigationHelper.navigateRawTarget(
+      'ph://kaibigan-loan/ios/AlderwomenProtozoology?geobotanists=product-work',
+    );
+    await tester.pumpAndSettle();
+
+    expect(apiClient.productDetailIds, ['product-work']);
+    expect(Get.currentRoute, AppRoutes.certificationWorkInfo);
+    expect(Get.arguments, {'geobotanists': 'product-work'});
   });
 
   testWidgets('product detail flow reads product fields from cache', (
@@ -401,7 +460,7 @@ void main() {
     expect(toastPresenter.showLoadingCount, 1);
     expect(toastPresenter.dismissLoadingCount, 1);
     expect(toastPresenter.errors, ['detail failed']);
-    expect(toastPresenter.calls, ['loading', 'dismiss', 'error:detail failed']);
+    expect(toastPresenter.calls, ['loading', 'error:detail failed']);
     expect(Get.currentRoute, AppRoutes.main);
   });
 }
@@ -417,12 +476,24 @@ Future<void> _pumpRoutes(WidgetTester tester) async {
         GetPage(name: AppRoutes.detail, page: () => const _DetailPageStub()),
         GetPage(name: AppRoutes.setting, page: () => const _SettingPageStub()),
         GetPage(
+          name: AppRoutes.mineOrderList,
+          page: () => const _MineOrderListPageStub(),
+        ),
+        GetPage(
           name: AppRoutes.certificationIdentity,
           page: () => const _CertificationIdentityPageStub(),
         ),
         GetPage(
           name: AppRoutes.certificationFace,
           page: () => const _CertificationFacePageStub(),
+        ),
+        GetPage(
+          name: AppRoutes.certificationPersonalInfo,
+          page: () => const _CertificationPersonalInfoPageStub(),
+        ),
+        GetPage(
+          name: AppRoutes.certificationWorkInfo,
+          page: () => const _CertificationWorkInfoPageStub(),
         ),
       ],
     ),
@@ -469,6 +540,15 @@ class _SettingPageStub extends StatelessWidget {
   }
 }
 
+class _MineOrderListPageStub extends StatelessWidget {
+  const _MineOrderListPageStub();
+
+  @override
+  Widget build(BuildContext context) {
+    return const SizedBox(key: Key('mineOrderListPageStub'));
+  }
+}
+
 class _CertificationIdentityPageStub extends StatelessWidget {
   const _CertificationIdentityPageStub();
 
@@ -484,6 +564,24 @@ class _CertificationFacePageStub extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return const SizedBox(key: Key('certificationFacePageStub'));
+  }
+}
+
+class _CertificationPersonalInfoPageStub extends StatelessWidget {
+  const _CertificationPersonalInfoPageStub();
+
+  @override
+  Widget build(BuildContext context) {
+    return const SizedBox(key: Key('certificationPersonalInfoPageStub'));
+  }
+}
+
+class _CertificationWorkInfoPageStub extends StatelessWidget {
+  const _CertificationWorkInfoPageStub();
+
+  @override
+  Widget build(BuildContext context) {
+    return const SizedBox(key: Key('certificationWorkInfoPageStub'));
   }
 }
 
@@ -556,6 +654,7 @@ class _FakeToastPresenter implements ToastPresenter {
   @override
   Future<void> show(String message, {required bool isError}) async {
     if (isError) {
+      dismissLoadingCount++;
       errors.add(message);
       calls.add('error:$message');
       return;

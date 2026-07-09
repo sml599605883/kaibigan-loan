@@ -13,7 +13,6 @@ class CertificationPromptBanner extends StatelessWidget {
   Widget build(BuildContext context) {
     return Container(
       height: 52.h,
-      margin: EdgeInsets.symmetric(horizontal: 20.w),
       padding: EdgeInsets.fromLTRB(5.w, 4.h, 25.w, 4.h),
       decoration: BoxDecoration(
         gradient: const LinearGradient(

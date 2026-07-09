@@ -196,10 +196,15 @@ class _CertificationIdentitySubmitPageState
       if (response.message.trim().isNotEmpty) {
         await AppToast.show(response.message);
       }
+      final productId = _productIdFromArguments();
+      if (productId.isNotEmpty) {
+        await NavigationHelper.continueProductDetailFlow(productId);
+        return;
+      }
       Get.toNamed<void>(
         AppRoutes.certificationFace,
         arguments: {
-          'geobotanists': _productIdFromArguments(),
+          'geobotanists': productId,
           'cardType': _cardTypeFromArguments(),
         },
       );
@@ -207,7 +212,6 @@ class _CertificationIdentitySubmitPageState
       if (!mounted) {
         return;
       }
-      await AppToast.dismissLoading();
       await AppToast.error(ApiErrorMessage.resolve(error));
     } finally {
       if (mounted) {

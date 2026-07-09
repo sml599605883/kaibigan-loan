@@ -14,6 +14,7 @@ abstract final class ApiEndpoints {
   static const productApply = '/plater/informal';
   static const productDetail = '/plater/maniacal';
   static const basicPersonInfo = '/plater/causations';
+  static const personalInfo = '/plater/shortchange';
   static const uploadImage = '/plater/busywork';
   static const saveBasicInfo = '/plater/violent';
   static const checkBasicInfo = '/plater/stones';

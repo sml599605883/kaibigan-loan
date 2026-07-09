@@ -167,6 +167,34 @@ void main() {
       'enemies': '777777',
       'cryophytes': '777777',
     });
+
+    await client.personalInfo(geobotanists: '1001');
+    expect(
+      adapter.lastRequest.path,
+      'https://api.example.test/plater/shortchange',
+    );
+    expect(adapter.lastBody, {'geobotanists': '1001', 'utopians': '777777'});
+
+    await client.jobInfo(geobotanists: '1001');
+    expect(
+      adapter.lastRequest.path,
+      'https://api.example.test/plater/preattuned',
+    );
+    expect(adapter.lastRequest.queryParameters['geobotanists'], '1001');
+    expect(adapter.lastRequest.queryParameters['utopians'], '777777');
+
+    await client.saveJobInfo(data: {'geobotanists': '1001', 'freshly': 'SPSS'});
+    expect(
+      adapter.lastRequest.path,
+      'https://api.example.test/plater/religiosities',
+    );
+    expect(adapter.lastBody, {
+      'geobotanists': '1001',
+      'freshly': 'SPSS',
+      'komondors': '777777',
+      'noncertified': '777777',
+      'tradescantias': '777777',
+    });
   });
 
   test('order methods expose only business params', () async {

@@ -166,7 +166,6 @@ class _CertificationFacePageState extends State<CertificationFacePage> {
       if (!mounted) {
         return;
       }
-      await AppToast.dismissLoading();
       await AppToast.error(ApiErrorMessage.resolve(error));
     } finally {
       if (mounted) {
@@ -209,6 +208,7 @@ class _CertificationFacePageState extends State<CertificationFacePage> {
     if (response.message.trim().isNotEmpty) {
       await AppToast.show(response.message);
     }
+    await NavigationHelper.continueProductDetailFlow(_productIdFromArguments());
   }
 }
 

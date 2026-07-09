@@ -10,6 +10,7 @@ import 'core/network/api_exception.dart';
 import 'core/session/product_detail_cache.dart';
 import 'core/session/session_store.dart';
 import 'modules/main/main_controller.dart';
+import 'modules/orders/order_list_models.dart';
 import 'utils/app_toast.dart';
 
 typedef RawTargetLauncher = Future<bool> Function(Uri uri);
@@ -64,10 +65,16 @@ class NavigationHelper {
         return toDetail<T>();
       case AppRoutes.setting:
         return toSetting<T>();
+      case AppRoutes.mineOrderList:
+        return toMineOrderList<T>();
       case AppRoutes.certificationIdentity:
         return toCertificationIdentity<T>();
       case AppRoutes.certificationFace:
         return toCertificationFace<T>();
+      case AppRoutes.certificationPersonalInfo:
+        return toCertificationPersonalInfo<T>();
+      case AppRoutes.certificationWorkInfo:
+        return toCertificationWorkInfo<T>();
       case AppRoutes.main:
         return offAllToMain<T>();
       default:
@@ -90,6 +97,20 @@ class NavigationHelper {
       );
       await _cacheProductDetail(response.states);
       toDetail<void>(arguments: response.states.rawMapValue);
+    });
+  }
+
+  static Future<void> continueProductDetailFlow(String productId) async {
+    final normalizedProductId = productId.trim();
+    if (normalizedProductId.isEmpty) {
+      return;
+    }
+    await _runApiNavigation(() async {
+      final response = await ApiClient.instance.productDetail(
+        geobotanists: normalizedProductId,
+      );
+      await _cacheProductDetail(response.states);
+      await _handleProductDetailFlow(response.states);
     });
   }
 
@@ -156,6 +177,15 @@ class NavigationHelper {
     return _toNamedIfNotCurrent<T>(AppRoutes.setting);
   }
 
+  static Future<T?>? toMineOrderList<T extends Object?>({
+    OrderListStatus initialStatus = OrderListStatus.all,
+  }) {
+    return Get.toNamed<T>(
+      AppRoutes.mineOrderList,
+      arguments: {'initialStatus': initialStatus.code},
+    );
+  }
+
   static Future<T?>? toCertificationIdentity<T extends Object?>({
     String? productId,
   }) {
@@ -175,6 +205,30 @@ class NavigationHelper {
         ? null
         : <String, String>{'geobotanists': productId.trim()};
     return Get.toNamed<T>(AppRoutes.certificationFace, arguments: arguments);
+  }
+
+  static Future<T?>? toCertificationPersonalInfo<T extends Object?>({
+    String? productId,
+  }) {
+    final arguments = productId == null || productId.trim().isEmpty
+        ? null
+        : <String, String>{'geobotanists': productId.trim()};
+    return Get.toNamed<T>(
+      AppRoutes.certificationPersonalInfo,
+      arguments: arguments,
+    );
+  }
+
+  static Future<T?>? toCertificationWorkInfo<T extends Object?>({
+    String? productId,
+  }) {
+    final arguments = productId == null || productId.trim().isEmpty
+        ? null
+        : <String, String>{'geobotanists': productId.trim()};
+    return Get.toNamed<T>(
+      AppRoutes.certificationWorkInfo,
+      arguments: arguments,
+    );
   }
 
   static Future<T?>? offAllToMain<T extends Object?>() {
@@ -197,7 +251,6 @@ class NavigationHelper {
       await action();
       await AppToast.dismissLoading();
     } catch (error) {
-      await AppToast.dismissLoading();
       await AppToast.error(ApiErrorMessage.resolve(error));
     }
   }
@@ -306,6 +359,14 @@ class NavigationHelper {
       toCertificationFace<void>(productId: productId);
       return;
     }
+    if (routeKey == 'personal') {
+      toCertificationPersonalInfo<void>(productId: productId);
+      return;
+    }
+    if (routeKey == 'work') {
+      toCertificationWorkInfo<void>(productId: productId);
+      return;
+    }
     logger(
       'product detail next step: code=$rawCode, routeKey=${routeKey ?? 'unknown'}, productId=$productId',
     );
@@ -371,6 +432,11 @@ class NavigationHelper {
       case 'setting':
       case 'AmoxicillinHistamines':
         return AppRoutes.setting;
+      case AppRoutes.mineOrderList:
+      case 'orderList':
+      case 'mineOrderList':
+      case 'LoanList':
+        return AppRoutes.mineOrderList;
       case AppRoutes.certificationFace:
       case 'face':
       case 'Vesicated':

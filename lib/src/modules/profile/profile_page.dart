@@ -5,6 +5,7 @@ import '../../assets/app_assets.dart';
 import '../../navigation_helper.dart';
 import '../../theme/app_colors.dart';
 import '../../utils/screen_adapter.dart';
+import '../orders/order_list_models.dart';
 import '../widgets/section_title.dart';
 
 class ProfilePage extends StatelessWidget {
@@ -86,14 +87,17 @@ class _ProfileSummaryCard extends StatelessWidget {
                 _OrderShortcut(
                   label: 'All order',
                   asset: AppAssets.profileOrderAll,
+                  status: OrderListStatus.all,
                 ),
                 _OrderShortcut(
                   label: 'Outstanding',
                   asset: AppAssets.profileOrderOutstanding,
+                  status: OrderListStatus.outstanding,
                 ),
                 _OrderShortcut(
                   label: 'Settled',
                   asset: AppAssets.profileOrderSettled,
+                  status: OrderListStatus.settled,
                 ),
               ],
             ),
@@ -105,10 +109,15 @@ class _ProfileSummaryCard extends StatelessWidget {
 }
 
 class _OrderShortcut extends StatelessWidget {
-  const _OrderShortcut({required this.label, required this.asset});
+  const _OrderShortcut({
+    required this.label,
+    required this.asset,
+    required this.status,
+  });
 
   final String label;
   final String asset;
+  final OrderListStatus status;
 
   @override
   Widget build(BuildContext context) {
@@ -118,7 +127,8 @@ class _OrderShortcut extends StatelessWidget {
       color: Colors.transparent,
       child: InkWell(
         borderRadius: screen.borderRadiusAll(10),
-        onTap: () {},
+        onTap: () =>
+            NavigationHelper.toMineOrderList<void>(initialStatus: status),
         child: SizedBox(
           width: screen.w(84),
           height: screen.h(87),

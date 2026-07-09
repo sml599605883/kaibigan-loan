@@ -404,6 +404,9 @@ class _FakeToastPresenter implements ToastPresenter {
 
   @override
   Future<void> show(String message, {required bool isError}) async {
+    if (isError) {
+      dismissCount += 1;
+    }
     messages.add(message);
   }
 

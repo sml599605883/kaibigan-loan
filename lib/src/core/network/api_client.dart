@@ -214,6 +214,13 @@ class ApiClient {
     );
   }
 
+  Future<ApiResponse> personalInfo({required String geobotanists}) {
+    return post(
+      ApiEndpoints.personalInfo,
+      data: {'geobotanists': geobotanists, 'utopians': _randomDigits(6)},
+    );
+  }
+
   Future<ApiResponse> getFaceToken({
     required String dodgy,
     required String commensurate,

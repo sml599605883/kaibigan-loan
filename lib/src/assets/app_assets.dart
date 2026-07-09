@@ -16,6 +16,10 @@ abstract final class AppAssets {
   static const certificationUploadCamera =
       'assets/certification_upload_camera.png';
   static const certificationFaceGuide = 'assets/certification_face_guide.png';
+  static const certificationPersonalProgress =
+      'assets/certification_personal_progress.png';
+  static const certificationWorkProgress =
+      'assets/certification_work_progress.png';
   static const featurePrimary = 'assets/feature_primary.png';
   static const featureSecondary = 'assets/feature_secondary.png';
   static const homeLoanCardBackground = 'assets/home_loan_card_bg.png';
@@ -32,6 +36,7 @@ abstract final class AppAssets {
   static const profileServiceOnline = 'assets/profile_service_online.png';
   static const profileServiceSetting = 'assets/profile_service_setting.png';
   static const profileServicePrivacy = 'assets/profile_service_privacy.png';
+  static const mineOrderEmpty = 'assets/mine_order_empty.png';
   static const settingLogo = 'assets/setting_logo.png';
   static const loginLogo = 'assets/login_logo.png';
   static const loginBack = 'assets/login_back.png';

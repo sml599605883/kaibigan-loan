@@ -3,11 +3,13 @@ import 'package:get/get.dart';
 import 'modules/certification/certification_identity_page.dart';
 import 'modules/certification/certification_identity_submit_page.dart';
 import 'modules/certification/certification_face_page.dart';
+import 'modules/certification/certification_personal_info_page.dart';
 import 'modules/certification/certification_upload_page.dart';
 import 'modules/detail/detail_page.dart';
 import 'modules/login/login_page.dart';
 import 'modules/main/main_binding.dart';
 import 'modules/main/main_shell_page.dart';
+import 'modules/orders/mine_order_list_page.dart';
 import 'modules/settings/setting_page.dart';
 
 abstract final class AppRoutes {
@@ -15,9 +17,12 @@ abstract final class AppRoutes {
   static const login = '/login';
   static const detail = '/detail';
   static const setting = '/setting';
+  static const mineOrderList = '/mine/order-list';
   static const certificationIdentity = '/certification/identity';
   static const certificationIdentitySubmit = '/certification/identity-submit';
   static const certificationFace = '/certification/face';
+  static const certificationPersonalInfo = '/certification/personal-info';
+  static const certificationWorkInfo = '/certification/work-info';
   static const certificationUpload = '/certification/upload';
 }
 
@@ -48,6 +53,12 @@ abstract final class AppPages {
       popGesture: false,
     ),
     GetPage(
+      name: AppRoutes.mineOrderList,
+      page: () => const MineOrderListPage(),
+      transition: Transition.rightToLeft,
+      popGesture: false,
+    ),
+    GetPage(
       name: AppRoutes.certificationIdentity,
       page: () => const CertificationIdentityPage(),
       transition: Transition.rightToLeft,
@@ -68,6 +79,18 @@ abstract final class AppPages {
     GetPage(
       name: AppRoutes.certificationFace,
       page: () => const CertificationFacePage(),
+      transition: Transition.rightToLeft,
+      popGesture: false,
+    ),
+    GetPage(
+      name: AppRoutes.certificationPersonalInfo,
+      page: () => const CertificationPersonalInfoPage(),
+      transition: Transition.rightToLeft,
+      popGesture: false,
+    ),
+    GetPage(
+      name: AppRoutes.certificationWorkInfo,
+      page: () => const CertificationPersonalInfoPage.work(),
       transition: Transition.rightToLeft,
       popGesture: false,
     ),

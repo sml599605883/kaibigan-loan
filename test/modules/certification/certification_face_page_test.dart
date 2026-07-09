@@ -78,7 +78,7 @@ void main() {
     apiClient.faceTokenStates = {
       'dwarfishly': '200',
       'thatches': 'td-license',
-      'clevises': 7,
+      'clevises': '7',
     };
     await _pumpFacePage(tester, arguments: {'geobotanists': 'product-face-1'});
 
@@ -100,7 +100,11 @@ void main() {
     apiClient.faceTokenStates = {
       'dwarfishly': '200',
       'thatches': 'td-license',
-      'clevises': 7,
+      'clevises': '7',
+    };
+    apiClient.productDetailStates = {
+      'grinner': {'unconfusing': 'Penalization'},
+      'sensitized': {'cabdrivers': 'ORDER001'},
     };
     await _pumpFacePage(
       tester,
@@ -140,9 +144,10 @@ void main() {
         intemperances: null,
       ),
     ]);
-    expect(toastPresenter.loadingMessages, [null, null]);
-    expect(toastPresenter.dismissCount, 2);
+    expect(toastPresenter.loadingMessages, [null, null, null]);
+    expect(toastPresenter.dismissCount, 3);
     expect(toastPresenter.messages, ['Upload success']);
+    expect(apiClient.productDetailIds, ['ORDER001']);
   });
 
   testWidgets('shows liveness error and skips upload when native fails', (
@@ -151,7 +156,7 @@ void main() {
     apiClient.faceTokenStates = {
       'dwarfishly': '200',
       'thatches': 'td-license',
-      'clevises': 7,
+      'clevises': '7',
     };
     await _pumpFacePage(
       tester,
@@ -223,8 +228,10 @@ class _FakeApiClient extends ApiClient {
 
   final tokenRequests = <_FaceTokenRequest>[];
   final uploads = <_UploadRequest>[];
+  final productDetailIds = <String>[];
   Object? error;
   Map<String, dynamic> faceTokenStates = const {};
+  Map<String, dynamic>? productDetailStates;
 
   @override
   Future<ApiResponse> getFaceToken({
@@ -271,6 +278,16 @@ class _FakeApiClient extends ApiClient {
       ),
     );
     return ApiResponse(code: 0, message: 'Upload success', states: Json(null));
+  }
+
+  @override
+  Future<ApiResponse> productDetail({required String geobotanists}) async {
+    productDetailIds.add(geobotanists);
+    return ApiResponse(
+      code: 0,
+      message: 'success',
+      states: Json(productDetailStates ?? <String, dynamic>{}),
+    );
   }
 }
 
@@ -351,6 +368,7 @@ class _FakeToastPresenter implements ToastPresenter {
   @override
   Future<void> show(String message, {required bool isError}) async {
     if (isError) {
+      dismissCount++;
       errors.add(message);
     } else {
       messages.add(message);

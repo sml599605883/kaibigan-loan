@@ -299,7 +299,6 @@ class _CertificationUploadPageState extends State<CertificationUploadPage> {
 
     final compressedPath = await _imageCompressor.compressToLimit(filePath);
     if (compressedPath == null || compressedPath.isEmpty) {
-      await AppToast.dismissLoading();
       await AppToast.error('Image compression failed');
       return;
     }
@@ -339,7 +338,6 @@ class _CertificationUploadPageState extends State<CertificationUploadPage> {
       if (!mounted) {
         return;
       }
-      await AppToast.dismissLoading();
       await AppToast.error(ApiErrorMessage.resolve(error));
     } finally {
       if (mounted) {
