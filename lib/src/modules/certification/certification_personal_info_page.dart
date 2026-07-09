@@ -127,8 +127,6 @@ class _CertificationPersonalInfoPageState
 
   @override
   Widget build(BuildContext context) {
-    ScreenAdapter.of(context);
-
     return Scaffold(
       backgroundColor: AppColors.certificationPageBackground,
       body: SafeArea(

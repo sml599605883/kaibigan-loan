@@ -21,8 +21,6 @@ class OrderListTabs extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final screen = ScreenAdapter.of(context);
-
     return Row(
       children: [
         for (var index = 0; index < OrderListStatus.values.length; index++) ...[
@@ -34,8 +32,7 @@ class OrderListTabs extends StatelessWidget {
               onTap: () => onStatusSelected(OrderListStatus.values[index]),
             ),
           ),
-          if (index != OrderListStatus.values.length - 1)
-            SizedBox(width: screen.w(5)),
+          if (index != OrderListStatus.values.length - 1) SizedBox(width: 5.w),
         ],
       ],
     );
@@ -57,7 +54,6 @@ class _OrderTab extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final screen = ScreenAdapter.of(context);
     final selectedBackground = style == OrderListTabsStyle.tabbar
         ? AppColors.tabBackground
         : AppColors.ordersTabActiveText;
@@ -74,13 +70,13 @@ class _OrderTab extends StatelessWidget {
     return Material(
       color: Colors.transparent,
       child: InkWell(
-        borderRadius: screen.borderRadiusAll(5),
+        borderRadius: BorderRadius.circular(5.r),
         onTap: onTap,
         child: Ink(
-          height: screen.h(30),
+          height: 30.h,
           decoration: BoxDecoration(
             color: selected ? selectedBackground : inactiveBackground,
-            borderRadius: screen.borderRadiusAll(5),
+            borderRadius: BorderRadius.circular(5.r),
           ),
           child: Center(
             child: FittedBox(
@@ -90,7 +86,7 @@ class _OrderTab extends StatelessWidget {
                 maxLines: 1,
                 style: TextStyle(
                   color: selected ? selectedTextColor : inactiveTextColor,
-                  fontSize: screen.sp(12),
+                  fontSize: 12.sp,
                   fontWeight: selected ? FontWeight.w700 : FontWeight.w400,
                   height: 18 / 12,
                 ),
@@ -110,23 +106,14 @@ class OrderListRow extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final screen = ScreenAdapter.of(context);
     final actionText = item.actionText.isEmpty ? 'Details' : item.actionText;
 
     return SizedBox(
-      height: screen.h(105),
-      child: Stack(
-        clipBehavior: Clip.none,
+      height: 105.h,
+      child: Row(
         children: [
-          Positioned(
-            right: 0,
-            top: screen.h(11),
-            child: _OrderActionButton(
-              text: actionText,
-              isRepay: item.isRepayAction,
-            ),
-          ),
-          _OrderCard(item: item),
+          Expanded(child: _OrderCard(item: item)),
+          _OrderActionButton(text: actionText, isRepay: item.isRepayAction),
         ],
       ),
     );
@@ -140,29 +127,23 @@ class _OrderCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final screen = ScreenAdapter.of(context);
-
     return Container(
-      width: screen.w(258),
-      height: screen.h(105),
-      padding: screen.edgeInsetsFromLTRB(12, 10, 11, 10),
+      height: 105.h,
+      padding: EdgeInsets.fromLTRB(12.w, 10.h, 11.w, 10.h),
       decoration: BoxDecoration(
         color: AppColors.tabBackground,
         border: Border.all(color: AppColors.ordersCardBorder),
         borderRadius: BorderRadius.horizontal(
-          left: Radius.circular(screen.r(20)),
-          right: Radius.circular(screen.r(8)),
+          left: Radius.circular(20.r),
+          right: Radius.circular(8.r),
         ),
       ),
       child: Row(
         children: [
+          Expanded(child: _OrderAmountBlock(item: item)),
+          SizedBox(width: 5.w),
           SizedBox(
-            width: screen.w(116),
-            child: _OrderAmountBlock(item: item),
-          ),
-          const Spacer(),
-          SizedBox(
-            width: screen.w(101),
+            width: 101.w,
             child: _OrderStatusBlock(item: item),
           ),
         ],
@@ -178,7 +159,6 @@ class _OrderAmountBlock extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final screen = ScreenAdapter.of(context);
     final productName = item.productName.isEmpty
         ? 'App Name'
         : item.productName;
@@ -186,42 +166,39 @@ class _OrderAmountBlock extends StatelessWidget {
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
+      mainAxisSize: MainAxisSize.min,
       children: [
         _AppNameTag(productName: productName),
-        SizedBox(height: screen.h(8)),
+        SizedBox(height: 8.h),
         SizedBox(
-          height: screen.h(31),
+          height: 31.h,
           child: FittedBox(
             fit: BoxFit.scaleDown,
-            alignment: Alignment.centerLeft,
+            alignment: Alignment.center,
             child: Text(
               amountText,
               maxLines: 1,
               style: TextStyle(
                 color: AppColors.ordersTitleText,
-                fontSize: screen.sp(26),
+                fontSize: 26.sp,
                 fontWeight: FontWeight.w700,
                 height: 31 / 26,
               ),
             ),
           ),
         ),
-        Transform.translate(
-          offset: Offset(screen.w(10), screen.h(-1)),
-          child: SizedBox(
-            width: screen.w(90),
-            child: FittedBox(
-              fit: BoxFit.scaleDown,
-              alignment: Alignment.centerLeft,
-              child: Text(
-                'Loan Amount',
-                maxLines: 1,
-                style: TextStyle(
-                  color: AppColors.ordersLightText,
-                  fontSize: screen.sp(14),
-                  fontWeight: FontWeight.w400,
-                  height: 17 / 14,
-                ),
+        Center(
+          child: FittedBox(
+            fit: BoxFit.scaleDown,
+            alignment: Alignment.centerLeft,
+            child: Text(
+              'Loan Amount',
+              maxLines: 1,
+              style: TextStyle(
+                color: AppColors.ordersLightText,
+                fontSize: 14.sp,
+                fontWeight: FontWeight.w400,
+                height: 17 / 14,
               ),
             ),
           ),
@@ -238,39 +215,37 @@ class _AppNameTag extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final screen = ScreenAdapter.of(context);
-
     return Container(
-      width: screen.w(94),
-      height: screen.h(26),
-      padding: screen.edgeInsetsFromLTRB(7, 5, 8, 5),
+      width: double.infinity,
+      height: 26.h,
+      padding: EdgeInsets.fromLTRB(5.w, 5.h, 5.w, 5.h),
       decoration: BoxDecoration(
         gradient: const LinearGradient(
           begin: Alignment.centerLeft,
           end: Alignment.centerRight,
           colors: [AppColors.ordersYellow, AppColors.ordersYellowEnd],
         ),
-        borderRadius: screen.borderRadiusAll(20),
+        borderRadius: BorderRadius.circular(20.r),
       ),
       child: Row(
         children: [
           Container(
-            width: screen.w(16),
-            height: screen.h(16),
+            width: 16.w,
+            height: 16.h,
             decoration: const BoxDecoration(
               color: AppColors.tabBackground,
               shape: BoxShape.circle,
             ),
           ),
-          SizedBox(width: screen.w(4)),
+          SizedBox(width: 4.w),
           Expanded(
             child: Text(
               productName,
               maxLines: 1,
-              overflow: TextOverflow.clip,
+              overflow: TextOverflow.ellipsis,
               style: TextStyle(
                 color: AppColors.ordersTitleText,
-                fontSize: screen.sp(12),
+                fontSize: 12.sp,
                 fontWeight: FontWeight.w700,
                 height: 14 / 12,
               ),
@@ -289,7 +264,6 @@ class _OrderStatusBlock extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final screen = ScreenAdapter.of(context);
     final statusText = item.statusText.isEmpty ? '--' : item.statusText;
     final dateValue = item.dateValue.isEmpty ? '--' : item.dateValue;
     final dateLabel = item.dateLabel.isEmpty ? 'Due Date' : item.dateLabel;
@@ -307,7 +281,7 @@ class _OrderStatusBlock extends StatelessWidget {
         : AppColors.ordersTitleText;
 
     return Padding(
-      padding: screen.edgeInsetsOnly(top: 4, bottom: 1),
+      padding: EdgeInsets.only(top: 4.h, bottom: 1.h),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.end,
         mainAxisAlignment: MainAxisAlignment.spaceBetween,
@@ -315,19 +289,20 @@ class _OrderStatusBlock extends StatelessWidget {
           Align(
             alignment: Alignment.centerRight,
             child: Container(
-              height: screen.h(19),
-              padding: screen.edgeInsetsSymmetric(horizontal: 7),
+              height: 19.h,
+              padding: EdgeInsets.symmetric(horizontal: 5.w),
               alignment: Alignment.center,
               decoration: BoxDecoration(
                 color: statusBackground,
-                borderRadius: screen.borderRadiusAll(20),
+                borderRadius: BorderRadius.circular(20.r),
               ),
               child: Text(
                 statusText,
                 maxLines: 1,
+                overflow: TextOverflow.ellipsis,
                 style: TextStyle(
                   color: statusTextColor,
-                  fontSize: screen.sp(12),
+                  fontSize: 12.sp,
                   fontWeight: FontWeight.w400,
                   height: 14 / 12,
                 ),
@@ -335,12 +310,12 @@ class _OrderStatusBlock extends StatelessWidget {
             ),
           ),
           Container(
-            width: screen.w(101),
-            height: screen.h(44),
-            padding: screen.edgeInsetsOnly(top: 7),
+            width: 101.w,
+            height: 44.h,
+            padding: EdgeInsets.only(top: 7.h),
             decoration: BoxDecoration(
               color: dateBackground,
-              borderRadius: screen.borderRadiusAll(7),
+              borderRadius: BorderRadius.circular(7.r),
             ),
             child: Column(
               children: [
@@ -350,19 +325,19 @@ class _OrderStatusBlock extends StatelessWidget {
                   overflow: TextOverflow.ellipsis,
                   style: TextStyle(
                     color: dateTextColor,
-                    fontSize: screen.sp(14),
+                    fontSize: 14.sp,
                     fontWeight: FontWeight.w700,
                     height: 17 / 14,
                   ),
                 ),
-                SizedBox(height: screen.h(3)),
+                SizedBox(height: 3.h),
                 Text(
                   dateLabel,
                   maxLines: 1,
                   overflow: TextOverflow.ellipsis,
                   style: TextStyle(
                     color: AppColors.ordersLightText,
-                    fontSize: screen.sp(10),
+                    fontSize: 10.sp,
                     fontWeight: FontWeight.w400,
                     height: 12 / 10,
                   ),
@@ -384,43 +359,38 @@ class _OrderActionButton extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final screen = ScreenAdapter.of(context);
-
-    return SizedBox(
-      width: screen.w(168),
-      height: screen.h(83),
-      child: DecoratedBox(
-        decoration: BoxDecoration(
-          gradient: isRepay
-              ? const LinearGradient(
-                  begin: Alignment.centerLeft,
-                  end: Alignment.centerRight,
-                  colors: [
-                    AppColors.ordersOrangeStart,
-                    AppColors.ordersOrangeEnd,
-                  ],
-                )
-              : const LinearGradient(
-                  begin: Alignment.centerLeft,
-                  end: Alignment.centerRight,
-                  colors: [AppColors.ordersYellow, AppColors.ordersYellowEnd],
-                ),
-          borderRadius: screen.borderRadiusAll(20),
-        ),
-        child: Align(
-          alignment: const Alignment(0.76, 0),
-          child: Text(
-            text,
-            textAlign: TextAlign.center,
-            style: TextStyle(
-              color: isRepay
-                  ? AppColors.tabBackground
-                  : AppColors.ordersActionBlueText,
-              fontSize: screen.sp(16),
-              fontWeight: FontWeight.w700,
-              height: 19 / 16,
-            ),
-          ),
+    return Container(
+      width: 77.w,
+      height: 83.h,
+      decoration: BoxDecoration(
+        gradient: isRepay
+            ? const LinearGradient(
+                begin: Alignment.centerLeft,
+                end: Alignment.centerRight,
+                colors: [
+                  AppColors.ordersOrangeStart,
+                  AppColors.ordersOrangeEnd,
+                ],
+              )
+            : const LinearGradient(
+                begin: Alignment.centerLeft,
+                end: Alignment.centerRight,
+                colors: [AppColors.ordersYellow, AppColors.ordersYellowEnd],
+              ),
+        borderRadius: BorderRadius.horizontal(right: Radius.circular(20.r)),
+      ),
+      alignment: Alignment.center,
+      child: Text(
+        text,
+        textAlign: TextAlign.center,
+        maxLines: 3,
+        style: TextStyle(
+          color: isRepay
+              ? AppColors.tabBackground
+              : AppColors.ordersActionBlueText,
+          fontSize: 16.sp,
+          fontWeight: FontWeight.w700,
+          height: 19 / 16,
         ),
       ),
     );
@@ -432,25 +402,23 @@ class MineOrderEmptyState extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final screen = ScreenAdapter.of(context);
-
     return Padding(
-      padding: screen.edgeInsetsOnly(top: 138),
+      padding: EdgeInsets.only(top: 138.h),
       child: Column(
         children: [
           Image.asset(
             AppAssets.mineOrderEmpty,
-            width: screen.w(181),
-            height: screen.h(158),
+            width: 181.w,
+            height: 158.h,
             fit: BoxFit.contain,
           ),
-          SizedBox(height: screen.h(21)),
+          SizedBox(height: 21.h),
           Text(
             'No information available',
             textAlign: TextAlign.center,
             style: TextStyle(
               color: AppColors.ordersTitleText,
-              fontSize: screen.sp(14),
+              fontSize: 14.sp,
               fontWeight: FontWeight.w400,
               height: 18 / 14,
             ),

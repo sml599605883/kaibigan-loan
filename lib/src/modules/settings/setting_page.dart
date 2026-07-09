@@ -19,23 +19,21 @@ class SettingPage extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final screen = ScreenAdapter.of(context);
-
     return Scaffold(
       backgroundColor: AppColors.tabBackground,
       body: SafeArea(
         bottom: false,
         child: SizedBox.expand(
           child: Padding(
-            padding: screen.edgeInsetsFromLTRB(20, 16, 14, 20),
+            padding: EdgeInsets.fromLTRB(20.w, 16.h, 14.w, 20.h),
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.stretch,
               children: [
-                _SettingHeader(screen: screen),
-                SizedBox(height: screen.h(76)),
-                _AppIdentity(screen: screen),
-                SizedBox(height: screen.h(45)),
-                _InfoPanel(screen: screen),
+                const _SettingHeader(),
+                SizedBox(height: 76.h),
+                const _AppIdentity(),
+                SizedBox(height: 45.h),
+                const _InfoPanel(),
                 const Spacer(),
                 _SettingActionButton(
                   label: 'Deactivate Account',
@@ -45,7 +43,7 @@ class SettingPage extends StatelessWidget {
                   fontWeight: FontWeight.w400,
                   onTap: () => _deactivateAccount(context),
                 ),
-                SizedBox(height: screen.h(10)),
+                SizedBox(height: 10.h),
                 _SettingActionButton(
                   label: 'Logout',
                   foregroundColor: AppColors.tabBackground,
@@ -111,14 +109,12 @@ class SettingPage extends StatelessWidget {
 }
 
 class _SettingHeader extends StatelessWidget {
-  const _SettingHeader({required this.screen});
-
-  final ScreenAdapter screen;
+  const _SettingHeader();
 
   @override
   Widget build(BuildContext context) {
     return SizedBox(
-      height: screen.h(24),
+      height: 24.h,
       child: Stack(
         alignment: Alignment.center,
         children: [
@@ -127,11 +123,11 @@ class _SettingHeader extends StatelessWidget {
             child: Material(
               color: Colors.transparent,
               child: InkWell(
-                borderRadius: screen.borderRadiusAll(20),
+                borderRadius: BorderRadius.circular(20.r),
                 onTap: Get.back<void>,
                 child: SizedBox(
-                  width: screen.w(48),
-                  height: screen.h(40),
+                  width: 48.w,
+                  height: 40.h,
                   child: Image.asset(
                     AppAssets.loginBack,
                     color: AppColors.ordersTitleText,
@@ -147,7 +143,7 @@ class _SettingHeader extends StatelessWidget {
             maxLines: 1,
             style: TextStyle(
               color: AppColors.ordersTitleText,
-              fontSize: screen.sp(20),
+              fontSize: 20.sp,
               fontWeight: FontWeight.w700,
               height: 24 / 20,
               letterSpacing: 0.07756407558917999,
@@ -160,9 +156,7 @@ class _SettingHeader extends StatelessWidget {
 }
 
 class _AppIdentity extends StatelessWidget {
-  const _AppIdentity({required this.screen});
-
-  final ScreenAdapter screen;
+  const _AppIdentity();
 
   @override
   Widget build(BuildContext context) {
@@ -176,13 +170,13 @@ class _AppIdentity extends StatelessWidget {
             height: 88.h,
           ),
         ),
-        SizedBox(height: screen.h(13)),
+        SizedBox(height: 13.h),
         Text(
           'Kaibigan Loan',
           maxLines: 1,
           style: TextStyle(
             color: AppColors.ordersTitleText,
-            fontSize: screen.sp(20),
+            fontSize: 20.sp,
             fontWeight: FontWeight.w700,
             height: 24 / 20,
             letterSpacing: 0.07756407558917999,
@@ -194,34 +188,24 @@ class _AppIdentity extends StatelessWidget {
 }
 
 class _InfoPanel extends StatelessWidget {
-  const _InfoPanel({required this.screen});
-
-  final ScreenAdapter screen;
+  const _InfoPanel();
 
   @override
   Widget build(BuildContext context) {
     return Container(
-      margin: screen.edgeInsetsOnly(right: 6),
-      padding: screen.edgeInsetsAll(10),
+      margin: EdgeInsets.only(right: 6.w),
+      padding: EdgeInsets.all(10.w),
       decoration: BoxDecoration(
         color: AppColors.settingInfoPanel,
-        borderRadius: screen.borderRadiusAll(20),
+        borderRadius: BorderRadius.circular(20.r),
       ),
       child: Column(
         children: [
-          _InfoRow(
-            screen: screen,
-            label: 'Website',
-            value: SettingPage._website,
-          ),
-          SizedBox(height: screen.h(10)),
-          _InfoRow(screen: screen, label: 'E-mail', value: SettingPage._email),
-          SizedBox(height: screen.h(10)),
-          _InfoRow(
-            screen: screen,
-            label: 'Version',
-            value: SettingPage._version,
-          ),
+          const _InfoRow(label: 'Website', value: SettingPage._website),
+          SizedBox(height: 10.h),
+          const _InfoRow(label: 'E-mail', value: SettingPage._email),
+          SizedBox(height: 10.h),
+          const _InfoRow(label: 'Version', value: SettingPage._version),
         ],
       ),
     );
@@ -229,24 +213,19 @@ class _InfoPanel extends StatelessWidget {
 }
 
 class _InfoRow extends StatelessWidget {
-  const _InfoRow({
-    required this.screen,
-    required this.label,
-    required this.value,
-  });
+  const _InfoRow({required this.label, required this.value});
 
-  final ScreenAdapter screen;
   final String label;
   final String value;
 
   @override
   Widget build(BuildContext context) {
     return Container(
-      height: screen.h(43),
-      padding: screen.edgeInsetsFromLTRB(19, 0, 20, 0),
+      height: 43.h,
+      padding: EdgeInsets.fromLTRB(19.w, 0, 20.w, 0),
       decoration: BoxDecoration(
         color: AppColors.tabBackground,
-        borderRadius: screen.borderRadiusAll(20),
+        borderRadius: BorderRadius.circular(20.r),
       ),
       child: Row(
         children: [
@@ -255,7 +234,7 @@ class _InfoRow extends StatelessWidget {
             maxLines: 1,
             style: TextStyle(
               color: AppColors.settingLabelText,
-              fontSize: screen.sp(16),
+              fontSize: 16.sp,
               fontWeight: FontWeight.w400,
               height: 19 / 16,
             ),
@@ -268,7 +247,7 @@ class _InfoRow extends StatelessWidget {
               textAlign: TextAlign.right,
               style: TextStyle(
                 color: AppColors.settingValueText,
-                fontSize: screen.sp(16),
+                fontSize: 16.sp,
                 fontWeight: FontWeight.w400,
                 height: 19 / 16,
               ),
@@ -299,23 +278,21 @@ class _SettingActionButton extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final screen = ScreenAdapter.of(context);
-
     return Padding(
-      padding: screen.edgeInsetsOnly(left: 37, right: 42),
+      padding: EdgeInsets.only(left: 37.w, right: 42.w),
       child: Material(
         color: Colors.transparent,
         child: InkWell(
-          borderRadius: screen.borderRadiusAll(25),
+          borderRadius: BorderRadius.circular(25.r),
           onTap: onTap,
           child: Ink(
-            height: screen.h(52),
+            height: 52.h,
             decoration: BoxDecoration(
               color: backgroundColor,
-              borderRadius: screen.borderRadiusAll(25),
+              borderRadius: BorderRadius.circular(25.r),
               border: borderColor == null
                   ? null
-                  : Border.all(color: borderColor!, width: screen.w(1)),
+                  : Border.all(color: borderColor!, width: 1.w),
             ),
             child: Center(
               child: Text(
@@ -323,7 +300,7 @@ class _SettingActionButton extends StatelessWidget {
                 maxLines: 1,
                 style: TextStyle(
                   color: foregroundColor,
-                  fontSize: screen.sp(18),
+                  fontSize: 18.sp,
                   fontWeight: fontWeight,
                   height: 22 / 18,
                 ),

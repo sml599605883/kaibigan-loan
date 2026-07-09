@@ -101,22 +101,8 @@ class OrderListItem {
 }
 
 List<OrderListItem> parseOrderListItems(Json states) {
-  final list = _firstList(states, const ['respirators', 'orderList', 'orders']);
+  final list = states['religiosities'].listValue;
   return list.map(OrderListItem.fromJson).toList(growable: false);
-}
-
-List<Json> _firstList(Json json, List<String> keys) {
-  final rootList = json.listOrNull;
-  if (rootList != null) {
-    return rootList;
-  }
-  for (final key in keys) {
-    final list = json[key].listOrNull;
-    if (list != null) {
-      return list;
-    }
-  }
-  return const <Json>[];
 }
 
 String _firstText(Json json, List<String> keys) {

@@ -11,25 +11,23 @@ class AppSectionTitle extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final screen = ScreenAdapter.of(context);
-
     return Row(
       children: [
         Text(
           title,
           style: TextStyle(
             color: AppColors.ordersHeaderText,
-            fontSize: screen.sp(18),
+            fontSize: 18.sp,
             fontWeight: FontWeight.w700,
             height: 22 / 18,
           ),
         ),
-        SizedBox(width: screen.w(22)),
+        SizedBox(width: 22.w),
         Flexible(
           child: Image.asset(
             AppAssets.titleLine,
-            width: screen.w(84),
-            height: screen.h(8),
+            width: 84.w,
+            height: 8.h,
             fit: BoxFit.fill,
             alignment: Alignment.centerLeft,
           ),

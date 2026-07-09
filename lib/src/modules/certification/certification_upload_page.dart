@@ -180,7 +180,6 @@ class _CertificationUploadPageState extends State<CertificationUploadPage> {
 
   @override
   Widget build(BuildContext context) {
-    ScreenAdapter.of(context);
     final promptText = _promptTextFromCache();
 
     return Scaffold(
@@ -405,8 +404,6 @@ class _UploadMethodSheetState extends State<_UploadMethodSheet> {
 
   @override
   Widget build(BuildContext context) {
-    ScreenAdapter.of(context);
-
     return Padding(
       padding: EdgeInsets.fromLTRB(15.w, 0, 15.w, 13.h),
       child: DecoratedBox(

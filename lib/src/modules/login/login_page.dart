@@ -201,8 +201,6 @@ class _LoginPageState extends State<LoginPage> {
 
   @override
   Widget build(BuildContext context) {
-    ScreenAdapter.of(context);
-
     return Scaffold(
       backgroundColor: AppColors.appBackground,
       body: SizedBox(

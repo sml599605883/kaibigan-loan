@@ -52,8 +52,6 @@ class _CertificationIdentitySubmitPageState
 
   @override
   Widget build(BuildContext context) {
-    ScreenAdapter.of(context);
-
     return Scaffold(
       backgroundColor: AppColors.certificationPageBackground,
       body: SafeArea(

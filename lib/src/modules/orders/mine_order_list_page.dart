@@ -82,8 +82,6 @@ class _MineOrderListPageState extends State<MineOrderListPage> {
 
   @override
   Widget build(BuildContext context) {
-    final screen = ScreenAdapter.of(context);
-
     return Scaffold(
       backgroundColor: AppColors.ordersBackground,
       body: SafeArea(
@@ -93,10 +91,10 @@ class _MineOrderListPageState extends State<MineOrderListPage> {
           onRefresh: _refreshOrders,
           child: ListView(
             physics: const AlwaysScrollableScrollPhysics(),
-            padding: screen.edgeInsetsFromLTRB(20, 33, 14, 100),
+            padding: EdgeInsets.fromLTRB(20.w, 13.w, 14.w, 100.h),
             children: [
               const _MineOrderHeader(),
-              SizedBox(height: screen.h(24)),
+              SizedBox(height: 24.h),
               OrderListTabs(
                 selectedStatus: _selectedStatus,
                 onStatusSelected: _selectStatus,
@@ -111,10 +109,10 @@ class _MineOrderListPageState extends State<MineOrderListPage> {
               else if (_items.isEmpty)
                 const MineOrderEmptyState()
               else ...[
-                SizedBox(height: screen.h(31)),
+                SizedBox(height: 31.h),
                 for (final item in _items) ...[
                   OrderListRow(item: item),
-                  SizedBox(height: screen.h(10)),
+                  SizedBox(height: 10.h),
                 ],
               ],
             ],
@@ -130,10 +128,8 @@ class _MineOrderHeader extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final screen = ScreenAdapter.of(context);
-
     return SizedBox(
-      height: screen.h(24),
+      height: 24.h,
       child: Stack(
         alignment: Alignment.center,
         children: [
@@ -142,16 +138,16 @@ class _MineOrderHeader extends StatelessWidget {
             child: Material(
               color: Colors.transparent,
               child: InkWell(
-                borderRadius: screen.borderRadiusAll(20),
+                borderRadius: BorderRadius.circular(20.r),
                 onTap: NavigationHelper.back,
                 child: SizedBox(
-                  width: screen.w(32),
-                  height: screen.h(32),
+                  width: 32.w,
+                  height: 32.h,
                   child: Center(
                     child: Image.asset(
                       AppAssets.loginBack,
-                      width: screen.w(23),
-                      height: screen.h(20),
+                      width: 23.w,
+                      height: 20.h,
                       fit: BoxFit.contain,
                     ),
                   ),
@@ -164,7 +160,7 @@ class _MineOrderHeader extends StatelessWidget {
             textAlign: TextAlign.center,
             style: TextStyle(
               color: AppColors.ordersTitleText,
-              fontSize: screen.sp(20),
+              fontSize: 20.sp,
               fontWeight: FontWeight.w700,
               height: 24 / 20,
               letterSpacing: 0.07756407558917999,
@@ -181,10 +177,8 @@ class _MineOrderLoadingState extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final screen = ScreenAdapter.of(context);
-
     return Padding(
-      padding: screen.edgeInsetsOnly(top: 138),
+      padding: EdgeInsets.only(top: 138.h),
       child: const Center(
         child: CircularProgressIndicator(color: AppColors.ordersTabActiveText),
       ),
@@ -200,10 +194,8 @@ class _MineOrderErrorState extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final screen = ScreenAdapter.of(context);
-
     return Padding(
-      padding: screen.edgeInsetsOnly(top: 138, left: 24, right: 24),
+      padding: EdgeInsets.only(top: 138.h, left: 24.w, right: 24.w),
       child: Column(
         children: [
           Text(
@@ -211,19 +203,19 @@ class _MineOrderErrorState extends StatelessWidget {
             textAlign: TextAlign.center,
             style: TextStyle(
               color: AppColors.ordersTitleText,
-              fontSize: screen.sp(14),
+              fontSize: 14.sp,
               fontWeight: FontWeight.w400,
               height: 18 / 14,
             ),
           ),
-          SizedBox(height: screen.h(16)),
+          SizedBox(height: 16.h),
           TextButton(
             onPressed: onRetry,
             child: Text(
               'Retry',
               style: TextStyle(
                 color: AppColors.ordersTabActiveText,
-                fontSize: screen.sp(14),
+                fontSize: 14.sp,
                 fontWeight: FontWeight.w700,
               ),
             ),

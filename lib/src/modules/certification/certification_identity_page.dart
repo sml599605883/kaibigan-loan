@@ -97,8 +97,6 @@ class _CertificationIdentityPageState extends State<CertificationIdentityPage> {
 
   @override
   Widget build(BuildContext context) {
-    ScreenAdapter.of(context);
-
     return Scaffold(
       backgroundColor: AppColors.certificationPageBackground,
       body: SafeArea(

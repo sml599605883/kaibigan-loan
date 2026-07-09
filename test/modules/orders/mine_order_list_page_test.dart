@@ -29,13 +29,13 @@ void main() {
     tester,
   ) async {
     apiClient.orderListStates = Json({
-      'orders': [
+      'religiosities': [
         {
-          'appName': 'Cash Bee',
-          'loanAmount': '₱ 88,888.01 raw',
-          'statusText': 'Custom Status',
-          'dueDate': 'raw due date',
-          'actionText': 'Server Action',
+          'omissible': 'Cash Bee',
+          'ecumenicalism': '₱ 88,888.01 raw',
+          'playhouses': 'Custom Status',
+          'spelts': 'raw due date',
+          'restless': 'Server Action',
         },
       ],
     });
@@ -55,7 +55,9 @@ void main() {
   testWidgets('shows empty design state when API returns no orders', (
     tester,
   ) async {
-    apiClient.orderListStates = Json({'orders': <Map<String, dynamic>>[]});
+    apiClient.orderListStates = Json({
+      'religiosities': <Map<String, dynamic>>[],
+    });
 
     await _pumpMineOrderList(tester);
     await tester.pumpAndSettle();
