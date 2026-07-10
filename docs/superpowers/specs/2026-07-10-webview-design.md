@@ -33,7 +33,9 @@ replaced only in that file when the H5 contract arrives.
 
 Supported actions are: risk reporting, external-browser opening, internal
 scheme navigation, close page, return home, app review, signed common params,
-original-card retry, and collection-account change.
+and original-card retry. The collection-account action is reserved in the
+constants but returns an explicit unavailable result until this project has its
+native account-selection page and documented response fields.
 
 ## Safety And Lifecycle
 
@@ -51,8 +53,8 @@ failure, and uses WebView history before closing the Flutter route.
 Risk reporting calls `ReportManager`. Internal URLs use `NavigationHelper`.
 Signed common parameters are built with `ApiSignature`. Original-card retry
 calls `ApiClient.originalCardRetry()` and opens the response URL in the current
-WebView. Account change uses the existing account API and routes to the
-certification/bank flow available in this checkout.
+WebView. Account change is intentionally not wired to `userAccountList` or
+`changeOrderAccount` until the native selection flow is supplied.
 
 Each API branch closes loading on both success and failure, turns errors into a
 user-visible message through `AppToast`, and returns a bridge failure result.
