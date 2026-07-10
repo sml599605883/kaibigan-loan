@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:get/get.dart';
 import 'package:kaibigan_loan/src/app_routes.dart';
+import 'package:kaibigan_loan/src/assets/app_assets.dart';
 import 'package:kaibigan_loan/src/core/json/json.dart';
 import 'package:kaibigan_loan/src/core/network/api_client.dart';
 import 'package:kaibigan_loan/src/core/network/api_config.dart';
@@ -46,6 +47,14 @@ void main() {
     expect(find.text('Bank'), findsOneWidget);
     expect(find.text('BDO'), findsOneWidget);
     expect(find.text('**** 1234'), findsOneWidget);
+    expect(
+      _selectionAssetFor(tester, 'bind-1'),
+      AppAssets.accountOptionSelected,
+    );
+    expect(
+      _selectionAssetFor(tester, 'bind-2'),
+      AppAssets.accountOptionUnselected,
+    );
     expect(
       tester
           .widget<MaterialButton>(find.byKey(const Key('accountListConfirm')))
@@ -113,6 +122,10 @@ void main() {
 
     expect(toastPresenter.errorMessages, contains('Bad state: submit failed'));
     expect(
+      _selectionAssetFor(tester, 'bind-2'),
+      AppAssets.accountOptionSelected,
+    );
+    expect(
       tester
           .widget<MaterialButton>(find.byKey(const Key('accountListConfirm')))
           .onPressed,
@@ -172,14 +185,6 @@ Future<void> _pumpPage(
 Json _accounts() => Json(<String, dynamic>{
   'religiosities': <Map<String, dynamic>>[
     <String, dynamic>{
-      'smokehouse': 'bind-1',
-      'overdoer': 'Bank',
-      'dendron': '',
-      'postaccident': 'BDO',
-      'benefits': '**** 1234',
-      'uptime': 1,
-    },
-    <String, dynamic>{
       'smokehouse': 'bind-2',
       'overdoer': 'E-wallet',
       'dendron': '',
@@ -187,8 +192,29 @@ Json _accounts() => Json(<String, dynamic>{
       'benefits': '0917 000 0000',
       'uptime': 0,
     },
+    <String, dynamic>{
+      'smokehouse': 'bind-1',
+      'overdoer': 'Bank',
+      'dendron': '',
+      'postaccident': 'BDO',
+      'benefits': '**** 1234',
+      'uptime': 1,
+    },
   ],
 });
+
+String _selectionAssetFor(WidgetTester tester, String bindId) {
+  final images = tester.widgetList<Image>(
+    find.descendant(
+      of: find.byKey(Key('accountListItem-$bindId')),
+      matching: find.byType(Image),
+    ),
+  );
+  final selectionImage = images.singleWhere(
+    (image) => image.image is AssetImage,
+  );
+  return (selectionImage.image as AssetImage).assetName;
+}
 
 class _FakeApiClient extends ApiClient {
   _FakeApiClient() : super(ApiConfig(), dio: Dio());
