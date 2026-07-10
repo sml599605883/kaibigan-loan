@@ -41,4 +41,8 @@ abstract final class AppAssets {
   static const loginLogo = 'assets/login_logo.png';
   static const loginBack = 'assets/login_back.png';
   static const loginAgreementChecked = 'assets/login_agreement_checked.png';
+  static const accountOptionSelected = 'assets/account_option_selected.png';
+  static const accountOptionUnselected = 'assets/account_option_unselected.png';
+  static const accountAddPaymentMethods =
+      'assets/account_add_payment_methods.png';
 }

@@ -1,5 +1,6 @@
 import 'package:get/get.dart';
 
+import 'modules/account/account_list_page.dart';
 import 'modules/certification/certification_identity_page.dart';
 import 'modules/certification/certification_identity_submit_page.dart';
 import 'modules/certification/certification_face_page.dart';
@@ -19,6 +20,7 @@ abstract final class AppRoutes {
   static const login = '/login';
   static const detail = '/detail';
   static const setting = '/setting';
+  static const accountList = '/account/list';
   static const mineOrderList = '/mine/order-list';
   static const certificationIdentity = '/certification/identity';
   static const certificationIdentitySubmit = '/certification/identity-submit';
@@ -52,6 +54,12 @@ abstract final class AppPages {
     GetPage(
       name: AppRoutes.setting,
       page: () => const SettingPage(),
+      transition: Transition.rightToLeft,
+      popGesture: false,
+    ),
+    GetPage(
+      name: AppRoutes.accountList,
+      page: () => const AccountListPage(),
       transition: Transition.rightToLeft,
       popGesture: false,
     ),

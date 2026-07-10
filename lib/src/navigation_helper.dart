@@ -239,6 +239,8 @@ class NavigationHelper {
         return toDetail<T>();
       case AppRoutes.setting:
         return toSetting<T>();
+      case AppRoutes.accountList:
+        return Get.toNamed<T>(AppRoutes.accountList);
       case AppRoutes.mineOrderList:
         return toMineOrderList<T>();
       case AppRoutes.certificationIdentity:
@@ -383,6 +385,24 @@ class NavigationHelper {
     return Get.toNamed<T>(
       AppRoutes.mineOrderList,
       arguments: {'initialStatus': initialStatus.code},
+    );
+  }
+
+  static Future<T?>? toAccountList<T extends Object?>({
+    required String productId,
+    required String orderNo,
+  }) {
+    final normalizedProductId = productId.trim();
+    final normalizedOrderNo = orderNo.trim();
+    if (normalizedProductId.isEmpty || normalizedOrderNo.isEmpty) {
+      return null;
+    }
+    return Get.toNamed<T>(
+      AppRoutes.accountList,
+      arguments: <String, String>{
+        'geobotanists': normalizedProductId,
+        'dodgy': normalizedOrderNo,
+      },
     );
   }
 

@@ -95,6 +95,24 @@ void main() {
     expect(Get.arguments, {'initialStatus': '7'});
   });
 
+  testWidgets('pushes account list with trimmed product and order arguments', (
+    tester,
+  ) async {
+    await _pumpRoutes(tester);
+
+    NavigationHelper.toAccountList<void>(
+      productId: ' product-1 ',
+      orderNo: ' order-2 ',
+    );
+    await tester.pumpAndSettle();
+
+    expect(Get.currentRoute, AppRoutes.accountList);
+    expect(Get.arguments, <String, String>{
+      'geobotanists': 'product-1',
+      'dodgy': 'order-2',
+    });
+  });
+
   testWidgets('does not push duplicate login route', (tester) async {
     await _pumpRoutes(tester);
 
@@ -680,6 +698,10 @@ Future<void> _pumpRoutes(WidgetTester tester) async {
         GetPage(name: AppRoutes.login, page: () => const _LoginPageStub()),
         GetPage(name: AppRoutes.detail, page: () => const _DetailPageStub()),
         GetPage(name: AppRoutes.setting, page: () => const _SettingPageStub()),
+        GetPage(
+          name: AppRoutes.accountList,
+          page: () => const _AccountListPageStub(),
+        ),
         GetPage(name: AppRoutes.webView, page: () => const _WebViewPageStub()),
         GetPage(
           name: AppRoutes.mineOrderList,
@@ -752,6 +774,15 @@ class _SettingPageStub extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return const SizedBox(key: Key('settingPageStub'));
+  }
+}
+
+class _AccountListPageStub extends StatelessWidget {
+  const _AccountListPageStub();
+
+  @override
+  Widget build(BuildContext context) {
+    return const SizedBox(key: Key('accountListPageStub'));
   }
 }
 
