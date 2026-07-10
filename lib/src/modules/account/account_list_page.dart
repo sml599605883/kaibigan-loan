@@ -102,7 +102,10 @@ class _AccountListPageState extends State<AccountListPage> {
       }
       if (mounted) NavigationHelper.back(result: selected);
     } catch (error) {
-      if (!mounted) return;
+      if (!mounted) {
+        await AppToast.dismissLoading();
+        return;
+      }
       setState(() => _isSubmitting = false);
       await AppToast.error(ApiErrorMessage.resolve(error));
     }
@@ -225,61 +228,66 @@ class _AccountListCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Material(
-      color: AppColors.accountCardBackground,
-      borderRadius: BorderRadius.circular(12.r),
-      child: InkWell(
-        key: Key('accountListItem-${item.bindId}'),
+    return Semantics(
+      selected: selected,
+      button: true,
+      label: '${item.providerName} ${item.displayValue}'.trim(),
+      child: Material(
+        color: AppColors.accountCardBackground,
         borderRadius: BorderRadius.circular(12.r),
-        onTap: onTap,
-        child: Padding(
-          padding: EdgeInsets.all(12.w),
-          child: Row(
-            children: [
-              _TypeIcon(url: item.typeIconUrl),
-              SizedBox(width: 10.w),
-              Expanded(
-                child: Container(
-                  padding: EdgeInsets.symmetric(
-                    horizontal: 12.w,
-                    vertical: 10.h,
-                  ),
-                  decoration: BoxDecoration(
-                    color: AppColors.accountCardPanel,
-                    borderRadius: BorderRadius.circular(8.r),
-                  ),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(
-                        item.providerName,
-                        style: TextStyle(
-                          color: AppColors.accountCardText,
-                          fontSize: 16.sp,
-                          fontWeight: FontWeight.w700,
+        child: InkWell(
+          key: Key('accountListItem-${item.bindId}'),
+          borderRadius: BorderRadius.circular(12.r),
+          onTap: onTap,
+          child: Padding(
+            padding: EdgeInsets.all(12.w),
+            child: Row(
+              children: [
+                _TypeIcon(url: item.typeIconUrl),
+                SizedBox(width: 10.w),
+                Expanded(
+                  child: Container(
+                    padding: EdgeInsets.symmetric(
+                      horizontal: 12.w,
+                      vertical: 10.h,
+                    ),
+                    decoration: BoxDecoration(
+                      color: AppColors.accountCardPanel,
+                      borderRadius: BorderRadius.circular(8.r),
+                    ),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          item.providerName,
+                          style: TextStyle(
+                            color: AppColors.accountCardText,
+                            fontSize: 16.sp,
+                            fontWeight: FontWeight.w700,
+                          ),
                         ),
-                      ),
-                      SizedBox(height: 4.h),
-                      Text(
-                        item.displayValue,
-                        style: TextStyle(
-                          color: AppColors.accountCardValueText,
-                          fontSize: 14.sp,
+                        SizedBox(height: 4.h),
+                        Text(
+                          item.displayValue,
+                          style: TextStyle(
+                            color: AppColors.accountCardValueText,
+                            fontSize: 14.sp,
+                          ),
                         ),
-                      ),
-                    ],
+                      ],
+                    ),
                   ),
                 ),
-              ),
-              SizedBox(width: 10.w),
-              Image.asset(
-                selected
-                    ? AppAssets.accountOptionSelected
-                    : AppAssets.accountOptionUnselected,
-                width: 24.w,
-                height: 24.h,
-              ),
-            ],
+                SizedBox(width: 10.w),
+                Image.asset(
+                  selected
+                      ? AppAssets.accountOptionSelected
+                      : AppAssets.accountOptionUnselected,
+                  width: 24.w,
+                  height: 24.h,
+                ),
+              ],
+            ),
           ),
         ),
       ),

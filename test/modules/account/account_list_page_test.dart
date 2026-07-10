@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:dio/dio.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
@@ -133,6 +135,34 @@ void main() {
     );
   });
 
+  testWidgets(
+    'dismisses submit loading when the page is popped before failure',
+    (tester) async {
+      apiClient.accountStates = _accounts();
+      apiClient.changeCompleter = Completer<ApiResponse>();
+      await _pumpPage(
+        tester,
+        arguments: <String, String>{
+          'geobotanists': 'product-1',
+          'dodgy': 'ORDER001',
+        },
+      );
+      await tester.pumpAndSettle();
+
+      await tester.tap(find.byKey(const Key('accountListConfirm')));
+      await tester.pump();
+      expect(toastPresenter.showLoadingCount, 1);
+
+      Get.back<void>();
+      await tester.pumpAndSettle();
+      apiClient.changeCompleter!.completeError(StateError('submit failed'));
+      await tester.pumpAndSettle();
+
+      expect(toastPresenter.dismissLoadingCount, 1);
+      expect(toastPresenter.errorMessages, isEmpty);
+    },
+  );
+
   testWidgets('shows empty state and cannot submit', (tester) async {
     apiClient.accountStates = Json(<String, dynamic>{
       'religiosities': <dynamic>[],
@@ -224,6 +254,7 @@ class _FakeApiClient extends ApiClient {
   Json accountStates = Json(null);
   Object? accountError;
   Object? changeError;
+  Completer<ApiResponse>? changeCompleter;
 
   @override
   Future<ApiResponse> userAccountList({required String geobotanists}) async {
@@ -241,6 +272,7 @@ class _FakeApiClient extends ApiClient {
       'dodgy': dodgy,
       'smokehouse': smokehouse,
     });
+    if (changeCompleter != null) return changeCompleter!.future;
     if (changeError != null) throw changeError!;
     return ApiResponse(code: 0, message: '', states: Json(null));
   }
@@ -248,9 +280,13 @@ class _FakeApiClient extends ApiClient {
 
 class _FakeToastPresenter implements ToastPresenter {
   final errorMessages = <String>[];
+  int showLoadingCount = 0;
+  int dismissLoadingCount = 0;
 
   @override
-  Future<void> dismissLoading() async {}
+  Future<void> dismissLoading() async {
+    dismissLoadingCount++;
+  }
 
   @override
   Future<void> show(String message, {required bool isError}) async {
@@ -258,5 +294,7 @@ class _FakeToastPresenter implements ToastPresenter {
   }
 
   @override
-  Future<void> showLoading(String? message) async {}
+  Future<void> showLoading(String? message) async {
+    showLoadingCount++;
+  }
 }
