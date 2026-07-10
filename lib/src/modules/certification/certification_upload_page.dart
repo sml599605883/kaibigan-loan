@@ -330,6 +330,7 @@ class _CertificationUploadPageState extends State<CertificationUploadPage> {
         arguments: {
           'geobotanists': _productIdFromArguments(),
           'cardType': _cardTypeFromArguments(),
+          'scene3StartTimeSeconds': _scene3StartTimeSecondsFromArguments(),
           'recognizedInfo': response.states.rawMapValue,
         },
       );
@@ -378,6 +379,21 @@ class _CertificationUploadPageState extends State<CertificationUploadPage> {
       return arguments['cardType']?.toString().trim() ?? '';
     }
     return '';
+  }
+
+  int _scene3StartTimeSecondsFromArguments() {
+    final arguments = Get.arguments;
+    if (arguments is Map) {
+      final value = arguments['scene3StartTimeSeconds'];
+      if (value is int && value > 0) {
+        return value;
+      }
+      final parsed = int.tryParse(value?.toString() ?? '');
+      if (parsed != null && parsed > 0) {
+        return parsed;
+      }
+    }
+    return DateTime.now().millisecondsSinceEpoch ~/ 1000;
   }
 
   String _productIdFromArguments() {

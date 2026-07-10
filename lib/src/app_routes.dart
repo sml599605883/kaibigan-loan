@@ -11,6 +11,8 @@ import 'modules/main/main_binding.dart';
 import 'modules/main/main_shell_page.dart';
 import 'modules/orders/mine_order_list_page.dart';
 import 'modules/settings/setting_page.dart';
+import 'modules/webview/webview_page.dart';
+import 'core/json/json.dart';
 
 abstract final class AppRoutes {
   static const main = '/';
@@ -24,6 +26,7 @@ abstract final class AppRoutes {
   static const certificationPersonalInfo = '/certification/personal-info';
   static const certificationWorkInfo = '/certification/work-info';
   static const certificationUpload = '/certification/upload';
+  static const webView = '/webview';
 }
 
 abstract final class AppPages {
@@ -85,6 +88,18 @@ abstract final class AppPages {
     GetPage(
       name: AppRoutes.certificationPersonalInfo,
       page: () => const CertificationPersonalInfoPage(),
+      transition: Transition.rightToLeft,
+      popGesture: false,
+    ),
+    GetPage(
+      name: AppRoutes.webView,
+      page: () {
+        final arguments = Json(Get.arguments);
+        return WebViewPage(
+          initialUrl: arguments['url'].stringValue,
+          initialTitle: arguments['title'].stringOrNull,
+        );
+      },
       transition: Transition.rightToLeft,
       popGesture: false,
     ),

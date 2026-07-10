@@ -6,6 +6,7 @@ import '../../app_routes.dart';
 import '../../core/json/json.dart';
 import '../../core/network/api_client.dart';
 import '../../core/network/api_exception.dart';
+import '../../core/report/risk_report_scene.dart';
 import '../../navigation_helper.dart';
 import '../../theme/app_colors.dart';
 import '../../utils/app_toast.dart';
@@ -26,10 +27,12 @@ class _CertificationIdentityPageState extends State<CertificationIdentityPage> {
   bool _isLoading = true;
   List<String> _recommendedTypes = <String>[];
   List<String> _otherTypes = <String>[];
+  late final int _scene2StartTimeSeconds;
 
   @override
   void initState() {
     super.initState();
+    _scene2StartTimeSeconds = RiskReportScene.nowSeconds();
     _loadIdentityInfo();
   }
 
@@ -118,6 +121,7 @@ class _CertificationIdentityPageState extends State<CertificationIdentityPage> {
               child: _IdentityTypeContent(
                 isLoading: _isLoading,
                 productId: _productIdFromArguments(),
+                scene2StartTimeSeconds: _scene2StartTimeSeconds,
                 types: _selectedTab == _IdentityTypeTab.recommended
                     ? _recommendedTypes
                     : _otherTypes,
@@ -253,11 +257,13 @@ class _IdentityTypeContent extends StatelessWidget {
   const _IdentityTypeContent({
     required this.isLoading,
     required this.productId,
+    required this.scene2StartTimeSeconds,
     required this.types,
   });
 
   final bool isLoading;
   final String productId;
+  final int scene2StartTimeSeconds;
   final List<String> types;
 
   @override
@@ -300,6 +306,7 @@ class _IdentityTypeContent extends StatelessWidget {
                       _IdentityTypeRow(
                         productId: productId,
                         type: types[index],
+                        scene2StartTimeSeconds: scene2StartTimeSeconds,
                       ),
                       if (index != types.length - 1) SizedBox(height: 10.h),
                     ],
@@ -312,10 +319,15 @@ class _IdentityTypeContent extends StatelessWidget {
 }
 
 class _IdentityTypeRow extends StatelessWidget {
-  const _IdentityTypeRow({required this.productId, required this.type});
+  const _IdentityTypeRow({
+    required this.productId,
+    required this.type,
+    required this.scene2StartTimeSeconds,
+  });
 
   final String productId;
   final String type;
+  final int scene2StartTimeSeconds;
 
   @override
   Widget build(BuildContext context) {
@@ -325,9 +337,18 @@ class _IdentityTypeRow extends StatelessWidget {
       child: InkWell(
         borderRadius: BorderRadius.circular(20.r),
         onTap: () {
+          RiskReportScene.report(
+            productId: productId,
+            sceneType: '2',
+            startTimeSeconds: scene2StartTimeSeconds,
+          );
           Get.toNamed<void>(
             AppRoutes.certificationUpload,
-            arguments: {'geobotanists': productId, 'cardType': type},
+            arguments: {
+              'geobotanists': productId,
+              'cardType': type,
+              'scene3StartTimeSeconds': RiskReportScene.nowSeconds(),
+            },
           );
         },
         child: Padding(

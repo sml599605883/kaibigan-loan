@@ -8,6 +8,7 @@ import '../../assets/app_assets.dart';
 import '../../core/client/client_bridge.dart';
 import '../../core/network/api_client.dart';
 import '../../core/network/api_exception.dart';
+import '../../core/report/risk_report_scene.dart';
 import '../../core/session/session_store.dart';
 import '../../navigation_helper.dart';
 import '../../theme/app_colors.dart';
@@ -41,6 +42,13 @@ class _CertificationFacePageState extends State<CertificationFacePage> {
       'A clear ID photo is the key to lightning-fast approval. Please upload ID front.';
 
   bool _isSubmitting = false;
+  late final int _scene4StartTimeSeconds;
+
+  @override
+  void initState() {
+    super.initState();
+    _scene4StartTimeSeconds = RiskReportScene.nowSeconds();
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -206,7 +214,15 @@ class _CertificationFacePageState extends State<CertificationFacePage> {
     if (response.message.trim().isNotEmpty) {
       await AppToast.show(response.message);
     }
-    await NavigationHelper.continueProductDetailFlow(_productIdFromArguments());
+    final productId = _productIdFromArguments();
+    if (productId.isNotEmpty) {
+      RiskReportScene.report(
+        productId: productId,
+        sceneType: '4',
+        startTimeSeconds: _scene4StartTimeSeconds,
+      );
+    }
+    await NavigationHelper.continueProductDetailFlow(productId);
   }
 }
 

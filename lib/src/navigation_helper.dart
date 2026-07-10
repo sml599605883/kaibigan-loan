@@ -1,12 +1,17 @@
 import 'dart:developer';
 
+import 'package:flutter/cupertino.dart';
 import 'package:get/get.dart';
+import 'package:permission_handler/permission_handler.dart';
 import 'package:url_launcher/url_launcher.dart';
 
 import 'app_routes.dart';
 import 'core/json/json.dart';
 import 'core/network/api_client.dart';
 import 'core/network/api_exception.dart';
+import 'core/report/report_manager.dart';
+import 'core/report/report_models.dart';
+import 'core/report/report_native_bridge.dart';
 import 'core/session/product_detail_cache.dart';
 import 'core/session/session_store.dart';
 import 'modules/main/main_controller.dart';
@@ -15,6 +20,27 @@ import 'utils/app_toast.dart';
 
 typedef RawTargetLauncher = Future<bool> Function(Uri uri);
 typedef NavigationLogger = void Function(String message);
+typedef LocationAccessChecker = Future<bool> Function();
+typedef LocationReporter = Future<void> Function();
+typedef NativeLocationLoader = Future<ReportLocation?> Function();
+typedef LocationServiceStatusProvider = Future<ServiceStatus> Function();
+typedef LocationPermissionStatusProvider = Future<PermissionStatus> Function();
+typedef LocationPermissionRequester = Future<PermissionStatus> Function();
+typedef AppSettingsOpener = Future<bool> Function();
+typedef PermissionPromptPresenter =
+    Future<bool> Function({
+      required String title,
+      required String content,
+      required String cancelText,
+      required String confirmText,
+    });
+
+enum _LocationPermissionAction {
+  proceed,
+  requestPermission,
+  openServicePrompt,
+  openSettingsPrompt,
+}
 
 class NavigationHelper {
   NavigationHelper._();
@@ -40,13 +66,161 @@ class NavigationHelper {
 
   static RawTargetLauncher rawTargetLauncher = defaultRawTargetLauncher;
   static NavigationLogger logger = defaultLogger;
+  static LocationAccessChecker locationAccessChecker =
+      defaultLocationAccessChecker;
+  static LocationReporter locationReporter = defaultLocationReporter;
+  static NativeLocationLoader nativeLocationLoader =
+      defaultNativeLocationLoader;
+  static LocationServiceStatusProvider locationServiceStatusProvider =
+      defaultLocationServiceStatusProvider;
+  static LocationPermissionStatusProvider locationPermissionStatusProvider =
+      defaultLocationPermissionStatusProvider;
+  static LocationPermissionRequester locationPermissionRequester =
+      defaultLocationPermissionRequester;
+  static PermissionPromptPresenter permissionPromptPresenter =
+      defaultPermissionPromptPresenter;
+  static AppSettingsOpener appSettingsOpener = defaultAppSettingsOpener;
 
   static Future<bool> defaultRawTargetLauncher(Uri uri) {
     return launchUrl(uri, mode: LaunchMode.externalApplication);
   }
 
+  static Future<bool> openExternalUri(Uri uri) {
+    return rawTargetLauncher(uri);
+  }
+
   static void defaultLogger(String message) {
     log(message, name: 'NavigationHelper');
+  }
+
+  static Future<bool> defaultLocationAccessChecker() async {
+    final location = await nativeLocationLoader();
+    if (location != null && location.isValid) {
+      return true;
+    }
+
+    final serviceStatus = await locationServiceStatusProvider();
+    final permissionStatus = await locationPermissionStatusProvider();
+    final permissionAction = _resolveLocationPermissionAction(
+      serviceStatus: serviceStatus,
+      permissionStatus: permissionStatus,
+    );
+    if (permissionAction == _LocationPermissionAction.proceed) {
+      return true;
+    }
+    if (permissionAction == _LocationPermissionAction.openServicePrompt) {
+      await AppToast.dismissLoading();
+      final goToService = await permissionPromptPresenter(
+        title: 'GPS is Off',
+        content:
+            'It looks like your GPS is off. Please enable location services to complete the verification process.',
+        cancelText: 'Cancel',
+        confirmText: 'Settings',
+      );
+      if (goToService) {
+        await appSettingsOpener();
+        return false;
+      }
+      return true;
+    }
+
+    if (permissionAction == _LocationPermissionAction.requestPermission) {
+      final requestStatus = await locationPermissionRequester();
+      if (requestStatus.isGranted || requestStatus.isLimited) {
+        return true;
+      }
+      if (!requestStatus.isPermanentlyDenied && !requestStatus.isRestricted) {
+        return false;
+      }
+    }
+
+    await AppToast.dismissLoading();
+    final goToSettings = await permissionPromptPresenter(
+      title: 'Location Required',
+      content:
+          'Identity verification cannot be completed without your location. Please allow access in settings.',
+      cancelText: 'Cancel',
+      confirmText: 'Enable',
+    );
+    if (goToSettings) {
+      await appSettingsOpener();
+      return false;
+    }
+    return true;
+  }
+
+  static Future<ReportLocation?> defaultNativeLocationLoader() {
+    return MethodChannelReportNativeBridge().getLocation();
+  }
+
+  static Future<ServiceStatus> defaultLocationServiceStatusProvider() {
+    return Permission.locationWhenInUse.serviceStatus;
+  }
+
+  static Future<PermissionStatus> defaultLocationPermissionStatusProvider() {
+    return Permission.locationWhenInUse.status;
+  }
+
+  static Future<PermissionStatus> defaultLocationPermissionRequester() {
+    return Permission.locationWhenInUse.request();
+  }
+
+  static Future<bool> defaultPermissionPromptPresenter({
+    required String title,
+    required String content,
+    required String cancelText,
+    required String confirmText,
+  }) async {
+    final context = Get.context;
+    if (context == null || !context.mounted) {
+      return false;
+    }
+    return await showCupertinoDialog<bool>(
+          context: context,
+          barrierDismissible: false,
+          builder: (dialogContext) {
+            return CupertinoAlertDialog(
+              title: Text(title),
+              content: Text(content),
+              actions: [
+                CupertinoDialogAction(
+                  onPressed: () => Navigator.of(dialogContext).pop(false),
+                  child: Text(cancelText),
+                ),
+                CupertinoDialogAction(
+                  onPressed: () => Navigator.of(dialogContext).pop(true),
+                  isDefaultAction: true,
+                  child: Text(confirmText),
+                ),
+              ],
+            );
+          },
+        ) ??
+        false;
+  }
+
+  static Future<bool> defaultAppSettingsOpener() {
+    return openAppSettings();
+  }
+
+  static _LocationPermissionAction _resolveLocationPermissionAction({
+    required ServiceStatus serviceStatus,
+    required PermissionStatus permissionStatus,
+  }) {
+    if (serviceStatus != ServiceStatus.enabled) {
+      return _LocationPermissionAction.openServicePrompt;
+    }
+    if (permissionStatus.isGranted || permissionStatus.isLimited) {
+      return _LocationPermissionAction.proceed;
+    }
+    if (permissionStatus.isPermanentlyDenied || permissionStatus.isRestricted) {
+      return _LocationPermissionAction.openSettingsPrompt;
+    }
+    return _LocationPermissionAction.requestPermission;
+  }
+
+  static Future<void> defaultLocationReporter() {
+    return ReportManager.instance.reportNativeLocation();
   }
 
   static void back<T extends Object?>({T? result}) {
@@ -123,29 +297,41 @@ class NavigationHelper {
       return;
     }
     await _runApiNavigation(() async {
-      final response = await ApiClient.instance.productApply(
-        geobotanists: normalizedProductId,
-        succumbs: succumbs,
-      );
-      final applyStates = response.states;
-      final rawTarget = applyStates['bloomeries'].stringValue.trim();
-      if (rawTarget.isNotEmpty) {
-        await navigateRawTarget(rawTarget, arguments: applyStates.rawMapValue);
-        return;
-      }
-      if (applyStates['threats'].intValue != 200) {
-        final message = applyStates['wofuller'].stringValue.trim();
-        if (message.isNotEmpty) {
-          await AppToast.show(message);
-        }
-        return;
-      }
-      final detailResponse = await ApiClient.instance.productDetail(
-        geobotanists: normalizedProductId,
-      );
-      await _cacheProductDetail(detailResponse.states);
-      toDetail<void>(arguments: detailResponse.states.rawMapValue);
+      await _applyProductNavigation(normalizedProductId, succumbs: succumbs);
     });
+  }
+
+  static Future<void> applyProductWithFlow(
+    String productId, {
+    String succumbs = '0',
+  }) async {
+    final normalizedProductId = productId.trim();
+    if (normalizedProductId.isEmpty) {
+      return;
+    }
+
+    await AppToast.showLoading();
+    try {
+      if (!await SessionStore.instance.isLoggedIn()) {
+        await AppToast.dismissLoading();
+        toLogin<void>();
+        return;
+      }
+      if (!await locationAccessChecker()) {
+        await AppToast.dismissLoading();
+        return;
+      }
+      await AppToast.showLoading();
+      try {
+        await locationReporter();
+      } catch (error) {
+        logger('location report before apply failed: $error');
+      }
+      await _applyProductNavigation(normalizedProductId, succumbs: succumbs);
+      await AppToast.dismissLoading();
+    } catch (error) {
+      await AppToast.error(ApiErrorMessage.resolve(error));
+    }
   }
 
   static Future<void> navigateRawTarget(
@@ -169,12 +355,26 @@ class NavigationHelper {
 
     final webUri = _resolveWebUri(target);
     if (webUri != null) {
-      await rawTargetLauncher(webUri);
+      toWebView<void>(url: webUri.toString());
     }
   }
 
   static Future<T?>? toSetting<T extends Object?>() {
     return _toNamedIfNotCurrent<T>(AppRoutes.setting);
+  }
+
+  static Future<T?>? toWebView<T extends Object?>({
+    required String url,
+    String? title,
+  }) {
+    final uri = _resolveWebUri(url);
+    if (uri == null) {
+      return null;
+    }
+    return Get.toNamed<T>(
+      AppRoutes.webView,
+      arguments: <String, dynamic>{'url': uri.toString(), 'title': title},
+    );
   }
 
   static Future<T?>? toMineOrderList<T extends Object?>({
@@ -253,6 +453,34 @@ class NavigationHelper {
     } catch (error) {
       await AppToast.error(ApiErrorMessage.resolve(error));
     }
+  }
+
+  static Future<void> _applyProductNavigation(
+    String productId, {
+    required String succumbs,
+  }) async {
+    final response = await ApiClient.instance.productApply(
+      geobotanists: productId,
+      succumbs: succumbs,
+    );
+    final applyStates = response.states;
+    final rawTarget = applyStates['bloomeries'].stringValue.trim();
+    if (rawTarget.isNotEmpty) {
+      await navigateRawTarget(rawTarget, arguments: applyStates.rawMapValue);
+      return;
+    }
+    if (applyStates['threats'].intValue != 200) {
+      final message = applyStates['wofuller'].stringValue.trim();
+      if (message.isNotEmpty) {
+        await AppToast.show(message);
+      }
+      return;
+    }
+    final detailResponse = await ApiClient.instance.productDetail(
+      geobotanists: productId,
+    );
+    await _cacheProductDetail(detailResponse.states);
+    toDetail<void>(arguments: detailResponse.states.rawMapValue);
   }
 
   static Future<void> _toProductDetailFromTarget(

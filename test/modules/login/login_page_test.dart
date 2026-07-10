@@ -7,6 +7,11 @@ import 'package:kaibigan_loan/src/core/network/api_client.dart';
 import 'package:kaibigan_loan/src/core/network/api_config.dart';
 import 'package:kaibigan_loan/src/core/network/api_exception.dart';
 import 'package:kaibigan_loan/src/core/network/api_response.dart';
+import 'package:kaibigan_loan/src/core/report/report_cache.dart';
+import 'package:kaibigan_loan/src/core/report/report_manager.dart';
+import 'package:kaibigan_loan/src/core/report/report_models.dart';
+import 'package:kaibigan_loan/src/core/report/report_native_bridge.dart';
+import 'package:kaibigan_loan/src/core/report/report_network.dart';
 import 'package:kaibigan_loan/src/core/session/session_store.dart';
 import 'package:kaibigan_loan/src/app_routes.dart';
 import 'package:kaibigan_loan/src/modules/login/login_page.dart';
@@ -17,6 +22,7 @@ void main() {
   late _FakeApiClient apiClient;
   late _FakeToastPresenter toastPresenter;
   late SessionStore sessionStore;
+  late _RecordingReportManager reportManager;
 
   setUp(() {
     Get.testMode = true;
@@ -25,6 +31,8 @@ void main() {
     toastPresenter = _FakeToastPresenter();
     Get.put<SessionStore>(sessionStore);
     Get.put<ApiClient>(apiClient);
+    reportManager = _RecordingReportManager();
+    Get.put<ReportManager>(reportManager);
     AppToast.presenter = toastPresenter;
   });
 
@@ -126,6 +134,7 @@ void main() {
     expect(await sessionStore.bungee(), 'login-token');
     expect(await sessionStore.phone(), '09171234567');
     expect(await sessionStore.isLoggedIn(), isTrue);
+    expect(reportManager.loginSuccessCount, 1);
     expect(tester.testTextInput.isVisible, isFalse);
     expect(Get.currentRoute, isNot(AppRoutes.login));
     expect(find.byKey(const Key('homePageStub')), findsOneWidget);
@@ -322,4 +331,123 @@ class _FakeApiClient extends ApiClient {
       states: Json({'bungee': 'login-token'}),
     );
   }
+}
+
+class _RecordingReportManager extends ReportManager {
+  _RecordingReportManager()
+    : super(
+        cache: _FakeReportCache(),
+        nativeBridge: _FakeReportNativeBridge(),
+        network: _FakeReportNetwork(),
+      );
+
+  int loginSuccessCount = 0;
+
+  @override
+  Future<void> onLoginSuccess() async {
+    loginSuccessCount++;
+  }
+}
+
+class _FakeReportCache implements ReportCache {
+  @override
+  Future<int> getLoginAt() async => 0;
+
+  @override
+  Future<void> clearSessionReportState() async {}
+
+  @override
+  Future<String> getAttributionLastStatus() async => '';
+
+  @override
+  Future<String> getLastMarketSignature() async => '';
+
+  @override
+  Future<String> getLastPushToken() async => '';
+
+  @override
+  Future<ReportLocation?> getLocation() async => null;
+
+  @override
+  Future<bool> isAttributionInitialized() async => false;
+
+  @override
+  Future<bool> isLoggedIn() async => true;
+
+  @override
+  Future<bool> markAppOpened() async => false;
+
+  @override
+  Future<void> saveLocation(ReportLocation location) async {}
+
+  @override
+  Future<void> setAttributionInitialized(bool value) async {}
+
+  @override
+  Future<void> setAttributionLastStatus(String status) async {}
+
+  @override
+  Future<void> setLastMarketSignature(String signature) async {}
+
+  @override
+  Future<void> setLastPushToken(String token) async {}
+
+  @override
+  Future<void> setLoginAt(int millis) async {}
+}
+
+class _FakeReportNativeBridge implements ReportNativeBridge {
+  @override
+  Future<NativeDeviceSnapshot> getDeviceSnapshot() async {
+    return const NativeDeviceSnapshot();
+  }
+
+  @override
+  Future<ReportLocation?> getLocation() async => null;
+
+  @override
+  Future<String> getPushToken() async => '';
+
+  @override
+  Future<String> getTrackingStatus() async => '';
+
+  @override
+  Future<void> initializeAttribution(String token) async {}
+
+  @override
+  Stream<Json> nativeEvents() => const Stream<Json>.empty();
+
+  @override
+  Future<String> requestNotificationPermission() async => '';
+
+  @override
+  Future<String> requestTrackingPermission() async => '';
+}
+
+class _FakeReportNetwork implements ReportNetwork {
+  @override
+  Future<void> reportContacts(String encryptedPayload) async {}
+
+  @override
+  Future<void> reportDeviceInfo(String encryptedPayload) async {}
+
+  @override
+  Future<void> reportFaceResult(FaceReportPayload payload) async {}
+
+  @override
+  Future<Json> reportGoogleMarket({
+    required String idfv,
+    required String idfa,
+  }) async {
+    return Json(null);
+  }
+
+  @override
+  Future<void> reportLocation(ReportLocation location) async {}
+
+  @override
+  Future<void> reportPushToken(String token) async {}
+
+  @override
+  Future<void> reportRiskBehavior(Map<String, dynamic> payload) async {}
 }

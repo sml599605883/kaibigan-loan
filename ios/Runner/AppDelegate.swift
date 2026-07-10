@@ -23,4 +23,12 @@ import UIKit
   ) -> UIInterfaceOrientationMask {
     return .portrait
   }
+
+  override func application(
+    _ application: UIApplication,
+    didRegisterForRemoteNotificationsWithDeviceToken deviceToken: Data
+  ) {
+    ClientBridgeRegistrar.shared.updatePushToken(deviceToken)
+    super.application(application, didRegisterForRemoteNotificationsWithDeviceToken: deviceToken)
+  }
 }

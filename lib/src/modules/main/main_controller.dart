@@ -113,7 +113,7 @@ class MainController extends GetxController with WidgetsBindingObserver {
     }
     _topHeroApplyRequesting = true;
     try {
-      await NavigationHelper.applyProduct(productId);
+      await NavigationHelper.applyProductWithFlow(productId);
     } finally {
       _topHeroApplyRequesting = false;
     }
@@ -125,7 +125,9 @@ class HomeElementType {
   static const largeCard = 'CatechisticOverlooking';
   static const smallCard = 'ShivasSurveyings';
   static const processList = 'PROCESS_LIST';
+  static const processListObfuscated = 'BottomingSupergene';
   static const productList = 'PRODUCT_LIST';
+  static const productListObfuscated = 'SubspecializedReawake';
 
   const HomeElementType._();
 }
@@ -253,6 +255,8 @@ class HomeOrderStatusItem {
     required this.actionUrl,
     required this.productId,
     required this.orderNo,
+    required this.cardStatus,
+    required this.actions,
   });
 
   final String id;
@@ -267,9 +271,14 @@ class HomeOrderStatusItem {
   final String actionUrl;
   final String productId;
   final String orderNo;
+  final int cardStatus;
+  final List<HomeOrderStatusAction> actions;
 
   static List<HomeOrderStatusItem> fromHome(Json states) {
-    return _itemsForType(states, HomeElementType.processList)
+    return _itemsForTypes(states, const [
+          HomeElementType.processList,
+          HomeElementType.processListObfuscated,
+        ])
         .map(HomeOrderStatusItem.fromJson)
         .where(
           (item) =>
@@ -285,15 +294,43 @@ class HomeOrderStatusItem {
       id: json['cabdrivers'].stringValue,
       productName: json['macromeres'].stringValue,
       productLogo: json['reconverts'].stringValue,
-      amount: json['ecumenicalism'].stringValue,
+      amount: _displayAmount(json),
       amountText: json['giardias'].stringValue,
-      dueDate: json['origin_end_time'].stringValue,
+      dueDate: _firstText(json, const ['origin_end_time', 'salvo']),
       dateText: json['tallisim'].stringValue,
       statusText: json['fictitiousness'].stringValue,
       buttonText: json['stoles'].stringValue,
       actionUrl: json['dismasts'].stringValue,
       productId: json['geobotanists'].stringValue,
       orderNo: json['dodgy'].stringValue,
+      cardStatus: json['cracksmen'].intValue,
+      actions: json['briefing'].listValue
+          .map(HomeOrderStatusAction.fromJson)
+          .where((action) => action.visible && action.text.isNotEmpty)
+          .toList(),
+    );
+  }
+}
+
+class HomeOrderStatusAction {
+  const HomeOrderStatusAction({
+    required this.type,
+    required this.text,
+    required this.url,
+    required this.visible,
+  });
+
+  final String type;
+  final String text;
+  final String url;
+  final bool visible;
+
+  factory HomeOrderStatusAction.fromJson(Json json) {
+    return HomeOrderStatusAction(
+      type: json['commensurate'].stringValue,
+      text: json['stoles'].stringValue,
+      url: json['dismasts'].stringValue,
+      visible: json['unrested'].intValue == 1,
     );
   }
 }
@@ -326,7 +363,10 @@ class HomeRecommendationItem {
   final String linkUrl;
 
   static List<HomeRecommendationItem> fromHome(Json states) {
-    return _itemsForType(states, HomeElementType.productList)
+    return _itemsForTypes(states, const [
+          HomeElementType.productList,
+          HomeElementType.productListObfuscated,
+        ])
         .map(HomeRecommendationItem.fromJson)
         .where(
           (item) =>
@@ -355,11 +395,51 @@ class HomeRecommendationItem {
 }
 
 List<Json> _itemsForType(Json states, String type) {
+  return _itemsForTypes(states, [type]);
+}
+
+List<Json> _itemsForTypes(Json states, List<String> types) {
   for (final sectionValue in states['religiosities'].listValue) {
     final section = sectionValue;
-    if (section['commensurate'].stringValue == type) {
+    if (types.contains(section['commensurate'].stringValue)) {
       return section['anchovetta'].listValue;
     }
   }
   return const <Json>[];
+}
+
+String _firstText(Json json, List<String> keys) {
+  for (final key in keys) {
+    final value = json[key].stringValue.trim();
+    if (value.isNotEmpty) {
+      return value;
+    }
+  }
+  return '';
+}
+
+String _displayAmount(Json json) {
+  final formattedAmount = json['refiners'].stringValue.trim();
+  if (formattedAmount.isNotEmpty) {
+    return formattedAmount;
+  }
+  return _formatPesoAmount(json['ecumenicalism'].stringValue);
+}
+
+String _formatPesoAmount(String rawValue) {
+  final normalized = rawValue.trim().replaceAll(',', '');
+  if (normalized.isEmpty || !RegExp(r'^\d+(\.\d+)?$').hasMatch(normalized)) {
+    return rawValue.trim();
+  }
+  final parts = normalized.split('.');
+  final whole = parts.first;
+  final decimals = parts.length > 1 ? '.${parts.last}' : '';
+  final buffer = StringBuffer();
+  for (var index = 0; index < whole.length; index++) {
+    if (index > 0 && (whole.length - index) % 3 == 0) {
+      buffer.write(',');
+    }
+    buffer.write(whole[index]);
+  }
+  return '₱ ${buffer.toString()}$decimals';
 }

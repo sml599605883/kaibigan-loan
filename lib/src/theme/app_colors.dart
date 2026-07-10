@@ -90,4 +90,9 @@ abstract final class AppColors {
   static const uploadMethodCancelText = Color.fromRGBO(167, 167, 167, 1);
   static const uploadMethodDoneBackground = Color.fromRGBO(72, 188, 255, 1);
   static const uploadMethodDoneText = Color.fromRGBO(255, 255, 255, 1);
+  static const webViewBackground = Color(0xFFFFFFFF);
+  static const webViewTitleText = Color(0xFF10364D);
+  static const webViewErrorText = Color(0xFF9AA8B1);
+  static const webViewRetryBackground = Color(0xFFDBF3FF);
+  static const webViewProgress = Color(0xFF48BCFF);
 }

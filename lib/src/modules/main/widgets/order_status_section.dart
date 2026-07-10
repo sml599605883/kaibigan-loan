@@ -37,13 +37,14 @@ class _OrderStatusCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final buttonText = item.buttonText.isEmpty ? 'Repay' : item.buttonText;
+    final style = _OrderStatusStyle.resolve(item.cardStatus);
+    final actions = _resolveActions(item, style);
     return Container(
       width: double.infinity,
       decoration: BoxDecoration(
         color: AppColors.tabBackground,
         borderRadius: BorderRadius.circular(20.r),
-        border: Border.all(color: AppColors.ordersCardBorder),
+        border: Border.all(color: style.borderColor),
       ),
       child: Column(
         children: [
@@ -62,6 +63,9 @@ class _OrderStatusCard extends StatelessWidget {
                         ? 'Loan Amount'
                         : item.amountText,
                     valueColor: AppColors.ordersTitleText,
+                    backgroundColor: style.valueBackground,
+                    badgeBackground: style.badgeBackground,
+                    badgeTextColor: style.badgeTextColor,
                     alignEnd: false,
                   ),
                 ),
@@ -70,29 +74,19 @@ class _OrderStatusCard extends StatelessWidget {
                   child: _StatusValuePanel(
                     value: item.dueDate,
                     label: item.dateText.isEmpty ? 'Due Date' : item.dateText,
-                    valueColor: AppColors.ordersRedText,
+                    valueColor: style.dateValueColor,
                     badgeText: item.statusText,
+                    badgeBackground: style.badgeBackground,
+                    badgeTextColor: style.badgeTextColor,
+                    backgroundColor: style.valueBackground,
                     alignEnd: true,
                   ),
                 ),
               ],
             ),
           ),
-          Container(height: 1, color: AppColors.ordersCardBorder),
-          SizedBox(
-            height: 48.h,
-            child: Center(
-              child: Text(
-                buttonText,
-                style: TextStyle(
-                  color: AppColors.ordersRedText,
-                  fontSize: 16.sp,
-                  fontWeight: FontWeight.w800,
-                  height: 18 / 16,
-                ),
-              ),
-            ),
-          ),
+          Container(height: 1, color: style.borderColor),
+          _ActionBar(actions: actions, style: style),
         ],
       ),
     );
@@ -149,15 +143,21 @@ class _StatusValuePanel extends StatelessWidget {
     required this.value,
     required this.label,
     required this.valueColor,
+    required this.backgroundColor,
     required this.alignEnd,
+    required this.badgeBackground,
+    required this.badgeTextColor,
     this.badgeText = '',
   });
 
   final String value;
   final String label;
   final Color valueColor;
+  final Color backgroundColor;
   final bool alignEnd;
   final String badgeText;
+  final Color badgeBackground;
+  final Color badgeTextColor;
 
   @override
   Widget build(BuildContext context) {
@@ -168,7 +168,7 @@ class _StatusValuePanel extends StatelessWidget {
           height: 92.h,
           padding: EdgeInsets.symmetric(horizontal: 10.w),
           decoration: BoxDecoration(
-            color: AppColors.ordersDateRedBackground,
+            color: backgroundColor,
             borderRadius: BorderRadius.circular(10.r),
           ),
           child: Column(
@@ -211,18 +211,13 @@ class _StatusValuePanel extends StatelessWidget {
             child: Container(
               padding: EdgeInsets.symmetric(horizontal: 7.w, vertical: 2.h),
               decoration: BoxDecoration(
-                gradient: const LinearGradient(
-                  colors: [
-                    AppColors.ordersOrangeStart,
-                    AppColors.ordersOrangeEnd,
-                  ],
-                ),
+                color: badgeBackground,
                 borderRadius: BorderRadius.circular(20.r),
               ),
               child: Text(
                 badgeText,
                 style: TextStyle(
-                  color: AppColors.ordersStatusRed,
+                  color: badgeTextColor,
                   fontSize: 12.sp,
                   height: 14 / 12,
                 ),
@@ -230,6 +225,53 @@ class _StatusValuePanel extends StatelessWidget {
             ),
           ),
       ],
+    );
+  }
+}
+
+class _ActionBar extends StatelessWidget {
+  const _ActionBar({required this.actions, required this.style});
+
+  final List<HomeOrderStatusAction> actions;
+  final _OrderStatusStyle style;
+
+  @override
+  Widget build(BuildContext context) {
+    if (actions.isEmpty) {
+      return SizedBox(height: 48.h);
+    }
+    return SizedBox(
+      height: 48.h,
+      child: Row(
+        children: [
+          for (var index = 0; index < actions.length; index++) ...[
+            Expanded(
+              child: Center(
+                child: Padding(
+                  padding: EdgeInsets.symmetric(horizontal: 6.w),
+                  child: FittedBox(
+                    fit: BoxFit.scaleDown,
+                    child: Text(
+                      actions[index].text,
+                      maxLines: 1,
+                      style: TextStyle(
+                        color: index == 0 && actions.length > 1
+                            ? style.secondaryActionTextColor
+                            : style.primaryActionTextColor,
+                        fontSize: actions.length > 1 ? 14.sp : 16.sp,
+                        fontWeight: FontWeight.w800,
+                        height: 18 / 16,
+                      ),
+                    ),
+                  ),
+                ),
+              ),
+            ),
+            if (index != actions.length - 1)
+              Container(width: 1, height: 48.h, color: style.borderColor),
+          ],
+        ],
+      ),
     );
   }
 }
@@ -262,5 +304,103 @@ class _Logo extends StatelessWidget {
         errorBuilder: (_, _, _) => placeholder,
       ),
     );
+  }
+}
+
+List<HomeOrderStatusAction> _resolveActions(
+  HomeOrderStatusItem item,
+  _OrderStatusStyle style,
+) {
+  final deliveredActions = item.actions.take(2).toList(growable: false);
+  if (deliveredActions.isNotEmpty) {
+    return deliveredActions;
+  }
+  final fallbackText = item.buttonText.trim();
+  if (fallbackText.isNotEmpty) {
+    return [
+      HomeOrderStatusAction(
+        type: 'fallback',
+        text: fallbackText,
+        url: item.actionUrl,
+        visible: true,
+      ),
+    ];
+  }
+  return [
+    HomeOrderStatusAction(
+      type: style.fallbackActionType,
+      text: style.fallbackActionText,
+      url: item.actionUrl,
+      visible: true,
+    ),
+  ];
+}
+
+class _OrderStatusStyle {
+  const _OrderStatusStyle({
+    required this.borderColor,
+    required this.valueBackground,
+    required this.dateValueColor,
+    required this.badgeBackground,
+    required this.badgeTextColor,
+    required this.primaryActionTextColor,
+    required this.secondaryActionTextColor,
+    required this.fallbackActionType,
+    required this.fallbackActionText,
+  });
+
+  final Color borderColor;
+  final Color valueBackground;
+  final Color dateValueColor;
+  final Color badgeBackground;
+  final Color badgeTextColor;
+  final Color primaryActionTextColor;
+  final Color secondaryActionTextColor;
+  final String fallbackActionType;
+  final String fallbackActionText;
+
+  static _OrderStatusStyle resolve(int status) {
+    switch (status) {
+      case 1:
+      case 4:
+        return const _OrderStatusStyle(
+          borderColor: AppColors.ordersCardBorder,
+          valueBackground: AppColors.ordersDateBlueBackground,
+          dateValueColor: AppColors.ordersTitleText,
+          badgeBackground: AppColors.ordersBlueTag,
+          badgeTextColor: AppColors.tabBackground,
+          primaryActionTextColor: AppColors.ordersTitleText,
+          secondaryActionTextColor: AppColors.ordersTitleText,
+          fallbackActionType: 'detail',
+          fallbackActionText: 'Details',
+        );
+      case 5:
+        return const _OrderStatusStyle(
+          borderColor: AppColors.ordersDateRedBackground,
+          valueBackground: AppColors.ordersDateRedBackground,
+          dateValueColor: AppColors.ordersTitleText,
+          badgeBackground: AppColors.ordersOrangeEnd,
+          badgeTextColor: AppColors.ordersStatusRed,
+          primaryActionTextColor: AppColors.ordersRedText,
+          secondaryActionTextColor: AppColors.ordersOrangeEnd,
+          fallbackActionType: 'change',
+          fallbackActionText: 'Change Account',
+        );
+      case 2:
+      case 3:
+      case 6:
+      default:
+        return const _OrderStatusStyle(
+          borderColor: AppColors.ordersDateRedBackground,
+          valueBackground: AppColors.ordersDateRedBackground,
+          dateValueColor: AppColors.ordersRedText,
+          badgeBackground: AppColors.ordersOrangeEnd,
+          badgeTextColor: AppColors.ordersStatusRed,
+          primaryActionTextColor: AppColors.ordersRedText,
+          secondaryActionTextColor: AppColors.ordersOrangeEnd,
+          fallbackActionType: 'repay',
+          fallbackActionText: 'Repay',
+        );
+    }
   }
 }

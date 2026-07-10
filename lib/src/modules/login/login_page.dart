@@ -9,6 +9,8 @@ import 'package:kaibigan_loan/src/utils/app_toast.dart';
 
 import '../../assets/app_assets.dart';
 import '../../core/network/api_client.dart';
+import '../../core/report/report_manager.dart';
+import '../../core/report/risk_report_scene.dart';
 import '../../core/session/session_store.dart';
 import '../../theme/app_colors.dart';
 import '../../utils/screen_adapter.dart';
@@ -29,6 +31,7 @@ class _LoginPageState extends State<LoginPage> {
   bool _requestingCode = false;
   bool _loggingIn = false;
   int _countdownSeconds = 0;
+  late final int _scene1StartTimeSeconds;
 
   bool get _canSubmit {
     return _phoneController.text.isNotEmpty &&
@@ -39,6 +42,7 @@ class _LoginPageState extends State<LoginPage> {
   @override
   void initState() {
     super.initState();
+    _scene1StartTimeSeconds = RiskReportScene.nowSeconds();
     _phoneController.addListener(_onInputChanged);
     _codeController.addListener(_onCodeChanged);
     _loadRememberedPhone();
@@ -170,6 +174,17 @@ class _LoginPageState extends State<LoginPage> {
       await SessionStore.instance.saveBungee(bungee);
       await SessionStore.instance.savePhone(phone);
       await SessionStore.instance.setLoggedIn(true);
+      try {
+        await ReportManager.instance.onLoginSuccess();
+      } catch (error) {
+        log('login report trigger failed: $error');
+      }
+      RiskReportScene.report(
+        productId: '',
+        sceneType: '1',
+        orderNo: '',
+        startTimeSeconds: _scene1StartTimeSeconds,
+      );
       log('sms code login success');
       if (mounted) {
         Get.back<void>();

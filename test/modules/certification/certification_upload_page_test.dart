@@ -213,16 +213,21 @@ void main() {
       ),
     ]);
     expect(Get.currentRoute, AppRoutes.certificationIdentitySubmit);
-    expect(Get.arguments, {
-      'geobotanists': 'product-1',
-      'cardType': 'PRC',
-      'recognizedInfo': {
+    expect(Get.arguments, containsPair('geobotanists', 'product-1'));
+    expect(Get.arguments, containsPair('cardType', 'PRC'));
+    expect(
+      Get.arguments,
+      containsPair('recognizedInfo', {
         'unwits': 'NAVEEN TOM VARGHESE',
         'overmanaged': '623099344111',
         'asthmas': '23/11/1993',
         'bloomeries': 'https://example.test/id-front.png',
-      },
-    });
+      }),
+    );
+    expect(
+      (Get.arguments as Map)['scene3StartTimeSeconds'],
+      isA<int>().having((value) => value, 'positive', greaterThan(0)),
+    );
     expect(find.byKey(const Key('identitySubmitPage')), findsOneWidget);
     expect(toastPresenter.loadingMessages, [null]);
     expect(toastPresenter.dismissCount, 1);

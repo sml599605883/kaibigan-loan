@@ -14,6 +14,7 @@ import 'package:kaibigan_loan/src/core/network/api_config.dart';
 import 'package:kaibigan_loan/src/core/network/api_endpoints.dart';
 import 'package:kaibigan_loan/src/core/session/session_store.dart';
 import 'package:kaibigan_loan/src/modules/main/main_controller.dart';
+import 'package:kaibigan_loan/src/navigation_helper.dart';
 import 'package:kaibigan_loan/src/utils/app_toast.dart';
 
 void main() {
@@ -54,12 +55,18 @@ void main() {
     );
     Get.put<SessionStore>(sessionStore);
     Get.put<ApiClient>(apiClient);
+    NavigationHelper.locationAccessChecker = () async => true;
+    NavigationHelper.locationReporter = () async {};
   });
 
   tearDown(() {
     TestDefaultBinaryMessengerBinding.instance.defaultBinaryMessenger
         .setMockMethodCallHandler(channel, null);
     AppToast.presenter = const EasyLoadingToastPresenter();
+    NavigationHelper.locationAccessChecker =
+        NavigationHelper.defaultLocationAccessChecker;
+    NavigationHelper.locationReporter =
+        NavigationHelper.defaultLocationReporter;
     Get.reset();
   });
 
@@ -270,15 +277,25 @@ void main() {
     adapter.homePayload = {
       'religiosities': [
         {
-          'commensurate': 'PROCESS_LIST',
+          'commensurate': 'BottomingSupergene',
           'anchovetta': [
             {
               'cabdrivers': 'order-1',
               'macromeres': 'Kaibigan Loan',
-              'ecumenicalism': '₱ 20,000',
+              'refiners': '₱ 20,000',
+              'giardias': 'Loan Amount',
               'origin_end_time': '2026/05/06',
+              'tallisim': 'Due Date',
+              'cracksmen': 3,
               'fictitiousness': 'Past Due',
-              'dismasts': 'https://h5.example.test/order',
+              'briefing': [
+                {
+                  'commensurate': 'repay',
+                  'unrested': 1,
+                  'stoles': 'Repay',
+                  'dismasts': 'https://h5.example.test/order',
+                },
+              ],
             },
           ],
         },
@@ -296,13 +313,109 @@ void main() {
     expect(find.text('Repay'), findsOne);
   });
 
+  testWidgets('renders failed process card with two visible actions', (
+    tester,
+  ) async {
+    adapter.homePayload = {
+      'religiosities': [
+        {
+          'commensurate': 'PROCESS_LIST',
+          'anchovetta': [
+            {
+              'macromeres': 'Kaibigan Loan',
+              'refiners': '₱ 20,000',
+              'origin_end_time': '2026/05/06',
+              'cracksmen': 5,
+              'fictitiousness': 'Funding Failed',
+              'briefing': [
+                {
+                  'commensurate': 'retry',
+                  'unrested': 1,
+                  'stoles': 'Retry Original Card',
+                },
+                {
+                  'commensurate': 'change',
+                  'unrested': 1,
+                  'stoles': 'Change Account',
+                },
+                {'commensurate': 'repay', 'unrested': 0, 'stoles': 'Repay'},
+              ],
+            },
+          ],
+        },
+      ],
+    };
+
+    await _pumpApp(tester);
+
+    expect(find.text('Funding Failed'), findsOne);
+    expect(find.text('Retry Original Card'), findsOne);
+    expect(find.text('Change Account'), findsOne);
+    expect(find.text('Repay'), findsNothing);
+  });
+
+  testWidgets('renders review process card with details action', (
+    tester,
+  ) async {
+    adapter.homePayload = {
+      'religiosities': [
+        {
+          'commensurate': 'PROCESS_LIST',
+          'anchovetta': [
+            {
+              'macromeres': 'Kaibigan Loan',
+              'refiners': '₱ 20,000',
+              'origin_end_time': '2026/05/06',
+              'cracksmen': 1,
+              'fictitiousness': 'Pending Approval',
+              'briefing': [
+                {'commensurate': 'detail', 'unrested': 1, 'stoles': 'Details'},
+              ],
+            },
+          ],
+        },
+      ],
+    };
+
+    await _pumpApp(tester);
+
+    expect(find.text('Pending Approval'), findsOne);
+    expect(find.text('Details'), findsOne);
+    expect(find.text('Repay'), findsNothing);
+  });
+
+  testWidgets('formats raw process amount with thousands fallback', (
+    tester,
+  ) async {
+    adapter.homePayload = {
+      'religiosities': [
+        {
+          'commensurate': 'PROCESS_LIST',
+          'anchovetta': [
+            {
+              'macromeres': 'Kaibigan Loan',
+              'ecumenicalism': '2000',
+              'origin_end_time': '2026/05/06',
+              'cracksmen': 3,
+              'fictitiousness': 'Past Due',
+            },
+          ],
+        },
+      ],
+    };
+
+    await _pumpApp(tester);
+
+    expect(find.text('₱ 2,000'), findsOne);
+  });
+
   testWidgets('renders recommendation products from product list module', (
     tester,
   ) async {
     adapter.homePayload = {
       'religiosities': [
         {
-          'commensurate': 'PRODUCT_LIST',
+          'commensurate': 'SubspecializedReawake',
           'anchovetta': [
             {
               'geobotanists': 'product-1',
@@ -371,6 +484,7 @@ void main() {
   });
 
   testWidgets('applies top hero product on loan card tap', (tester) async {
+    await sessionStore.setLoggedIn(true);
     adapter.homePayload = {
       'religiosities': [
         {
@@ -400,9 +514,37 @@ void main() {
     });
   });
 
+  testWidgets('redirects unauthenticated top hero tap to login', (
+    tester,
+  ) async {
+    adapter.homePayload = {
+      'religiosities': [
+        {
+          'commensurate': 'CatechisticOverlooking',
+          'anchovetta': [
+            {
+              'cabdrivers': 'hero-product',
+              'humpiness': <Map<String, dynamic>>[],
+            },
+          ],
+        },
+      ],
+    };
+
+    await _pumpApp(tester);
+
+    await tester.tap(find.byKey(const ValueKey('home_loan_card')));
+    await tester.pumpAndSettle();
+
+    expect(adapter.productApplyRequestCount, 0);
+    expect(adapter.productDetailRequestCount, 0);
+    expect(Get.currentRoute, AppRoutes.login);
+  });
+
   testWidgets('top loan card prefers large card over small card', (
     tester,
   ) async {
+    await sessionStore.setLoggedIn(true);
     adapter.homePayload = {
       'religiosities': [
         {
@@ -449,6 +591,7 @@ void main() {
   testWidgets(
     'top loan card falls back to small card when large card is absent',
     (tester) async {
+      await sessionStore.setLoggedIn(true);
       adapter.homePayload = {
         'religiosities': [
           {
@@ -496,6 +639,7 @@ void main() {
   testWidgets('requests home page and dialog after returning to visible home', (
     tester,
   ) async {
+    await sessionStore.setLoggedIn(true);
     adapter.homePayload = {
       'religiosities': [
         {

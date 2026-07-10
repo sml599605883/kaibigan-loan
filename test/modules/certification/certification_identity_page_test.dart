@@ -88,7 +88,12 @@ void main() {
     await tester.pumpAndSettle();
 
     expect(Get.currentRoute, AppRoutes.certificationUpload);
-    expect(Get.arguments, {'geobotanists': 'product-5', 'cardType': 'PRC'});
+    expect(Get.arguments, containsPair('geobotanists', 'product-5'));
+    expect(Get.arguments, containsPair('cardType', 'PRC'));
+    expect(
+      (Get.arguments as Map)['scene3StartTimeSeconds'],
+      isA<int>().having((value) => value, 'positive', greaterThan(0)),
+    );
     expect(find.text('Submit'), findsOneWidget);
   });
 

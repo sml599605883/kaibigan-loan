@@ -45,6 +45,10 @@ dependencies:
   flutter_image_compress: ^2.4.0
   image_picker: ^1.2.2
   path_provider: ^2.1.5
+  adjust_sdk: ^5.7.0
+  device_info_plus: ^13.2.0
+  package_info_plus: ^10.2.0
+  flutter_inappwebview: ^6.1.5
 
 dev_dependencies:
   flutter_test:

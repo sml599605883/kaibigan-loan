@@ -5,6 +5,7 @@ import '../../assets/app_assets.dart';
 import '../../core/json/json.dart';
 import '../../core/network/api_client.dart';
 import '../../core/network/api_exception.dart';
+import '../../core/report/risk_report_scene.dart';
 import '../../navigation_helper.dart';
 import '../../theme/app_colors.dart';
 import '../../utils/app_toast.dart';
@@ -36,10 +37,12 @@ class _CertificationPersonalInfoPageState
   List<_PersonalInfoField> _fields = <_PersonalInfoField>[];
   final Map<String, TextEditingController> _controllers =
       <String, TextEditingController>{};
+  late final int _sceneStartTimeSeconds;
 
   @override
   void initState() {
     super.initState();
+    _sceneStartTimeSeconds = RiskReportScene.nowSeconds();
     _loadPersonalInfo();
   }
 
@@ -295,6 +298,11 @@ class _CertificationPersonalInfoPageState
       }
       final productId = _productIdFromArguments();
       if (productId.isNotEmpty) {
+        RiskReportScene.report(
+          productId: productId,
+          sceneType: widget._kind == _CertificationInfoKind.work ? '6' : '5',
+          startTimeSeconds: _sceneStartTimeSeconds,
+        );
         await NavigationHelper.continueProductDetailFlow(productId);
       }
     } catch (error) {

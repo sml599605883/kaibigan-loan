@@ -8,11 +8,13 @@ import 'package:kaibigan_loan/src/core/network/api_client.dart';
 import 'package:kaibigan_loan/src/core/network/api_config.dart';
 import 'package:kaibigan_loan/src/core/network/api_exception.dart';
 import 'package:kaibigan_loan/src/core/network/api_response.dart';
+import 'package:kaibigan_loan/src/core/report/report_models.dart';
 import 'package:kaibigan_loan/src/core/session/session_store.dart';
 import 'package:kaibigan_loan/src/modules/main/main_controller.dart';
 import 'package:kaibigan_loan/src/modules/orders/order_list_models.dart';
 import 'package:kaibigan_loan/src/navigation_helper.dart';
 import 'package:kaibigan_loan/src/utils/app_toast.dart';
+import 'package:permission_handler/permission_handler.dart';
 
 void main() {
   late _FakeApiClient apiClient;
@@ -31,6 +33,22 @@ void main() {
     AppToast.presenter = const EasyLoadingToastPresenter();
     NavigationHelper.rawTargetLauncher =
         NavigationHelper.defaultRawTargetLauncher;
+    NavigationHelper.locationAccessChecker =
+        NavigationHelper.defaultLocationAccessChecker;
+    NavigationHelper.locationReporter =
+        NavigationHelper.defaultLocationReporter;
+    NavigationHelper.nativeLocationLoader =
+        NavigationHelper.defaultNativeLocationLoader;
+    NavigationHelper.locationServiceStatusProvider =
+        NavigationHelper.defaultLocationServiceStatusProvider;
+    NavigationHelper.locationPermissionStatusProvider =
+        NavigationHelper.defaultLocationPermissionStatusProvider;
+    NavigationHelper.locationPermissionRequester =
+        NavigationHelper.defaultLocationPermissionRequester;
+    NavigationHelper.permissionPromptPresenter =
+        NavigationHelper.defaultPermissionPromptPresenter;
+    NavigationHelper.appSettingsOpener =
+        NavigationHelper.defaultAppSettingsOpener;
     NavigationHelper.logger = NavigationHelper.defaultLogger;
     Get.reset();
   });
@@ -152,6 +170,19 @@ void main() {
     expect(Get.currentRoute, AppRoutes.mineOrderList);
   });
 
+  testWidgets('opens HTTP raw target in the in-app WebView', (tester) async {
+    await _pumpRoutes(tester);
+
+    await NavigationHelper.navigateRawTarget('https://example.test/loan');
+    await tester.pumpAndSettle();
+
+    expect(Get.currentRoute, AppRoutes.webView);
+    expect(Get.arguments, <String, dynamic>{
+      'url': 'https://example.test/loan',
+      'title': null,
+    });
+  });
+
   testWidgets('product detail public step opens identity verification', (
     tester,
   ) async {
@@ -260,11 +291,6 @@ void main() {
     apiClient.orderRedirectStates = {
       'bloomeries': 'https://h5.example.test/cached-confirm',
     };
-    final launchedUris = <Uri>[];
-    NavigationHelper.rawTargetLauncher = (uri) async {
-      launchedUris.add(uri);
-      return true;
-    };
     await _pumpRoutes(tester);
 
     await NavigationHelper.navigateRawTarget(
@@ -280,9 +306,11 @@ void main() {
         'tythes': '2',
       },
     ]);
-    expect(launchedUris.map((uri) => uri.toString()), [
-      'https://h5.example.test/cached-confirm',
-    ]);
+    expect(Get.currentRoute, AppRoutes.webView);
+    expect(Get.arguments, <String, dynamic>{
+      'url': 'https://h5.example.test/cached-confirm',
+      'title': null,
+    });
   });
 
   testWidgets('product detail scheme handles grinner unconfusing first', (
@@ -319,11 +347,6 @@ void main() {
   testWidgets(
     'product detail scheme fetches order redirect for successful detail',
     (tester) async {
-      final launchedUris = <Uri>[];
-      NavigationHelper.rawTargetLauncher = (uri) async {
-        launchedUris.add(uri);
-        return true;
-      };
       apiClient.productDetailStates = {
         'threats': 200,
         'sensitized': {
@@ -352,10 +375,11 @@ void main() {
           'tythes': '1',
         },
       ]);
-      expect(launchedUris.map((uri) => uri.toString()), [
-        'https://h5.example.test/confirm',
-      ]);
-      expect(Get.currentRoute, AppRoutes.main);
+      expect(Get.currentRoute, AppRoutes.webView);
+      expect(Get.arguments, <String, dynamic>{
+        'url': 'https://h5.example.test/confirm',
+        'title': null,
+      });
     },
   );
 
@@ -382,11 +406,6 @@ void main() {
   testWidgets('apply product follows returned bloomeries before detail', (
     tester,
   ) async {
-    final launchedUris = <Uri>[];
-    NavigationHelper.rawTargetLauncher = (uri) async {
-      launchedUris.add(uri);
-      return true;
-    };
     apiClient.applyStates = {
       'geobotanists': 'product-2',
       'threats': 302,
@@ -400,13 +419,14 @@ void main() {
     expect(apiClient.productApplyIds, ['product-2']);
     expect(apiClient.productApplySuccumbs, ['7']);
     expect(apiClient.productDetailIds, isEmpty);
-    expect(launchedUris.map((uri) => uri.toString()), [
-      'https://h5.example.test/apply-result',
-    ]);
+    expect(Get.currentRoute, AppRoutes.webView);
+    expect(Get.arguments, <String, dynamic>{
+      'url': 'https://h5.example.test/apply-result',
+      'title': null,
+    });
     expect(toastPresenter.showLoadingCount, 1);
     expect(toastPresenter.dismissLoadingCount, 1);
     expect(toastPresenter.errors, isEmpty);
-    expect(Get.currentRoute, AppRoutes.main);
   });
 
   testWidgets(
@@ -447,6 +467,191 @@ void main() {
     expect(Get.currentRoute, AppRoutes.main);
   });
 
+  testWidgets('apply product flow redirects unauthenticated users to login', (
+    tester,
+  ) async {
+    await _pumpRoutes(tester);
+
+    await NavigationHelper.applyProductWithFlow('product-login');
+    await tester.pumpAndSettle();
+
+    expect(apiClient.productApplyIds, isEmpty);
+    expect(Get.currentRoute, AppRoutes.login);
+    expect(toastPresenter.calls, ['loading', 'dismiss']);
+  });
+
+  testWidgets('apply product flow stops when location access is unavailable', (
+    tester,
+  ) async {
+    await SessionStore.instance.setLoggedIn(true);
+    NavigationHelper.locationAccessChecker = () async => false;
+    await _pumpRoutes(tester);
+
+    await NavigationHelper.applyProductWithFlow('product-location');
+    await tester.pumpAndSettle();
+
+    expect(apiClient.productApplyIds, isEmpty);
+    expect(Get.currentRoute, AppRoutes.main);
+    expect(toastPresenter.calls, ['loading', 'dismiss']);
+  });
+
+  testWidgets('apply product flow reports location before applying', (
+    tester,
+  ) async {
+    final events = <String>[];
+    await SessionStore.instance.setLoggedIn(true);
+    NavigationHelper.locationAccessChecker = () async {
+      events.add('location-access');
+      return true;
+    };
+    NavigationHelper.locationReporter = () async {
+      events.add('location-report');
+    };
+    apiClient.onProductApply = () {
+      events.add('apply');
+    };
+    apiClient.applyStates = <String, dynamic>{'threats': 200};
+    await _pumpRoutes(tester);
+
+    await NavigationHelper.applyProductWithFlow('product-flow');
+    await tester.pumpAndSettle();
+
+    expect(events, ['location-access', 'location-report', 'apply']);
+    expect(apiClient.productApplyIds, ['product-flow']);
+    expect(apiClient.productDetailIds, ['product-flow']);
+    expect(Get.currentRoute, AppRoutes.detail);
+  });
+
+  testWidgets(
+    'location access proceeds when native location is already valid',
+    (tester) async {
+      var serviceStatusRead = false;
+      NavigationHelper.nativeLocationLoader = () async => const ReportLocation(
+        fullAddress: '',
+        countryCode: '',
+        country: '',
+        street: '',
+        latitude: '14.5995',
+        longitude: '120.9842',
+        city: '',
+      );
+      NavigationHelper.locationServiceStatusProvider = () async {
+        serviceStatusRead = true;
+        return ServiceStatus.disabled;
+      };
+
+      final canContinue = await NavigationHelper.defaultLocationAccessChecker();
+
+      expect(canContinue, isTrue);
+      expect(serviceStatusRead, isFalse);
+    },
+  );
+
+  testWidgets('location access shows GPS settings prompt when service is off', (
+    tester,
+  ) async {
+    final prompts = <Map<String, String>>[];
+    var settingsOpened = false;
+    NavigationHelper.nativeLocationLoader = () async => null;
+    NavigationHelper.locationServiceStatusProvider = () async =>
+        ServiceStatus.disabled;
+    NavigationHelper.locationPermissionStatusProvider = () async =>
+        PermissionStatus.granted;
+    NavigationHelper.permissionPromptPresenter =
+        ({
+          required title,
+          required content,
+          required cancelText,
+          required confirmText,
+        }) async {
+          prompts.add({
+            'title': title,
+            'content': content,
+            'cancelText': cancelText,
+            'confirmText': confirmText,
+          });
+          return true;
+        };
+    NavigationHelper.appSettingsOpener = () async {
+      settingsOpened = true;
+      return true;
+    };
+
+    final canContinue = await NavigationHelper.defaultLocationAccessChecker();
+
+    expect(canContinue, isFalse);
+    expect(settingsOpened, isTrue);
+    expect(prompts, [
+      {
+        'title': 'GPS is Off',
+        'content':
+            'It looks like your GPS is off. Please enable location services to complete the verification process.',
+        'cancelText': 'Cancel',
+        'confirmText': 'Settings',
+      },
+    ]);
+  });
+
+  testWidgets(
+    'location access shows permission settings prompt when permanently denied',
+    (tester) async {
+      final prompts = <Map<String, String>>[];
+      NavigationHelper.nativeLocationLoader = () async => null;
+      NavigationHelper.locationServiceStatusProvider = () async =>
+          ServiceStatus.enabled;
+      NavigationHelper.locationPermissionStatusProvider = () async =>
+          PermissionStatus.permanentlyDenied;
+      NavigationHelper.permissionPromptPresenter =
+          ({
+            required title,
+            required content,
+            required cancelText,
+            required confirmText,
+          }) async {
+            prompts.add({
+              'title': title,
+              'content': content,
+              'cancelText': cancelText,
+              'confirmText': confirmText,
+            });
+            return false;
+          };
+
+      final canContinue = await NavigationHelper.defaultLocationAccessChecker();
+
+      expect(canContinue, isTrue);
+      expect(prompts, [
+        {
+          'title': 'Location Required',
+          'content':
+              'Identity verification cannot be completed without your location. Please allow access in settings.',
+          'cancelText': 'Cancel',
+          'confirmText': 'Enable',
+        },
+      ]);
+    },
+  );
+
+  testWidgets('location access re-shows loading before apply after prompt', (
+    tester,
+  ) async {
+    await SessionStore.instance.setLoggedIn(true);
+    NavigationHelper.locationAccessChecker = () async {
+      await AppToast.dismissLoading();
+      return true;
+    };
+    NavigationHelper.locationReporter = () async {};
+    apiClient.applyStates = <String, dynamic>{'threats': 200};
+    await _pumpRoutes(tester);
+
+    await NavigationHelper.applyProductWithFlow('product-loading');
+    await tester.pumpAndSettle();
+
+    expect(apiClient.productApplyIds, ['product-loading']);
+    expect(toastPresenter.calls.first, 'loading');
+    expect(toastPresenter.showLoadingCount, 2);
+  });
+
   testWidgets('shows API error and stays on current page when detail fails', (
     tester,
   ) async {
@@ -475,6 +680,7 @@ Future<void> _pumpRoutes(WidgetTester tester) async {
         GetPage(name: AppRoutes.login, page: () => const _LoginPageStub()),
         GetPage(name: AppRoutes.detail, page: () => const _DetailPageStub()),
         GetPage(name: AppRoutes.setting, page: () => const _SettingPageStub()),
+        GetPage(name: AppRoutes.webView, page: () => const _WebViewPageStub()),
         GetPage(
           name: AppRoutes.mineOrderList,
           page: () => const _MineOrderListPageStub(),
@@ -519,6 +725,15 @@ class _LoginPageStub extends StatelessWidget {
   Widget build(BuildContext context) {
     _loginBuildCount++;
     return const SizedBox(key: Key('loginPageStub'));
+  }
+}
+
+class _WebViewPageStub extends StatelessWidget {
+  const _WebViewPageStub();
+
+  @override
+  Widget build(BuildContext context) {
+    return const SizedBox(key: Key('webViewPageStub'));
   }
 }
 
@@ -592,6 +807,7 @@ class _FakeApiClient extends ApiClient {
   final productApplySuccumbs = <String>[];
   final productDetailIds = <String>[];
   final orderRedirectRequests = <Map<String, String>>[];
+  void Function()? onProductApply;
   Map<String, dynamic> applyStates = <String, dynamic>{};
   Map<String, dynamic>? productDetailStates;
   Map<String, dynamic> orderRedirectStates = <String, dynamic>{};
@@ -602,6 +818,7 @@ class _FakeApiClient extends ApiClient {
     required String geobotanists,
     String succumbs = '0',
   }) async {
+    onProductApply?.call();
     productApplyIds.add(geobotanists);
     productApplySuccumbs.add(succumbs);
     return ApiResponse(code: 0, message: 'success', states: Json(applyStates));

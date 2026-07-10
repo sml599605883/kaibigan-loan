@@ -11,6 +11,10 @@
 	<string>We need camera access to take a clear photo of your ID for identity verification.</string>
 	<key>NSPhotoLibraryUsageDescription</key>
 	<string>We need photo library access so you can upload an ID image for identity verification.</string>
+	<key>NSUserTrackingUsageDescription</key>
+	<string>We use your device advertising identifier to measure app install attribution and keep loan recommendations accurate.</string>
+	<key>NSLocationWhenInUseUsageDescription</key>
+	<string>We use your approximate location while the app is open to support account security and application risk checks.</string>
 	<key>CADisableMinimumFrameDurationOnPhone</key>
 	<true/>
 	<key>CFBundleDevelopmentRegion</key>

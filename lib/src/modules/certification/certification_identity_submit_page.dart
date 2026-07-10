@@ -6,6 +6,7 @@ import '../../assets/app_assets.dart';
 import '../../core/json/json.dart';
 import '../../core/network/api_client.dart';
 import '../../core/network/api_exception.dart';
+import '../../core/report/risk_report_scene.dart';
 import '../../core/session/session_store.dart';
 import '../../navigation_helper.dart';
 import '../../theme/app_colors.dart';
@@ -169,6 +170,21 @@ class _CertificationIdentitySubmitPageState
     return _defaultPrompt;
   }
 
+  int _scene3StartTimeSecondsFromArguments() {
+    final arguments = Get.arguments;
+    if (arguments is Map) {
+      final value = arguments['scene3StartTimeSeconds'];
+      if (value is int && value > 0) {
+        return value;
+      }
+      final parsed = int.tryParse(value?.toString() ?? '');
+      if (parsed != null && parsed > 0) {
+        return parsed;
+      }
+    }
+    return RiskReportScene.nowSeconds();
+  }
+
   void _logBirthdayPickerTap() {
     debugPrint('identity birthday date picker tapped');
   }
@@ -196,6 +212,11 @@ class _CertificationIdentitySubmitPageState
       }
       final productId = _productIdFromArguments();
       if (productId.isNotEmpty) {
+        RiskReportScene.report(
+          productId: productId,
+          sceneType: '3',
+          startTimeSeconds: _scene3StartTimeSecondsFromArguments(),
+        );
         await NavigationHelper.continueProductDetailFlow(productId);
         return;
       }
