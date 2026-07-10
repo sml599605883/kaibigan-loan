@@ -63,9 +63,22 @@ void main() {
     await Future<void>.delayed(Duration.zero);
 
     expect(network.googleMarketCalls, 1);
-    expect(cache.lastMarketSignature, 'idfv|idfa');
+    expect(cache.lastMarketSignature, isEmpty);
     expect(attributionInitializer.tokens, ['adjust-token']);
   });
+
+  test(
+    'reports Google market for each invocation with the same device IDs',
+    () async {
+      bridge.snapshot = const NativeDeviceSnapshot(idfv: 'idfv', idfa: 'idfa');
+
+      await manager.reportGoogleMarket();
+      await manager.reportGoogleMarket();
+
+      expect(network.googleMarketCalls, 2);
+      expect(cache.lastMarketSignature, isEmpty);
+    },
+  );
 
   test(
     'device report uses collector-enriched snapshot before encryption',
@@ -168,7 +181,7 @@ void main() {
   );
 
   test(
-    'push token upload waits for stream and deduplicates later calls',
+    'push token upload waits for stream and reports every invocation',
     () async {
       await manager.reportPushToken();
       expect(network.pushTokens, isEmpty);
@@ -176,12 +189,13 @@ void main() {
       final uploadFuture = manager.reportPushToken();
       await Future<void>.delayed(Duration.zero);
       bridge.emit({'type': 'push_token', 'token': 'token-1'});
+      bridge.directPushToken = 'token-1';
       await uploadFuture;
 
       await manager.reportPushToken();
 
-      expect(network.pushTokens, ['token-1']);
-      expect(cache.lastPushToken, 'token-1');
+      expect(network.pushTokens, ['token-1', 'token-1']);
+      expect(cache.lastPushToken, isEmpty);
     },
   );
 }

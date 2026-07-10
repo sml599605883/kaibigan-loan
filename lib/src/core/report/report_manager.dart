@@ -164,9 +164,6 @@ class ReportManager {
     if (signature == '|' || signature.trim().isEmpty || _marketReporting) {
       return;
     }
-    if (await _cache.getLastMarketSignature() == signature) {
-      return;
-    }
 
     _marketReporting = true;
     try {
@@ -174,7 +171,6 @@ class ReportManager {
         idfv: snapshot.idfv,
         idfa: snapshot.idfa,
       );
-      await _cache.setLastMarketSignature(signature);
       final token = ReportPayloadHelper.normalize(
         response['insectivore'].stringOrNull,
       );
@@ -249,16 +245,13 @@ class ReportManager {
     if (token.isEmpty) {
       token = await _waitPushTokenFromStream();
     }
-    if (token.isEmpty ||
-        _reportingPushToken == token ||
-        await _cache.getLastPushToken() == token) {
+    if (token.isEmpty || _reportingPushToken == token) {
       return;
     }
 
     _reportingPushToken = token;
     try {
       await _network.reportPushToken(token);
-      await _cache.setLastPushToken(token);
     } catch (error) {
       _log(error);
     } finally {
