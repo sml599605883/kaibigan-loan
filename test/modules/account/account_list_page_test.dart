@@ -104,6 +104,26 @@ void main() {
     expect(apiClient.accountRequests, <String>['product-1', 'product-1']);
   });
 
+  testWidgets('requires an order id before loading account options', (
+    tester,
+  ) async {
+    apiClient.accountStates = _accounts();
+    await _pumpPage(
+      tester,
+      arguments: <String, String>{'geobotanists': 'product-1'},
+    );
+    await tester.pumpAndSettle();
+
+    expect(apiClient.accountRequests, isEmpty);
+    expect(find.text('Missing order information'), findsOneWidget);
+    expect(
+      tester
+          .widget<MaterialButton>(find.byKey(const Key('accountListConfirm')))
+          .onPressed,
+      isNull,
+    );
+  });
+
   testWidgets('keeps selection and re-enables Confirm after submit failure', (
     tester,
   ) async {

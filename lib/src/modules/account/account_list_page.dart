@@ -34,7 +34,9 @@ class _AccountListPageState extends State<AccountListPage> {
 
   String get _productId => _argument('geobotanists');
 
-  String get _orderNo => _argument('dodgy');
+  String get _orderNo => _orderNoFromArguments();
+
+  String _orderNoFromArguments() => _argument('dodgy');
 
   String _argument(String key) {
     final arguments = Get.arguments;
@@ -43,10 +45,13 @@ class _AccountListPageState extends State<AccountListPage> {
 
   Future<void> _loadAccounts() async {
     final productId = _productId;
-    if (productId.isEmpty) {
+    final orderNo = _orderNoFromArguments();
+    if (productId.isEmpty || orderNo.isEmpty) {
       setState(() {
         _isLoading = false;
-        _errorMessage = 'Missing product information';
+        _errorMessage = productId.isEmpty
+            ? 'Missing product information'
+            : 'Missing order information';
         _sections = const <AccountListSection>[];
         _selectedItem = null;
       });
