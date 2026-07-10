@@ -106,7 +106,7 @@ void main() {
     );
     await tester.pumpAndSettle();
 
-    expect(Get.currentRoute, AppRoutes.accountList);
+    expect(Get.currentRoute, '/account/list');
     expect(Get.arguments, <String, String>{
       'geobotanists': 'product-1',
       'dodgy': 'order-2',
