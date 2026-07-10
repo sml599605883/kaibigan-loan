@@ -95,4 +95,14 @@ abstract final class AppColors {
   static const webViewErrorText = Color(0xFF9AA8B1);
   static const webViewRetryBackground = Color(0xFFDBF3FF);
   static const webViewProgress = Color(0xFF48BCFF);
+  static const accountPageBackground = Color(0xFFFFFFFF);
+  static const accountHeaderText = Color(0xFF10364D);
+  static const accountCardBackground = Color(0xFF48BCFF);
+  static const accountCardPanel = Color(0xFFFFF275);
+  static const accountCardText = Color(0xFF10364D);
+  static const accountCardValueText = Color(0xFF333333);
+  static const accountConfirmEnabled = Color(0xFF48BCFF);
+  static const accountConfirmDisabled = Color(0xFFB5B5B5);
+  static const accountConfirmText = Color(0xFFFFFFFF);
+  static const accountStateText = Color(0xFF9AA8B1);
 }
