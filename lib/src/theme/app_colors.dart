@@ -82,6 +82,8 @@ abstract final class AppColors {
   static const certificationSectionTitle = Color.fromRGBO(16, 66, 94, 1);
   static const certificationFieldBorder = Color.fromRGBO(236, 237, 237, 1);
   static const certificationIdPreviewBorder = Color.fromRGBO(199, 199, 199, 1);
+  static const certificationBindFooterBorder = Color.fromRGBO(235, 235, 235, 1);
+  static const certificationBindFooterText = Color.fromRGBO(255, 138, 46, 1);
   static const certificationSubmitText = Color(0xFFFFFFFF);
   static const uploadMethodBarrier = Color.fromRGBO(96, 96, 96, 0.6);
   static const uploadMethodSheetBackground = Color.fromRGBO(255, 255, 255, 1);

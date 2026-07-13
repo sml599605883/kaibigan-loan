@@ -24,6 +24,8 @@ abstract final class AppAssets {
       'assets/certification_address_sheet_background.png';
   static const certificationContactProgress =
       'assets/certification_contact_progress.png';
+  static const certificationBindCardProgress =
+      'assets/certification_bind_card_progress.png';
   static const contactPickerIcon = 'assets/contact_picker_icon.png';
   static const featurePrimary = 'assets/feature_primary.png';
   static const featureSecondary = 'assets/feature_secondary.png';

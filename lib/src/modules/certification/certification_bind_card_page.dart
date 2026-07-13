@@ -1,0 +1,663 @@
+import 'package:flutter/material.dart';
+import 'package:get/get.dart';
+
+import '../../assets/app_assets.dart';
+import '../../core/network/api_client.dart';
+import '../../core/network/api_exception.dart';
+import '../../theme/app_colors.dart';
+import '../../utils/screen_adapter.dart';
+import 'models/bind_card_info.dart';
+import 'widgets/certification_prompt_banner.dart';
+
+class CertificationBindCardPage extends StatefulWidget {
+  const CertificationBindCardPage({super.key, ApiClient? apiClient})
+    : _apiClient = apiClient;
+
+  final ApiClient? _apiClient;
+
+  @override
+  State<CertificationBindCardPage> createState() =>
+      _CertificationBindCardPageState();
+}
+
+class _CertificationBindCardPageState extends State<CertificationBindCardPage> {
+  static const _defaultHint = 'Please provide your payment method details.';
+
+  final Map<String, TextEditingController> _controllers = {};
+  final Map<String, _BindCardSelection> _selections = {};
+  bool _isLoading = true;
+  String? _error;
+  BindCardInfo? _info;
+  String _selectedGroupType = '';
+
+  ApiClient get _apiClient => widget._apiClient ?? ApiClient.instance;
+
+  @override
+  void initState() {
+    super.initState();
+    _load();
+  }
+
+  @override
+  void dispose() {
+    for (final controller in _controllers.values) {
+      controller.dispose();
+    }
+    super.dispose();
+  }
+
+  Future<void> _load() async {
+    final productId = _productId;
+    if (productId.isEmpty) {
+      setState(() {
+        _isLoading = false;
+        _error = null;
+        _info = BindCardInfo(groups: [], topHint: '', bottomHint: '');
+      });
+      return;
+    }
+    setState(() {
+      _isLoading = true;
+      _error = null;
+    });
+    try {
+      final response = await _apiClient.bankInfo(geobotanists: productId);
+      final info = BindCardInfo.fromJson(response.ensureSuccess().states);
+      _initializeFormState(info);
+      if (!mounted) {
+        return;
+      }
+      setState(() {
+        _info = info;
+        _selectedGroupType = info.groups.isEmpty ? '' : info.groups.first.type;
+        _isLoading = false;
+      });
+    } catch (error) {
+      if (!mounted) {
+        return;
+      }
+      setState(() {
+        _isLoading = false;
+        _error = ApiErrorMessage.resolve(error);
+      });
+    }
+  }
+
+  String get _productId {
+    final arguments = Get.arguments;
+    if (arguments is Map) {
+      final productId = arguments['geobotanists'];
+      return productId is String ? productId.trim() : '';
+    }
+    return '';
+  }
+
+  void _initializeFormState(BindCardInfo info) {
+    for (final group in info.groups) {
+      for (final field in group.fields) {
+        final stateKey = _stateKey(group, field);
+        if (field.fieldType == BindCardFieldType.text) {
+          _controllers.putIfAbsent(
+            stateKey,
+            () => TextEditingController(text: field.initialValue),
+          );
+        } else {
+          _selections.putIfAbsent(
+            stateKey,
+            () => _BindCardSelection(
+              value: field.initialValue,
+              label: field.initialLabel,
+            ),
+          );
+        }
+      }
+    }
+  }
+
+  String _stateKey(BindCardGroup group, BindCardField field) =>
+      '${group.type}:${field.saveKey}';
+
+  @override
+  Widget build(BuildContext context) {
+    final info = _info;
+    return Scaffold(
+      backgroundColor: AppColors.certificationPageBackground,
+      body: SafeArea(
+        child: Column(
+          children: [
+            SizedBox(height: 16.h),
+            const _BindCardHeader(),
+            SizedBox(height: 20.h),
+            Padding(
+              padding: EdgeInsets.symmetric(horizontal: 20.w),
+              child: CertificationPromptBanner(
+                message: info?.topHint.isNotEmpty == true
+                    ? info!.topHint
+                    : _defaultHint,
+              ),
+            ),
+            SizedBox(height: 15.h),
+            Padding(
+              padding: EdgeInsets.symmetric(horizontal: 20.w),
+              child: Image.asset(
+                AppAssets.certificationBindCardProgress,
+                key: const Key('bindCardProgress'),
+                fit: BoxFit.fill,
+              ),
+            ),
+            SizedBox(height: 18.h),
+            Expanded(child: _buildContent()),
+          ],
+        ),
+      ),
+      bottomNavigationBar: _BindCardFooter(
+        hint: info?.bottomHint ?? '',
+        onSubmit: () {},
+      ),
+    );
+  }
+
+  Widget _buildContent() {
+    if (_isLoading) {
+      return const Center(child: CircularProgressIndicator());
+    }
+    if (_error != null) {
+      return Center(
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Text(
+              _error!,
+              style: TextStyle(
+                color: AppColors.certificationEmptyText,
+                fontSize: 14.sp,
+              ),
+            ),
+            SizedBox(height: 12.h),
+            TextButton(onPressed: _load, child: const Text('Retry')),
+          ],
+        ),
+      );
+    }
+    final info = _info;
+    if (info == null || info.groups.isEmpty) {
+      return Center(
+        child: Text(
+          'No payment methods available',
+          style: TextStyle(
+            color: AppColors.certificationEmptyText,
+            fontSize: 14.sp,
+          ),
+        ),
+      );
+    }
+    final group = info.groups.firstWhere(
+      (candidate) => candidate.type == _selectedGroupType,
+      orElse: () => info.groups.first,
+    );
+    return Column(
+      children: [
+        SizedBox(
+          height: 36.h,
+          child: ListView.separated(
+            padding: EdgeInsets.symmetric(horizontal: 20.w),
+            scrollDirection: Axis.horizontal,
+            itemCount: info.groups.length,
+            separatorBuilder: (_, _) => SizedBox(width: 10.w),
+            itemBuilder: (_, index) {
+              final tab = info.groups[index];
+              final selected = tab.type == group.type;
+              return GestureDetector(
+                key: Key('bindCardTab_${tab.type}'),
+                onTap: () => setState(() => _selectedGroupType = tab.type),
+                child: DecoratedBox(
+                  decoration: BoxDecoration(
+                    color: selected
+                        ? AppColors.certificationTabActive
+                        : AppColors.certificationTabInactive,
+                    borderRadius: BorderRadius.circular(18.r),
+                  ),
+                  child: Padding(
+                    padding: EdgeInsets.symmetric(horizontal: 18.w),
+                    child: Center(
+                      child: Text(
+                        tab.label,
+                        style: TextStyle(
+                          color: selected
+                              ? AppColors.certificationTabActiveText
+                              : AppColors.certificationTabInactiveText,
+                          fontSize: 14.sp,
+                        ),
+                      ),
+                    ),
+                  ),
+                ),
+              );
+            },
+          ),
+        ),
+        SizedBox(height: 18.h),
+        Expanded(
+          child: SingleChildScrollView(
+            padding: EdgeInsets.fromLTRB(20.w, 0, 20.w, 24.h),
+            child: Column(
+              children: [
+                for (final field in group.fields) ...[
+                  _BindCardField(
+                    field: field,
+                    controller: _controllers[_stateKey(group, field)],
+                    selection: _selections[_stateKey(group, field)],
+                    onPickerTap: () => _selectOption(group, field),
+                  ),
+                  SizedBox(height: 14.h),
+                ],
+              ],
+            ),
+          ),
+        ),
+      ],
+    );
+  }
+
+  Future<void> _selectOption(BindCardGroup group, BindCardField field) async {
+    if (field.options.isEmpty) {
+      return;
+    }
+    final stateKey = _stateKey(group, field);
+    final option = await _showOptionSheet(
+      context,
+      field.options,
+      _selections[stateKey]?.value,
+    );
+    if (option == null || !mounted) {
+      return;
+    }
+    setState(() {
+      _selections[stateKey] = _BindCardSelection(
+        value: option.value,
+        label: option.label,
+      );
+    });
+  }
+}
+
+class _BindCardHeader extends StatelessWidget {
+  const _BindCardHeader();
+
+  @override
+  Widget build(BuildContext context) {
+    return SizedBox(
+      height: 44.h,
+      child: Stack(
+        alignment: Alignment.center,
+        children: [
+          Align(
+            alignment: Alignment.centerLeft,
+            child: Padding(
+              padding: EdgeInsets.only(left: 20.w),
+              child: GestureDetector(
+                onTap: Get.back,
+                child: Image.asset(
+                  AppAssets.loginBack,
+                  width: 23.w,
+                  height: 20.h,
+                ),
+              ),
+            ),
+          ),
+          Text(
+            'Identity verification',
+            style: TextStyle(
+              color: AppColors.certificationTitleText,
+              fontSize: 20.sp,
+              fontWeight: FontWeight.w700,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _BindCardField extends StatelessWidget {
+  const _BindCardField({
+    required this.field,
+    required this.controller,
+    required this.selection,
+    required this.onPickerTap,
+  });
+
+  final BindCardField field;
+  final TextEditingController? controller;
+  final _BindCardSelection? selection;
+  final VoidCallback onPickerTap;
+
+  @override
+  Widget build(BuildContext context) {
+    final isText = field.fieldType == BindCardFieldType.text;
+    final displayText = selection?.label.isNotEmpty == true
+        ? selection!.label
+        : field.placeholder;
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(
+          field.label,
+          style: TextStyle(
+            color: AppColors.certificationFieldLabel,
+            fontSize: 12.sp,
+          ),
+        ),
+        SizedBox(height: 7.h),
+        SizedBox(
+          height: 40.h,
+          child: isText
+              ? TextField(
+                  key: Key('bindCardField_${field.saveKey}'),
+                  controller: controller,
+                  decoration: _fieldDecoration(field.placeholder),
+                  style: TextStyle(
+                    color: AppColors.certificationFieldText,
+                    fontSize: 14.sp,
+                  ),
+                )
+              : Material(
+                  color: AppColors.certificationCardBackground,
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(20.r),
+                    side: const BorderSide(
+                      color: AppColors.certificationFieldBorder,
+                    ),
+                  ),
+                  child: InkWell(
+                    key: Key('bindCardField_${field.saveKey}'),
+                    borderRadius: BorderRadius.circular(20.r),
+                    onTap: onPickerTap,
+                    child: Padding(
+                      padding: EdgeInsets.symmetric(horizontal: 12.w),
+                      child: Row(
+                        children: [
+                          Expanded(
+                            child: Text(
+                              displayText,
+                              maxLines: 1,
+                              overflow: TextOverflow.ellipsis,
+                              style: TextStyle(
+                                color: selection?.label.isNotEmpty == true
+                                    ? AppColors.certificationFieldText
+                                    : AppColors.certificationFieldLabel,
+                                fontSize: 14.sp,
+                              ),
+                            ),
+                          ),
+                          Image.asset(
+                            AppAssets.arrowRight,
+                            width: 15.w,
+                            height: 10.h,
+                            color: AppColors.profileArrowTint,
+                          ),
+                        ],
+                      ),
+                    ),
+                  ),
+                ),
+        ),
+      ],
+    );
+  }
+
+  InputDecoration _fieldDecoration(String placeholder) => InputDecoration(
+    hintText: placeholder,
+    hintStyle: TextStyle(
+      color: AppColors.certificationFieldLabel,
+      fontSize: 14.sp,
+    ),
+    contentPadding: EdgeInsets.symmetric(horizontal: 12.w),
+    enabledBorder: _fieldBorder(),
+    focusedBorder: _fieldBorder(),
+    border: _fieldBorder(),
+  );
+}
+
+OutlineInputBorder _fieldBorder() => OutlineInputBorder(
+  borderRadius: BorderRadius.circular(20.r),
+  borderSide: const BorderSide(color: AppColors.certificationFieldBorder),
+);
+
+class _BindCardFooter extends StatelessWidget {
+  const _BindCardFooter({required this.hint, required this.onSubmit});
+
+  final String hint;
+  final VoidCallback onSubmit;
+
+  @override
+  Widget build(BuildContext context) {
+    return SafeArea(
+      top: false,
+      child: Container(
+        decoration: const BoxDecoration(
+          border: Border(
+            top: BorderSide(color: AppColors.certificationBindFooterBorder),
+          ),
+        ),
+        padding: EdgeInsets.fromLTRB(20.w, 10.h, 20.w, 20.h),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            if (hint.isNotEmpty)
+              Text(
+                hint,
+                maxLines: 2,
+                overflow: TextOverflow.ellipsis,
+                style: TextStyle(
+                  color: AppColors.certificationBindFooterText,
+                  fontSize: 12.sp,
+                ),
+              ),
+            if (hint.isNotEmpty) SizedBox(height: 8.h),
+            SizedBox(
+              height: 50.h,
+              width: double.infinity,
+              child: ElevatedButton(
+                key: const Key('bindCardSubmit'),
+                onPressed: onSubmit,
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: AppColors.certificationTabActive,
+                  foregroundColor: AppColors.certificationSubmitText,
+                  elevation: 0,
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(25.r),
+                  ),
+                ),
+                child: Text('Submit', style: TextStyle(fontSize: 18.sp)),
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+class _BindCardSelection {
+  const _BindCardSelection({required this.value, required this.label});
+
+  final String value;
+  final String label;
+}
+
+Future<BindCardOption?> _showOptionSheet(
+  BuildContext context,
+  List<BindCardOption> options,
+  String? initialValue,
+) {
+  return showModalBottomSheet<BindCardOption>(
+    context: context,
+    backgroundColor: Colors.transparent,
+    barrierColor: AppColors.uploadMethodBarrier,
+    isScrollControlled: true,
+    builder: (_) =>
+        _BindCardOptionSheet(options: options, initialValue: initialValue),
+  );
+}
+
+class _BindCardOptionSheet extends StatefulWidget {
+  const _BindCardOptionSheet({
+    required this.options,
+    required this.initialValue,
+  });
+
+  final List<BindCardOption> options;
+  final String? initialValue;
+
+  @override
+  State<_BindCardOptionSheet> createState() => _BindCardOptionSheetState();
+}
+
+class _BindCardOptionSheetState extends State<_BindCardOptionSheet> {
+  BindCardOption? _selected;
+
+  @override
+  void initState() {
+    super.initState();
+    _selected = widget.options
+        .where((option) => option.value == widget.initialValue)
+        .firstOrNull;
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Padding(
+      padding: EdgeInsets.fromLTRB(15.w, 0, 15.w, 13.h),
+      child: DecoratedBox(
+        decoration: BoxDecoration(
+          color: AppColors.uploadMethodSheetBackground,
+          borderRadius: BorderRadius.circular(24.r),
+        ),
+        child: Padding(
+          padding: EdgeInsets.fromLTRB(16.w, 24.h, 16.w, 15.h),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              ConstrainedBox(
+                constraints: BoxConstraints(maxHeight: 300.h),
+                child: ListView.separated(
+                  shrinkWrap: true,
+                  itemCount: widget.options.length,
+                  separatorBuilder: (_, _) => SizedBox(height: 12.h),
+                  itemBuilder: (_, index) {
+                    final option = widget.options[index];
+                    final selected = option.value == _selected?.value;
+                    return GestureDetector(
+                      onTap: () => setState(() => _selected = option),
+                      child: Container(
+                        height: 46.h,
+                        color: selected ? AppColors.uploadMethodSelected : null,
+                        child: Row(
+                          children: [
+                            SizedBox(width: 12.w),
+                            _BusinessLogo(url: option.logoUrl),
+                            SizedBox(width: 12.w),
+                            Expanded(
+                              child: Text(
+                                option.label,
+                                maxLines: 1,
+                                overflow: TextOverflow.ellipsis,
+                                style: TextStyle(
+                                  color: AppColors.uploadMethodText,
+                                  fontSize: 18.sp,
+                                ),
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                    );
+                  },
+                ),
+              ),
+              SizedBox(height: 24.h),
+              SizedBox(
+                height: 46.h,
+                child: Row(
+                  children: [
+                    Expanded(
+                      child: _SheetButton(
+                        label: 'Cancel',
+                        background: AppColors.uploadMethodCancelBackground,
+                        textColor: AppColors.uploadMethodCancelText,
+                        onTap: () => Navigator.of(context).pop(),
+                      ),
+                    ),
+                    SizedBox(width: 20.w),
+                    Expanded(
+                      child: _SheetButton(
+                        label: 'Done',
+                        background: AppColors.uploadMethodDoneBackground,
+                        textColor: AppColors.uploadMethodDoneText,
+                        onTap: () => Navigator.of(context).pop(_selected),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+class _BusinessLogo extends StatelessWidget {
+  const _BusinessLogo({required this.url});
+
+  final String url;
+
+  @override
+  Widget build(BuildContext context) {
+    if (url.isEmpty) {
+      return SizedBox(width: 30.w, height: 30.h);
+    }
+    return Image.network(
+      url,
+      width: 30.w,
+      height: 30.h,
+      fit: BoxFit.contain,
+      errorBuilder: (_, _, _) => SizedBox(width: 30.w, height: 30.h),
+    );
+  }
+}
+
+class _SheetButton extends StatelessWidget {
+  const _SheetButton({
+    required this.label,
+    required this.background,
+    required this.textColor,
+    required this.onTap,
+  });
+
+  final String label;
+  final Color background;
+  final Color textColor;
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    return GestureDetector(
+      onTap: onTap,
+      child: DecoratedBox(
+        decoration: BoxDecoration(
+          color: background,
+          borderRadius: BorderRadius.circular(24.r),
+        ),
+        child: Center(
+          child: Text(
+            label,
+            style: TextStyle(color: textColor, fontSize: 18.sp),
+          ),
+        ),
+      ),
+    );
+  }
+}
