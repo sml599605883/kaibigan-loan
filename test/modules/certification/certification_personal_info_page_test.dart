@@ -10,6 +10,8 @@ import 'package:kaibigan_loan/src/core/network/api_config.dart';
 import 'package:kaibigan_loan/src/core/network/api_exception.dart';
 import 'package:kaibigan_loan/src/core/network/api_response.dart';
 import 'package:kaibigan_loan/src/modules/certification/certification_personal_info_page.dart';
+import 'package:kaibigan_loan/src/modules/certification/widgets/certification_selection_sheet.dart';
+import 'package:kaibigan_loan/src/theme/app_colors.dart';
 import 'package:kaibigan_loan/src/utils/app_toast.dart';
 
 void main() {
@@ -72,8 +74,25 @@ void main() {
 
     await tester.tap(find.text('Female'));
     await tester.pumpAndSettle();
+
+    expect(
+      find.byWidgetPredicate((widget) => widget is CertificationSelectionSheet),
+      findsOneWidget,
+    );
+    expect(find.text('Cancel'), findsOneWidget);
+    expect(find.text('Done'), findsOneWidget);
+    expect(
+      _optionColor(tester, const Key('certificationInfoOption_2')),
+      AppColors.uploadMethodSelected,
+    );
+
     await tester.tap(find.text('male').last);
+    await tester.pump();
+
+    expect(find.text('Female'), findsNWidgets(2));
+    await tester.tap(find.text('Done'));
     await tester.pumpAndSettle();
+    expect(find.text('male'), findsOneWidget);
 
     await tester.enterText(
       find.byKey(const Key('personalInfoInput_offer')),
@@ -189,6 +208,8 @@ void main() {
     await tester.pumpAndSettle();
     await tester.tap(find.text('Doctor').last);
     await tester.pumpAndSettle();
+    await tester.tap(find.text('Done'));
+    await tester.pumpAndSettle();
     await tester.tap(find.text('Submit'));
     await tester.pumpAndSettle();
 
@@ -255,6 +276,13 @@ Future<void> _pumpPage(
 }
 
 Widget _personalInfoPage() => const CertificationPersonalInfoPage();
+
+Color? _optionColor(WidgetTester tester, Key key) {
+  final decoratedBox = tester.widget<DecoratedBox>(
+    find.descendant(of: find.byKey(key), matching: find.byType(DecoratedBox)),
+  );
+  return (decoratedBox.decoration as BoxDecoration).color;
+}
 
 class _FakeApiClient extends ApiClient {
   _FakeApiClient() : super(ApiConfig(), dio: Dio());

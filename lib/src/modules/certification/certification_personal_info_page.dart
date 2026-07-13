@@ -11,6 +11,7 @@ import '../../theme/app_colors.dart';
 import '../../utils/app_toast.dart';
 import '../../utils/screen_adapter.dart';
 import 'widgets/certification_prompt_banner.dart';
+import 'widgets/certification_selection_sheet.dart';
 
 class CertificationPersonalInfoPage extends StatefulWidget {
   const CertificationPersonalInfoPage({super.key})
@@ -231,29 +232,18 @@ class _CertificationPersonalInfoPageState
     if (!field.usesPicker || field.options.isEmpty) {
       return;
     }
-    final option = await showModalBottomSheet<_PersonalInfoOption>(
+    final option = await showCertificationSelectionSheet<_PersonalInfoOption>(
       context: context,
-      backgroundColor: AppColors.uploadMethodSheetBackground,
-      builder: (context) {
-        return SafeArea(
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              for (final option in field.options)
-                ListTile(
-                  title: Text(
-                    option.label,
-                    style: TextStyle(
-                      color: AppColors.uploadMethodText,
-                      fontSize: 16.sp,
-                    ),
-                  ),
-                  onTap: () => Navigator.of(context).pop(option),
-                ),
-            ],
-          ),
-        );
-      },
+      options: field.options
+          .map(
+            (option) => CertificationSelectionSheetOption(
+              value: option,
+              label: option.label,
+              key: Key('certificationInfoOption_${option.value}'),
+            ),
+          )
+          .toList(growable: false),
+      initialValue: field.selectedOption,
     );
     if (option == null || !mounted) {
       return;
@@ -550,6 +540,7 @@ class _PersonalInfoField {
       controlType == 'onto' || controlType == 'txt' || options.isEmpty;
 
   String get currentText => _selectedOption?.label ?? _currentText;
+  _PersonalInfoOption? get selectedOption => _selectedOption;
   String get selectedValue =>
       _selectedOption?.value ?? _optionForText(_currentText)?.value ?? '';
 
