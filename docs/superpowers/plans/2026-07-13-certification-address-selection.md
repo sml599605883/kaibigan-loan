@@ -117,7 +117,7 @@ At a 375×812 test surface assert:
 - Segment active background is `rgba(72,188,255,1)` and text is `rgba(255,242,117,1)`.
 - Inactive segment background is `rgba(236,236,236,1)` and text is `rgba(181,181,181,1)`.
 - Selected row background is `rgba(255,242,117,1)`.
-- Action buttons are 152×48 with 20 spacing, gray Cancel and blue Done.
+- The action group is 314px wide; two expanded 46px-high buttons use a 20px gap, gray Cancel, and blue Done.
 
 - [ ] **Step 4: Verify RED**
 

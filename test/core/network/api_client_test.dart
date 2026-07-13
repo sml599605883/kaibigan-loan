@@ -197,6 +197,16 @@ void main() {
     });
   });
 
+  test('addressInit uses the documented GET endpoint', () async {
+    await client.addressInit();
+
+    expect(adapter.lastRequest.method, 'GET');
+    expect(
+      adapter.lastRequest.path,
+      'https://api.example.test/plater/centerlines',
+    );
+  });
+
   test('order methods expose only business params', () async {
     await client.orderRedirect(
       dodgy: 'ORDER001',

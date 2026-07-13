@@ -10,6 +10,9 @@ import '../../navigation_helper.dart';
 import '../../theme/app_colors.dart';
 import '../../utils/app_toast.dart';
 import '../../utils/screen_adapter.dart';
+import 'models/address_option.dart';
+import 'models/address_selection.dart';
+import 'widgets/certification_address_selection_sheet.dart';
 import 'widgets/certification_prompt_banner.dart';
 import 'widgets/certification_selection_sheet.dart';
 
@@ -36,6 +39,8 @@ class _CertificationPersonalInfoPageState
   bool _isSubmitting = false;
   String _prompt = _defaultPrompt;
   List<_PersonalInfoField> _fields = <_PersonalInfoField>[];
+  List<AddressOption>? _cachedAddressOptions;
+  Future<List<AddressOption>>? _addressOptionsFuture;
   final Map<String, TextEditingController> _controllers =
       <String, TextEditingController>{};
   late final int _sceneStartTimeSeconds;
@@ -220,12 +225,20 @@ class _CertificationPersonalInfoPageState
             _PersonalInfoFieldView(
               field: _fields[index],
               controller: _controllers[_fields[index].keyName],
-              onTap: () => _selectOption(_fields[index]),
+              onTap: () => _handleFieldTap(_fields[index]),
             ),
           ],
         ],
       ),
     );
+  }
+
+  Future<void> _handleFieldTap(_PersonalInfoField field) async {
+    if (field.usesAddressPicker) {
+      await _selectAddress(field);
+      return;
+    }
+    await _selectOption(field);
   }
 
   Future<void> _selectOption(_PersonalInfoField field) async {
@@ -251,6 +264,67 @@ class _CertificationPersonalInfoPageState
     setState(() {
       field.select(option);
     });
+  }
+
+  Future<void> _selectAddress(_PersonalInfoField field) async {
+    final shouldShowLoading =
+        _cachedAddressOptions == null && _addressOptionsFuture == null;
+    try {
+      if (shouldShowLoading) {
+        await AppToast.showLoading();
+      }
+      final options = await _getAddressOptions();
+      if (options.isEmpty) {
+        await AppToast.error(field.placeholder);
+        return;
+      }
+      if (shouldShowLoading) {
+        await AppToast.dismissLoading();
+      }
+      if (!mounted) {
+        return;
+      }
+      final selection = await showCertificationAddressSelectionSheet(
+        context: context,
+        options: options,
+      );
+      if (selection == null || !mounted) {
+        return;
+      }
+      setState(() => field.selectAddress(selection));
+    } catch (error) {
+      if (!mounted) {
+        return;
+      }
+      await AppToast.error(ApiErrorMessage.resolve(error));
+    }
+  }
+
+  Future<List<AddressOption>> _getAddressOptions() {
+    final cached = _cachedAddressOptions;
+    if (cached != null && cached.isNotEmpty) {
+      return Future<List<AddressOption>>.value(cached);
+    }
+    final inFlight = _addressOptionsFuture;
+    if (inFlight != null) {
+      return inFlight;
+    }
+    final future = _fetchAddressOptions();
+    _addressOptionsFuture = future;
+    return future;
+  }
+
+  Future<List<AddressOption>> _fetchAddressOptions() async {
+    try {
+      final response = await ApiClient.instance.addressInit();
+      final options = AddressOption.parseList(response.states);
+      if (options.isNotEmpty) {
+        _cachedAddressOptions = options;
+      }
+      return options;
+    } finally {
+      _addressOptionsFuture = null;
+    }
   }
 
   Future<void> _submit() async {
@@ -535,18 +609,27 @@ class _PersonalInfoField {
   String _currentText;
   _PersonalInfoOption? _selectedOption;
 
-  bool get usesPicker => options.isNotEmpty && !usesTextInput;
+  bool get usesAddressPicker => controlType == 'stage';
+  bool get usesPicker =>
+      !usesAddressPicker && options.isNotEmpty && !usesTextInput;
   bool get usesTextInput =>
-      controlType == 'onto' || controlType == 'txt' || options.isEmpty;
+      !usesAddressPicker &&
+      (controlType == 'onto' || controlType == 'txt' || options.isEmpty);
 
   String get currentText => _selectedOption?.label ?? _currentText;
   _PersonalInfoOption? get selectedOption => _selectedOption;
-  String get selectedValue =>
-      _selectedOption?.value ?? _optionForText(_currentText)?.value ?? '';
+  String get selectedValue => usesAddressPicker
+      ? _currentText
+      : _selectedOption?.value ?? _optionForText(_currentText)?.value ?? '';
 
   void select(_PersonalInfoOption option) {
     _selectedOption = option;
     _currentText = option.label;
+  }
+
+  void selectAddress(AddressSelection selection) {
+    _selectedOption = null;
+    _currentText = selection.value;
   }
 
   _PersonalInfoOption? _optionForText(String text) {

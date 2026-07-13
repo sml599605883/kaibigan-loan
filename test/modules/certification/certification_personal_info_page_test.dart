@@ -219,6 +219,66 @@ void main() {
     expect(apiClient.productDetailIds, ['product-work']);
     expect(toastPresenter.messages, ['saved work', 'work next step']);
   });
+
+  testWidgets('stage field selects cached address and submits joined labels', (
+    tester,
+  ) async {
+    apiClient.personalInfoStates = _addressPersonalInfoStates();
+    apiClient.addressInitStates = _addressInitStates();
+    apiClient.productDetailStates = {'wofuller': 'next step'};
+
+    await _pumpPage(tester, arguments: {'geobotanists': 'product-address'});
+    await tester.pumpAndSettle();
+
+    await tester.tap(find.text('Old Region-Old Province-Old Municipality'));
+    await tester.pumpAndSettle();
+    expect(find.text('Region'), findsOneWidget);
+    expect(find.text('Old Region'), findsNothing);
+
+    await tester.tap(find.text('Done'));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Done'));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Done'));
+    await tester.pumpAndSettle();
+
+    expect(find.text('Region I-Pangasinan-Alcala'), findsOneWidget);
+
+    await tester.tap(find.text('Region I-Pangasinan-Alcala'));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Cancel'));
+    await tester.pumpAndSettle();
+    expect(apiClient.addressInitCallCount, 1);
+
+    await tester.tap(find.text('Submit'));
+    await tester.pumpAndSettle();
+
+    expect(apiClient.savePersonalInfoPayloads, [
+      {
+        'geobotanists': 'product-address',
+        'residential_address': 'Region I-Pangasinan-Alcala',
+      },
+    ]);
+  });
+
+  testWidgets('stage field shows address API error without changing value', (
+    tester,
+  ) async {
+    apiClient.personalInfoStates = _addressPersonalInfoStates();
+    apiClient.addressError = ApiBusinessException('address failed');
+
+    await _pumpPage(tester, arguments: {'geobotanists': 'product-address'});
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Old Region-Old Province-Old Municipality'));
+    await tester.pumpAndSettle();
+
+    expect(toastPresenter.errors, ['address failed']);
+    expect(
+      find.text('Old Region-Old Province-Old Municipality'),
+      findsOneWidget,
+    );
+    expect(find.text('Region'), findsNothing);
+  });
 }
 
 Map<String, dynamic> _personalInfoStates() {
@@ -244,6 +304,41 @@ Map<String, dynamic> _personalInfoStates() {
         'prognosticator': 'onto',
         'hairbreadth': 0,
         'solonets': 'jane@example.com',
+      },
+    ],
+  };
+}
+
+Map<String, dynamic> _addressPersonalInfoStates() {
+  return {
+    'enthrones': [
+      {
+        'primogenitor': 'Residential Address',
+        'suppletive': 'Please select address',
+        'griding': 'residential_address',
+        'prognosticator': 'stage',
+        'hairbreadth': 0,
+        'solonets': 'Old Region-Old Province-Old Municipality',
+      },
+    ],
+  };
+}
+
+Map<String, dynamic> _addressInitStates() {
+  return {
+    'religiosities': [
+      {
+        'griding': 'region-1',
+        'unwits': 'Region I',
+        'carburetor': [
+          {
+            'griding': 'province-1',
+            'unwits': 'Pangasinan',
+            'carburetor': [
+              {'griding': 'municipality-1', 'unwits': 'Alcala'},
+            ],
+          },
+        ],
       },
     ],
   };
@@ -295,7 +390,10 @@ class _FakeApiClient extends ApiClient {
   Map<String, dynamic> personalInfoStates = <String, dynamic>{};
   Map<String, dynamic> jobInfoStates = <String, dynamic>{};
   Map<String, dynamic> productDetailStates = <String, dynamic>{};
+  Map<String, dynamic> addressInitStates = <String, dynamic>{};
   Object? error;
+  Object? addressError;
+  int addressInitCallCount = 0;
 
   @override
   Future<ApiResponse> personalInfo({required String geobotanists}) async {
@@ -333,6 +431,20 @@ class _FakeApiClient extends ApiClient {
   Future<ApiResponse> saveJobInfo({required Map<String, dynamic> data}) async {
     saveJobInfoPayloads.add(Map<String, dynamic>.from(data));
     return ApiResponse(code: 0, message: 'saved work', states: Json(null));
+  }
+
+  @override
+  Future<ApiResponse> addressInit() async {
+    addressInitCallCount++;
+    final requestError = addressError;
+    if (requestError != null) {
+      throw requestError;
+    }
+    return ApiResponse(
+      code: 0,
+      message: 'success',
+      states: Json(addressInitStates),
+    );
   }
 
   @override

@@ -266,6 +266,10 @@ class ApiClient {
     );
   }
 
+  Future<ApiResponse> addressInit() {
+    return get(ApiEndpoints.addressInit);
+  }
+
   Future<ApiResponse> contactInfo({required String geobotanists}) {
     return get(
       ApiEndpoints.contactInfo,

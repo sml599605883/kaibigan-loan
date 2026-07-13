@@ -22,6 +22,7 @@ abstract final class ApiEndpoints {
   static const savePersonalInfo = '/plater/stigmasterol';
   static const jobInfo = '/plater/preattuned';
   static const saveJobInfo = '/plater/religiosities';
+  static const addressInit = '/plater/centerlines';
   static const contactInfo = '/plater/commensurate';
   static const saveContactInfo = '/plater/anchovetta';
   static const bankInfo = '/plater/cabdrivers';

@@ -20,6 +20,8 @@ abstract final class AppAssets {
       'assets/certification_personal_progress.png';
   static const certificationWorkProgress =
       'assets/certification_work_progress.png';
+  static const certificationAddressSheetBackground =
+      'assets/certification_address_sheet_background.png';
   static const featurePrimary = 'assets/feature_primary.png';
   static const featureSecondary = 'assets/feature_secondary.png';
   static const homeLoanCardBackground = 'assets/home_loan_card_bg.png';
