@@ -71,10 +71,15 @@ class _CertificationPersonalInfoPageState
       final response = widget._kind == _CertificationInfoKind.work
           ? await ApiClient.instance.jobInfo(geobotanists: productId)
           : await ApiClient.instance.personalInfo(geobotanists: productId);
-      final fields = response.states['enthrones'].listValue
-          .map(PersonalInfoField.fromJson)
-          .where((field) => field.keyName.isNotEmpty)
-          .toList(growable: false);
+      final fields = <PersonalInfoField>[];
+      for (final json in response.states['enthrones'].listValue) {
+        final field = PersonalInfoField.fromJson(json);
+        if (field.keyName.isNotEmpty && field.isSupported) {
+          fields.add(field);
+        } else {
+          field.dispose();
+        }
+      }
       if (!mounted) {
         _disposeFields(fields);
         return;

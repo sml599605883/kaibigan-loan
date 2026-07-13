@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 
 import '../../../core/json/json.dart';
 import 'address_selection.dart';
+import 'personal_info_field_type.dart';
 import 'personal_info_option.dart';
 
 class PersonalInfoField {
@@ -9,7 +10,7 @@ class PersonalInfoField {
     required this.title,
     required this.placeholder,
     required this.keyName,
-    required this.controlType,
+    required this.fieldType,
     required this.numericKeyboard,
     required this.isRequired,
     required this.options,
@@ -29,7 +30,9 @@ class PersonalInfoField {
       title: title,
       placeholder: _firstNonEmpty(json['suppletive'].stringValue.trim(), title),
       keyName: json['griding'].stringValue.trim(),
-      controlType: json['prognosticator'].stringValue.trim(),
+      fieldType: PersonalInfoFieldType.fromRaw(
+        json['prognosticator'].stringValue.trim(),
+      ),
       numericKeyboard: json['bellyache'].intValue == 1,
       isRequired: json['hairbreadth'].intValue != 1,
       options: options,
@@ -43,19 +46,17 @@ class PersonalInfoField {
   final String title;
   final String placeholder;
   final String keyName;
-  final String controlType;
+  final PersonalInfoFieldType fieldType;
   final bool numericKeyboard;
   final bool isRequired;
   final List<PersonalInfoOption> options;
   final TextEditingController controller;
   String selectedValue;
 
-  bool get usesAddressPicker => controlType == 'stage';
-  bool get usesPicker =>
-      !usesAddressPicker && options.isNotEmpty && !usesTextInput;
-  bool get usesTextInput =>
-      !usesAddressPicker &&
-      (controlType == 'onto' || controlType == 'txt' || options.isEmpty);
+  bool get usesAddressPicker => fieldType == PersonalInfoFieldType.citySelect;
+  bool get usesPicker => fieldType == PersonalInfoFieldType.enumeration;
+  bool get usesTextInput => fieldType == PersonalInfoFieldType.text;
+  bool get isSupported => fieldType != PersonalInfoFieldType.unknown;
 
   String get displayText {
     final text = controller.text.trim();

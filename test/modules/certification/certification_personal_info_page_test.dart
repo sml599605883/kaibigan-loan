@@ -117,7 +117,7 @@ void main() {
           'primogenitor': 'Email',
           'suppletive': 'Please input email',
           'griding': 'offer',
-          'prognosticator': 'onto',
+          'prognosticator': 'Foxfishes',
           'hairbreadth': 0,
         },
       ],
@@ -155,7 +155,7 @@ void main() {
           'primogenitor': 'Company Name',
           'suppletive': 'Please input company name',
           'griding': 'freshly',
-          'prognosticator': 'onto',
+          'prognosticator': 'Foxfishes',
           'hairbreadth': 0,
           'solonets': 'SPSS',
         },
@@ -163,7 +163,7 @@ void main() {
           'primogenitor': 'Profession',
           'suppletive': 'Profession',
           'griding': 'profit',
-          'prognosticator': 'stepped',
+          'prognosticator': 'Metallike',
           'hairbreadth': 0,
           'solonets': 'Ofw',
           'metallurgists': [
@@ -220,65 +220,67 @@ void main() {
     expect(toastPresenter.messages, ['saved work', 'work next step']);
   });
 
-  testWidgets('stage field selects cached address and submits joined labels', (
-    tester,
-  ) async {
-    apiClient.personalInfoStates = _addressPersonalInfoStates();
-    apiClient.addressInitStates = _addressInitStates();
-    apiClient.productDetailStates = {'wofuller': 'next step'};
+  testWidgets(
+    'citySelect field selects cached address and submits joined labels',
+    (tester) async {
+      apiClient.personalInfoStates = _addressPersonalInfoStates();
+      apiClient.addressInitStates = _addressInitStates();
+      apiClient.productDetailStates = {'wofuller': 'next step'};
 
-    await _pumpPage(tester, arguments: {'geobotanists': 'product-address'});
-    await tester.pumpAndSettle();
+      await _pumpPage(tester, arguments: {'geobotanists': 'product-address'});
+      await tester.pumpAndSettle();
 
-    await tester.tap(find.text('Old Region-Old Province-Old Municipality'));
-    await tester.pumpAndSettle();
-    expect(find.text('Region'), findsOneWidget);
-    expect(find.text('Old Region'), findsNothing);
+      await tester.tap(find.text('Old Region-Old Province-Old Municipality'));
+      await tester.pumpAndSettle();
+      expect(find.text('Region'), findsOneWidget);
+      expect(find.text('Old Region'), findsNothing);
 
-    await tester.tap(find.text('Done'));
-    await tester.pumpAndSettle();
-    await tester.tap(find.text('Done'));
-    await tester.pumpAndSettle();
-    await tester.tap(find.text('Done'));
-    await tester.pumpAndSettle();
+      await tester.tap(find.text('Done'));
+      await tester.pumpAndSettle();
+      await tester.tap(find.text('Done'));
+      await tester.pumpAndSettle();
+      await tester.tap(find.text('Done'));
+      await tester.pumpAndSettle();
 
-    expect(find.text('Region I-Pangasinan-Alcala'), findsOneWidget);
+      expect(find.text('Region I-Pangasinan-Alcala'), findsOneWidget);
 
-    await tester.tap(find.text('Region I-Pangasinan-Alcala'));
-    await tester.pumpAndSettle();
-    await tester.tap(find.text('Cancel'));
-    await tester.pumpAndSettle();
-    expect(apiClient.addressInitCallCount, 1);
+      await tester.tap(find.text('Region I-Pangasinan-Alcala'));
+      await tester.pumpAndSettle();
+      await tester.tap(find.text('Cancel'));
+      await tester.pumpAndSettle();
+      expect(apiClient.addressInitCallCount, 1);
 
-    await tester.tap(find.text('Submit'));
-    await tester.pumpAndSettle();
+      await tester.tap(find.text('Submit'));
+      await tester.pumpAndSettle();
 
-    expect(apiClient.savePersonalInfoPayloads, [
-      {
-        'geobotanists': 'product-address',
-        'residential_address': 'Region I-Pangasinan-Alcala',
-      },
-    ]);
-  });
+      expect(apiClient.savePersonalInfoPayloads, [
+        {
+          'geobotanists': 'product-address',
+          'residential_address': 'Region I-Pangasinan-Alcala',
+        },
+      ]);
+    },
+  );
 
-  testWidgets('stage field shows address API error without changing value', (
-    tester,
-  ) async {
-    apiClient.personalInfoStates = _addressPersonalInfoStates();
-    apiClient.addressError = ApiBusinessException('address failed');
+  testWidgets(
+    'citySelect field shows address API error without changing value',
+    (tester) async {
+      apiClient.personalInfoStates = _addressPersonalInfoStates();
+      apiClient.addressError = ApiBusinessException('address failed');
 
-    await _pumpPage(tester, arguments: {'geobotanists': 'product-address'});
-    await tester.pumpAndSettle();
-    await tester.tap(find.text('Old Region-Old Province-Old Municipality'));
-    await tester.pumpAndSettle();
+      await _pumpPage(tester, arguments: {'geobotanists': 'product-address'});
+      await tester.pumpAndSettle();
+      await tester.tap(find.text('Old Region-Old Province-Old Municipality'));
+      await tester.pumpAndSettle();
 
-    expect(toastPresenter.errors, ['address failed']);
-    expect(
-      find.text('Old Region-Old Province-Old Municipality'),
-      findsOneWidget,
-    );
-    expect(find.text('Region'), findsNothing);
-  });
+      expect(toastPresenter.errors, ['address failed']);
+      expect(
+        find.text('Old Region-Old Province-Old Municipality'),
+        findsOneWidget,
+      );
+      expect(find.text('Region'), findsNothing);
+    },
+  );
 }
 
 Map<String, dynamic> _personalInfoStates() {
@@ -289,7 +291,7 @@ Map<String, dynamic> _personalInfoStates() {
         'primogenitor': 'Gender',
         'suppletive': 'Gender',
         'griding': 'copies',
-        'prognosticator': 'stepped',
+        'prognosticator': 'Metallike',
         'hairbreadth': 0,
         'solonets': 'Female',
         'metallurgists': [
@@ -301,7 +303,7 @@ Map<String, dynamic> _personalInfoStates() {
         'primogenitor': 'Email',
         'suppletive': 'Please input email',
         'griding': 'offer',
-        'prognosticator': 'onto',
+        'prognosticator': 'Foxfishes',
         'hairbreadth': 0,
         'solonets': 'jane@example.com',
       },
@@ -316,7 +318,7 @@ Map<String, dynamic> _addressPersonalInfoStates() {
         'primogenitor': 'Residential Address',
         'suppletive': 'Please select address',
         'griding': 'residential_address',
-        'prognosticator': 'stage',
+        'prognosticator': 'Unnecessarily',
         'hairbreadth': 0,
         'solonets': 'Old Region-Old Province-Old Municipality',
       },
