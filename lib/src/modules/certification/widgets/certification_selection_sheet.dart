@@ -21,7 +21,12 @@ Future<T?> showCertificationSelectionSheet<T>({
   required BuildContext context,
   required List<CertificationSelectionSheetOption<T>> options,
   T? initialValue,
-}) {
+}) async {
+  FocusManager.instance.primaryFocus?.unfocus();
+  await Future<void>.delayed(Duration.zero);
+  if (!context.mounted) {
+    return null;
+  }
   return showModalBottomSheet<T>(
     context: context,
     backgroundColor: Colors.transparent,

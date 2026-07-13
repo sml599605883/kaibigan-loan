@@ -178,6 +178,48 @@ void main() {
       AppColors.uploadMethodSelected,
     );
   });
+
+  testWidgets('does not restore input focus after closing', (tester) async {
+    final focusNode = FocusNode();
+    addTearDown(focusNode.dispose);
+
+    await tester.pumpWidget(
+      MaterialApp(
+        home: Builder(
+          builder: (context) => Scaffold(
+            body: Column(
+              children: [
+                TextField(focusNode: focusNode),
+                TextButton(
+                  onPressed: () => showCertificationSelectionSheet<String>(
+                    context: context,
+                    options: const [
+                      CertificationSelectionSheetOption(
+                        value: 'a',
+                        label: 'Option A',
+                      ),
+                    ],
+                  ),
+                  child: const Text('Open'),
+                ),
+              ],
+            ),
+          ),
+        ),
+      ),
+    );
+
+    await tester.tap(find.byType(TextField));
+    await tester.pump();
+    expect(focusNode.hasFocus, isTrue);
+
+    await tester.tap(find.text('Open'));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Cancel'));
+    await tester.pumpAndSettle();
+
+    expect(focusNode.hasFocus, isFalse);
+  });
 }
 
 const _sixOptions = [
