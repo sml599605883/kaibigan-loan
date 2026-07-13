@@ -11,6 +11,7 @@ import 'package:kaibigan_loan/src/core/session/product_detail_cache.dart';
 import 'package:kaibigan_loan/src/core/session/session_store.dart';
 import 'package:kaibigan_loan/src/modules/certification/certification_upload_page.dart';
 import 'package:kaibigan_loan/src/modules/certification/widgets/certification_prompt_banner.dart';
+import 'package:kaibigan_loan/src/modules/certification/widgets/certification_selection_sheet.dart';
 import 'package:kaibigan_loan/src/theme/app_colors.dart';
 import 'package:kaibigan_loan/src/utils/app_toast.dart';
 
@@ -119,6 +120,10 @@ void main() {
     await tester.tap(find.text('Submit'));
     await tester.pumpAndSettle();
 
+    expect(
+      find.byType(CertificationSelectionSheet<CertificationUploadMethod>),
+      findsOneWidget,
+    );
     expect(find.text('Photo album'), findsOneWidget);
     expect(find.text('Photograph'), findsOneWidget);
     expect(find.text('Cancel'), findsOneWidget);

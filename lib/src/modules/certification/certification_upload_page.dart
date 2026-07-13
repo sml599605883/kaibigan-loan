@@ -18,6 +18,7 @@ import '../../theme/app_colors.dart';
 import '../../utils/app_toast.dart';
 import '../../utils/screen_adapter.dart';
 import 'widgets/certification_prompt_banner.dart';
+import 'widgets/certification_selection_sheet.dart';
 
 enum CertificationUploadMethod { photoAlbum, camera }
 
@@ -260,13 +261,22 @@ class _CertificationUploadPageState extends State<CertificationUploadPage> {
 
   Future<void> _showUploadMethodSheet(BuildContext context) async {
     final selectedMethod =
-        await showModalBottomSheet<CertificationUploadMethod>(
+        await showCertificationSelectionSheet<CertificationUploadMethod>(
           context: context,
-          backgroundColor: Colors.transparent,
-          barrierColor: AppColors.uploadMethodBarrier,
-          elevation: 0,
-          isScrollControlled: true,
-          builder: (_) => const _UploadMethodSheet(),
+          options: const [
+            CertificationSelectionSheetOption(
+              value: CertificationUploadMethod.photoAlbum,
+              label: 'Photo album',
+              iconAsset: AppAssets.certificationUploadAlbum,
+              key: Key('certificationUploadPhotoAlbumOption'),
+            ),
+            CertificationSelectionSheetOption(
+              value: CertificationUploadMethod.camera,
+              label: 'Photograph',
+              iconAsset: AppAssets.certificationUploadCamera,
+              key: Key('certificationUploadPhotographOption'),
+            ),
+          ],
         );
     if (selectedMethod == null) {
       return;
@@ -402,188 +412,6 @@ class _CertificationUploadPageState extends State<CertificationUploadPage> {
       return arguments['geobotanists']?.toString().trim() ?? '';
     }
     return '';
-  }
-}
-
-class _UploadMethodSheet extends StatefulWidget {
-  const _UploadMethodSheet();
-
-  @override
-  State<_UploadMethodSheet> createState() => _UploadMethodSheetState();
-}
-
-class _UploadMethodSheetState extends State<_UploadMethodSheet> {
-  static const _photoAlbum = 'Photo album';
-  static const _photograph = 'Photograph';
-
-  CertificationUploadMethod? _selectedMethod;
-
-  @override
-  Widget build(BuildContext context) {
-    return Padding(
-      padding: EdgeInsets.fromLTRB(15.w, 0, 15.w, 13.h),
-      child: DecoratedBox(
-        decoration: BoxDecoration(
-          color: AppColors.uploadMethodSheetBackground,
-          borderRadius: BorderRadius.circular(24.r),
-        ),
-        child: Padding(
-          padding: EdgeInsets.only(top: 30.h, bottom: 15.h),
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              _UploadMethodOption(
-                key: const Key('certificationUploadPhotoAlbumOption'),
-                iconAsset: AppAssets.certificationUploadAlbum,
-                label: _photoAlbum,
-                selected:
-                    _selectedMethod == CertificationUploadMethod.photoAlbum,
-                onTap: () => _select(CertificationUploadMethod.photoAlbum),
-              ),
-              SizedBox(height: 15.h),
-              _UploadMethodOption(
-                key: const Key('certificationUploadPhotographOption'),
-                iconAsset: AppAssets.certificationUploadCamera,
-                label: _photograph,
-                selected: _selectedMethod == CertificationUploadMethod.camera,
-                onTap: () => _select(CertificationUploadMethod.camera),
-              ),
-              SizedBox(height: 29.h),
-              Padding(
-                padding: EdgeInsets.only(left: 16.w, right: 15.w),
-                child: SizedBox(
-                  height: 46.h,
-                  child: Row(
-                    children: [
-                      Expanded(
-                        child: _UploadMethodActionButton(
-                          label: 'Cancel',
-                          backgroundColor:
-                              AppColors.uploadMethodCancelBackground,
-                          textColor: AppColors.uploadMethodCancelText,
-                          onTap: () => Navigator.of(context).pop(),
-                        ),
-                      ),
-                      SizedBox(width: 20.w),
-                      Expanded(
-                        child: _UploadMethodActionButton(
-                          label: 'Done',
-                          backgroundColor: AppColors.uploadMethodDoneBackground,
-                          textColor: AppColors.uploadMethodDoneText,
-                          onTap: () =>
-                              Navigator.of(context).pop(_selectedMethod),
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-              ),
-            ],
-          ),
-        ),
-      ),
-    );
-  }
-
-  void _select(CertificationUploadMethod method) {
-    setState(() => _selectedMethod = method);
-  }
-}
-
-class _UploadMethodOption extends StatelessWidget {
-  const _UploadMethodOption({
-    super.key,
-    required this.iconAsset,
-    required this.label,
-    required this.selected,
-    required this.onTap,
-  });
-
-  final String iconAsset;
-  final String label;
-  final bool selected;
-  final VoidCallback onTap;
-
-  @override
-  Widget build(BuildContext context) {
-    return GestureDetector(
-      behavior: HitTestBehavior.opaque,
-      onTap: onTap,
-      child: DecoratedBox(
-        decoration: BoxDecoration(
-          color: selected ? AppColors.uploadMethodSelected : null,
-        ),
-        child: SizedBox(
-          height: 46.h,
-          width: double.infinity,
-          child: Center(
-            child: SizedBox(
-              child: Row(
-                children: [
-                  SizedBox(width: 45.w),
-                  Image.asset(iconAsset, width: 30.w, height: 30.h),
-                  Expanded(
-                    child: Center(
-                      child: Text(
-                        label,
-                        maxLines: 1,
-                        overflow: TextOverflow.ellipsis,
-                        style: TextStyle(
-                          color: AppColors.uploadMethodText,
-                          fontSize: 18.sp,
-                          fontWeight: FontWeight.w600,
-                          height: 25 / 18,
-                        ),
-                      ),
-                    ),
-                  ),
-                  SizedBox(width: 75.w),
-                ],
-              ),
-            ),
-          ),
-        ),
-      ),
-    );
-  }
-}
-
-class _UploadMethodActionButton extends StatelessWidget {
-  const _UploadMethodActionButton({
-    required this.label,
-    required this.backgroundColor,
-    required this.textColor,
-    required this.onTap,
-  });
-
-  final String label;
-  final Color backgroundColor;
-  final Color textColor;
-  final VoidCallback onTap;
-
-  @override
-  Widget build(BuildContext context) {
-    return GestureDetector(
-      behavior: HitTestBehavior.opaque,
-      onTap: onTap,
-      child: DecoratedBox(
-        decoration: BoxDecoration(
-          color: backgroundColor,
-          borderRadius: BorderRadius.circular(24.r),
-        ),
-        child: Center(
-          child: Text(
-            label,
-            style: TextStyle(
-              color: textColor,
-              fontSize: 18.sp,
-              fontWeight: FontWeight.w700,
-              height: 22 / 18,
-            ),
-          ),
-        ),
-      ),
-    );
   }
 }
 
