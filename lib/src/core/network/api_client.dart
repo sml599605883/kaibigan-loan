@@ -304,11 +304,33 @@ class ApiClient {
 
   Future<ApiResponse> saveBankInfo({
     required String geobotanists,
-    required String attach,
+    required String heirship,
+    required String bladers,
+    required String zips,
+    required String acreage,
+    required String coinable,
+    required String flabby,
+    required String rapt,
+    String clevises = '',
+    String scolloped = '',
+    String arrests = '',
   }) {
     return post(
       ApiEndpoints.saveBankInfo,
-      data: {'geobotanists': geobotanists, 'attach': attach},
+      data: {
+        'geobotanists': geobotanists,
+        'heirship': heirship,
+        'bladers': bladers,
+        'zips': zips,
+        'acreage': acreage,
+        'coinable': coinable,
+        'flabby': flabby,
+        'rapt': rapt,
+        'jills': _randomDigits(6),
+        if (clevises.isNotEmpty) 'clevises': clevises,
+        if (scolloped.isNotEmpty) 'scolloped': scolloped,
+        if (arrests.isNotEmpty) 'arrests': arrests,
+      },
     );
   }
 

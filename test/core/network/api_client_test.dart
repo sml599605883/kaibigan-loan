@@ -238,6 +238,69 @@ void main() {
     },
   );
 
+  test('posts documented bind card fields', () async {
+    await client.saveBankInfo(
+      geobotanists: 'product-1',
+      heirship: '1',
+      bladers: '6',
+      zips: 'Ana',
+      acreage: '',
+      coinable: 'Santos',
+      flabby: '09171234567',
+      rapt: '09171234567',
+    );
+
+    expect(
+      adapter.lastRequest.path,
+      'https://api.example.test/plater/bloomeries',
+    );
+    expect(adapter.lastBody, {
+      'geobotanists': 'product-1',
+      'heirship': '1',
+      'bladers': '6',
+      'zips': 'Ana',
+      'acreage': '',
+      'coinable': 'Santos',
+      'flabby': '09171234567',
+      'rapt': '09171234567',
+      'jills': '777777',
+    });
+    expect(
+      (adapter.lastBody as Map<String, dynamic>),
+      isNot(contains('attach')),
+    );
+    expect(
+      (adapter.lastBody as Map<String, dynamic>),
+      isNot(contains('clevises')),
+    );
+    expect(
+      (adapter.lastBody as Map<String, dynamic>),
+      isNot(contains('scolloped')),
+    );
+    expect(
+      (adapter.lastBody as Map<String, dynamic>),
+      isNot(contains('arrests')),
+    );
+
+    await client.saveBankInfo(
+      geobotanists: 'product-1',
+      heirship: '1',
+      bladers: '6',
+      zips: 'Ana',
+      acreage: '',
+      coinable: 'Santos',
+      flabby: '09171234567',
+      rapt: '09171234567',
+      clevises: '7',
+      scolloped: 'live-1',
+      arrests: 'license-1',
+    );
+
+    expect(adapter.lastBody, containsPair('clevises', '7'));
+    expect(adapter.lastBody, containsPair('scolloped', 'live-1'));
+    expect(adapter.lastBody, containsPair('arrests', 'license-1'));
+  });
+
   test('order methods expose only business params', () async {
     await client.orderRedirect(
       dodgy: 'ORDER001',
