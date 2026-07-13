@@ -11,7 +11,8 @@ import '../../theme/app_colors.dart';
 import '../../utils/app_toast.dart';
 import '../../utils/screen_adapter.dart';
 import 'models/address_option.dart';
-import 'models/address_selection.dart';
+import 'models/personal_info_field.dart';
+import 'models/personal_info_option.dart';
 import 'widgets/certification_address_selection_sheet.dart';
 import 'widgets/certification_prompt_banner.dart';
 import 'widgets/certification_selection_sheet.dart';
@@ -38,11 +39,9 @@ class _CertificationPersonalInfoPageState
   bool _isLoading = true;
   bool _isSubmitting = false;
   String _prompt = _defaultPrompt;
-  List<_PersonalInfoField> _fields = <_PersonalInfoField>[];
+  List<PersonalInfoField> _fields = <PersonalInfoField>[];
   List<AddressOption>? _cachedAddressOptions;
   Future<List<AddressOption>>? _addressOptionsFuture;
-  final Map<String, TextEditingController> _controllers =
-      <String, TextEditingController>{};
   late final int _sceneStartTimeSeconds;
 
   @override
@@ -54,9 +53,7 @@ class _CertificationPersonalInfoPageState
 
   @override
   void dispose() {
-    for (final controller in _controllers.values) {
-      controller.dispose();
-    }
+    _disposeFields(_fields);
     super.dispose();
   }
 
@@ -75,10 +72,11 @@ class _CertificationPersonalInfoPageState
           ? await ApiClient.instance.jobInfo(geobotanists: productId)
           : await ApiClient.instance.personalInfo(geobotanists: productId);
       final fields = response.states['enthrones'].listValue
-          .map(_PersonalInfoField.fromJson)
+          .map(PersonalInfoField.fromJson)
           .where((field) => field.keyName.isNotEmpty)
           .toList(growable: false);
       if (!mounted) {
+        _disposeFields(fields);
         return;
       }
       setState(() {
@@ -86,8 +84,7 @@ class _CertificationPersonalInfoPageState
           response.states['mourningly'].stringValue.trim(),
           _defaultPrompt,
         );
-        _fields = fields;
-        _syncControllers(fields);
+        _replaceFields(fields);
         _isLoading = false;
       });
     } catch (error) {
@@ -95,31 +92,21 @@ class _CertificationPersonalInfoPageState
         return;
       }
       setState(() {
-        _fields = <_PersonalInfoField>[];
+        _replaceFields(<PersonalInfoField>[]);
         _isLoading = false;
       });
       await AppToast.error(ApiErrorMessage.resolve(error));
     }
   }
 
-  void _syncControllers(List<_PersonalInfoField> fields) {
-    final activeKeys = fields
-        .where((field) => field.usesTextInput)
-        .map((field) => field.keyName)
-        .toSet();
-    for (final key in _controllers.keys.toList()) {
-      if (!activeKeys.contains(key)) {
-        _controllers.remove(key)?.dispose();
-      }
-    }
+  void _replaceFields(List<PersonalInfoField> fields) {
+    _disposeFields(_fields);
+    _fields = fields;
+  }
+
+  void _disposeFields(Iterable<PersonalInfoField> fields) {
     for (final field in fields) {
-      if (!field.usesTextInput) {
-        continue;
-      }
-      _controllers.putIfAbsent(
-        field.keyName,
-        () => TextEditingController(text: field.currentText),
-      );
+      field.dispose();
     }
   }
 
@@ -224,7 +211,6 @@ class _CertificationPersonalInfoPageState
             if (index > 0) SizedBox(height: 10.h),
             _PersonalInfoFieldView(
               field: _fields[index],
-              controller: _controllers[_fields[index].keyName],
               onTap: () => _handleFieldTap(_fields[index]),
             ),
           ],
@@ -233,7 +219,7 @@ class _CertificationPersonalInfoPageState
     );
   }
 
-  Future<void> _handleFieldTap(_PersonalInfoField field) async {
+  Future<void> _handleFieldTap(PersonalInfoField field) async {
     if (field.usesAddressPicker) {
       await _selectAddress(field);
       return;
@@ -241,11 +227,11 @@ class _CertificationPersonalInfoPageState
     await _selectOption(field);
   }
 
-  Future<void> _selectOption(_PersonalInfoField field) async {
+  Future<void> _selectOption(PersonalInfoField field) async {
     if (!field.usesPicker || field.options.isEmpty) {
       return;
     }
-    final option = await showCertificationSelectionSheet<_PersonalInfoOption>(
+    final option = await showCertificationSelectionSheet<PersonalInfoOption>(
       context: context,
       options: field.options
           .map(
@@ -262,11 +248,11 @@ class _CertificationPersonalInfoPageState
       return;
     }
     setState(() {
-      field.select(option);
+      field.selectOption(option);
     });
   }
 
-  Future<void> _selectAddress(_PersonalInfoField field) async {
+  Future<void> _selectAddress(PersonalInfoField field) async {
     final shouldShowLoading =
         _cachedAddressOptions == null && _addressOptionsFuture == null;
     try {
@@ -335,9 +321,7 @@ class _CertificationPersonalInfoPageState
       'geobotanists': _productIdFromArguments(),
     };
     for (final field in _fields) {
-      final value = field.usesTextInput
-          ? (_controllers[field.keyName]?.text.trim() ?? '')
-          : field.selectedValue.trim();
+      final value = field.currentSubmitValue;
       if (field.isRequired && value.isEmpty) {
         await AppToast.error(field.placeholder);
         return;
@@ -431,14 +415,9 @@ class _PersonalInfoHeader extends StatelessWidget {
 }
 
 class _PersonalInfoFieldView extends StatelessWidget {
-  const _PersonalInfoFieldView({
-    required this.field,
-    required this.controller,
-    required this.onTap,
-  });
+  const _PersonalInfoFieldView({required this.field, required this.onTap});
 
-  final _PersonalInfoField field;
-  final TextEditingController? controller;
+  final PersonalInfoField field;
   final VoidCallback onTap;
 
   @override
@@ -459,7 +438,7 @@ class _PersonalInfoFieldView extends StatelessWidget {
         ),
         SizedBox(height: 7.h),
         field.usesTextInput
-            ? _PersonalInfoInput(field: field, controller: controller!)
+            ? _PersonalInfoInput(field: field)
             : _PersonalInfoPicker(field: field, onTap: onTap),
       ],
     );
@@ -467,10 +446,9 @@ class _PersonalInfoFieldView extends StatelessWidget {
 }
 
 class _PersonalInfoInput extends StatelessWidget {
-  const _PersonalInfoInput({required this.field, required this.controller});
+  const _PersonalInfoInput({required this.field});
 
-  final _PersonalInfoField field;
-  final TextEditingController controller;
+  final PersonalInfoField field;
 
   @override
   Widget build(BuildContext context) {
@@ -478,7 +456,7 @@ class _PersonalInfoInput extends StatelessWidget {
       height: 40.h,
       child: TextField(
         key: Key('personalInfoInput_${field.keyName}'),
-        controller: controller,
+        controller: field.controller,
         keyboardType: field.numericKeyboard
             ? TextInputType.number
             : TextInputType.text,
@@ -509,12 +487,13 @@ class _PersonalInfoInput extends StatelessWidget {
 class _PersonalInfoPicker extends StatelessWidget {
   const _PersonalInfoPicker({required this.field, required this.onTap});
 
-  final _PersonalInfoField field;
+  final PersonalInfoField field;
   final VoidCallback onTap;
 
   @override
   Widget build(BuildContext context) {
-    final text = field.currentText;
+    final text = field.displayText;
+    final hasValue = field.controller.text.trim().isNotEmpty;
     return Material(
       color: AppColors.certificationCardBackground,
       shape: RoundedRectangleBorder(
@@ -532,11 +511,11 @@ class _PersonalInfoPicker extends StatelessWidget {
               children: [
                 Expanded(
                   child: Text(
-                    text.isEmpty ? field.placeholder : text,
+                    text,
                     maxLines: 1,
                     overflow: TextOverflow.ellipsis,
                     style: TextStyle(
-                      color: text.isEmpty
+                      color: !hasValue
                           ? AppColors.certificationFieldLabel
                           : AppColors.certificationFieldText,
                       fontSize: 14.sp,
@@ -565,102 +544,4 @@ OutlineInputBorder _fieldBorder() {
     borderRadius: BorderRadius.circular(20.r),
     borderSide: const BorderSide(color: AppColors.certificationFieldBorder),
   );
-}
-
-class _PersonalInfoField {
-  _PersonalInfoField({
-    required this.title,
-    required this.placeholder,
-    required this.keyName,
-    required this.controlType,
-    required this.numericKeyboard,
-    required this.isRequired,
-    required this.options,
-    required String currentText,
-  }) : _currentText = currentText {
-    _selectedOption = _optionForText(currentText);
-  }
-
-  factory _PersonalInfoField.fromJson(Json json) {
-    final options = json['metallurgists'].listValue
-        .map(_PersonalInfoOption.fromJson)
-        .where((option) => option.label.isNotEmpty)
-        .toList(growable: false);
-    final title = json['primogenitor'].stringValue.trim();
-    return _PersonalInfoField(
-      title: title,
-      placeholder: _firstNonEmpty(json['suppletive'].stringValue.trim(), title),
-      keyName: json['griding'].stringValue.trim(),
-      controlType: json['prognosticator'].stringValue.trim(),
-      numericKeyboard: json['bellyache'].intValue == 1,
-      isRequired: json['hairbreadth'].intValue != 1,
-      options: options,
-      currentText: json['solonets'].stringValue.trim(),
-    );
-  }
-
-  final String title;
-  final String placeholder;
-  final String keyName;
-  final String controlType;
-  final bool numericKeyboard;
-  final bool isRequired;
-  final List<_PersonalInfoOption> options;
-  String _currentText;
-  _PersonalInfoOption? _selectedOption;
-
-  bool get usesAddressPicker => controlType == 'stage';
-  bool get usesPicker =>
-      !usesAddressPicker && options.isNotEmpty && !usesTextInput;
-  bool get usesTextInput =>
-      !usesAddressPicker &&
-      (controlType == 'onto' || controlType == 'txt' || options.isEmpty);
-
-  String get currentText => _selectedOption?.label ?? _currentText;
-  _PersonalInfoOption? get selectedOption => _selectedOption;
-  String get selectedValue => usesAddressPicker
-      ? _currentText
-      : _selectedOption?.value ?? _optionForText(_currentText)?.value ?? '';
-
-  void select(_PersonalInfoOption option) {
-    _selectedOption = option;
-    _currentText = option.label;
-  }
-
-  void selectAddress(AddressSelection selection) {
-    _selectedOption = null;
-    _currentText = selection.value;
-  }
-
-  _PersonalInfoOption? _optionForText(String text) {
-    final normalizedText = text.trim().toLowerCase();
-    if (normalizedText.isEmpty) {
-      return null;
-    }
-    for (final option in options) {
-      if (option.label.toLowerCase() == normalizedText ||
-          option.value == text.trim()) {
-        return option;
-      }
-    }
-    return null;
-  }
-}
-
-class _PersonalInfoOption {
-  const _PersonalInfoOption({required this.label, required this.value});
-
-  factory _PersonalInfoOption.fromJson(Json json) {
-    return _PersonalInfoOption(
-      label: json['unwits'].stringValue.trim(),
-      value: json['commensurate'].stringValue.trim(),
-    );
-  }
-
-  final String label;
-  final String value;
-}
-
-String _firstNonEmpty(String primary, String fallback) {
-  return primary.isNotEmpty ? primary : fallback;
 }
