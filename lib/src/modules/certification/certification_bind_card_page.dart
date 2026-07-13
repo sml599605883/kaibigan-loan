@@ -4,7 +4,10 @@ import 'package:get/get.dart';
 import '../../assets/app_assets.dart';
 import '../../core/network/api_client.dart';
 import '../../core/network/api_exception.dart';
+import '../../core/report/risk_report_scene.dart';
+import '../../navigation_helper.dart';
 import '../../theme/app_colors.dart';
+import '../../utils/app_toast.dart';
 import '../../utils/screen_adapter.dart';
 import 'models/bind_card_info.dart';
 import 'widgets/certification_prompt_banner.dart';
@@ -22,19 +25,30 @@ class CertificationBindCardPage extends StatefulWidget {
 
 class _CertificationBindCardPageState extends State<CertificationBindCardPage> {
   static const _defaultHint = 'Please provide your payment method details.';
+  static const _supportedSaveKeys = <String>{
+    'channelCode',
+    'firstName',
+    'middleName',
+    'lastName',
+    'cardNo',
+    'confirmCardNo',
+  };
 
   final Map<String, TextEditingController> _controllers = {};
   final Map<String, _BindCardSelection> _selections = {};
   bool _isLoading = true;
+  bool _isSubmitting = false;
   String? _error;
   BindCardInfo? _info;
   String _selectedGroupType = '';
+  late final int _sceneStartTimeSeconds;
 
   ApiClient get _apiClient => widget._apiClient ?? ApiClient.instance;
 
   @override
   void initState() {
     super.initState();
+    _sceneStartTimeSeconds = RiskReportScene.nowSeconds();
     _load();
   }
 
@@ -152,7 +166,7 @@ class _CertificationBindCardPageState extends State<CertificationBindCardPage> {
       ),
       bottomNavigationBar: _BindCardFooter(
         hint: info?.bottomHint ?? '',
-        onSubmit: () {},
+        onSubmit: _isSubmitting ? null : _submit,
       ),
     );
   }
@@ -290,6 +304,90 @@ class _CertificationBindCardPageState extends State<CertificationBindCardPage> {
         label: option.label,
       );
     });
+  }
+
+  Future<void> _submit() async {
+    if (_isSubmitting) {
+      return;
+    }
+    final info = _info;
+    if (info == null || info.groups.isEmpty) {
+      return;
+    }
+    final group = info.groups.firstWhere(
+      (candidate) => candidate.type == _selectedGroupType,
+      orElse: () => info.groups.first,
+    );
+    final values = <String, String>{};
+    for (final field in group.fields) {
+      if (!_supportedSaveKeys.contains(field.saveKey)) {
+        continue;
+      }
+      final value = _submitValue(group, field);
+      values[field.saveKey] = value;
+      if (field.isRequired && value.isEmpty) {
+        final placeholder = field.placeholder.trim();
+        await AppToast.show(
+          placeholder.isNotEmpty
+              ? placeholder
+              : 'Please complete ${field.label.trim()}',
+        );
+        return;
+      }
+    }
+    if (values.containsKey('cardNo') &&
+        values.containsKey('confirmCardNo') &&
+        values['cardNo'] != values['confirmCardNo']) {
+      await AppToast.show('The two account entries do not match');
+      return;
+    }
+
+    setState(() => _isSubmitting = true);
+    await AppToast.showLoading();
+    try {
+      final productId = _productId;
+      final response = await _apiClient.saveBankInfo(
+        geobotanists: productId,
+        heirship: group.type,
+        bladers: values['channelCode'] ?? '',
+        zips: values['firstName'] ?? '',
+        acreage: values['middleName'] ?? '',
+        coinable: values['lastName'] ?? '',
+        flabby: values['cardNo'] ?? '',
+        rapt: values['confirmCardNo'] ?? '',
+      );
+      if (!mounted) {
+        return;
+      }
+      if (response.code == 20000) {
+        await AppToast.error('Liveness verification required');
+        return;
+      }
+      response.ensureSuccess();
+      await AppToast.dismissLoading();
+      RiskReportScene.report(
+        productId: productId,
+        sceneType: '8',
+        startTimeSeconds: _sceneStartTimeSeconds,
+      );
+      await NavigationHelper.continueProductDetailFlow(productId);
+    } catch (error) {
+      if (mounted) {
+        await AppToast.error(ApiErrorMessage.resolve(error));
+      }
+    } finally {
+      if (mounted) {
+        setState(() => _isSubmitting = false);
+      }
+    }
+  }
+
+  String _submitValue(BindCardGroup group, BindCardField field) {
+    final stateKey = _stateKey(group, field);
+    if (field.fieldType == BindCardFieldType.enumeration) {
+      return _selections[stateKey]?.value.trim() ?? '';
+    }
+    return _controllers[stateKey]?.text.trim() ?? '';
   }
 }
 
@@ -450,7 +548,7 @@ class _BindCardFooter extends StatelessWidget {
   const _BindCardFooter({required this.hint, required this.onSubmit});
 
   final String hint;
-  final VoidCallback onSubmit;
+  final VoidCallback? onSubmit;
 
   @override
   Widget build(BuildContext context) {
