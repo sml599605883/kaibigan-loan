@@ -9,9 +9,9 @@ class AddressNode {
 
   factory AddressNode.fromJson(Json json) {
     return AddressNode(
-      addressId: json['griding'].stringValue.trim(),
+      addressId: json['cabdrivers'].stringValue.trim(),
       label: json['unwits'].stringValue.trim(),
-      children: json['carburetor'].listValue
+      children: json['religiosities'].listValue
           .map(AddressNode.fromJson)
           .where((node) => node.label.isNotEmpty)
           .toList(growable: false),

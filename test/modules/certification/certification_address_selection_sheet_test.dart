@@ -13,32 +13,29 @@ void main() {
       Json({
         'religiosities': [
           {
-            'griding': 'region-1',
+            'cabdrivers': 1,
             'unwits': 'Region I',
-            'carburetor': [
+            'religiosities': [
               {
-                'griding': 'province-1',
+                'cabdrivers': 101,
                 'unwits': 'Pangasinan',
-                'carburetor': [
-                  {'griding': 'municipality-1', 'unwits': 'Alcala'},
+                'religiosities': [
+                  {'cabdrivers': 1001, 'unwits': 'Alcala'},
                 ],
               },
             ],
           },
-          {'griding': 'empty', 'unwits': ''},
+          {'cabdrivers': 2, 'unwits': ''},
         ],
       }),
     );
 
     expect(options, hasLength(1));
-    expect(options.single.addressId, 'region-1');
+    expect(options.single.addressId, '1');
     expect(options.single.label, 'Region I');
-    expect(options.single.children.single.addressId, 'province-1');
+    expect(options.single.children.single.addressId, '101');
     expect(options.single.children.single.label, 'Pangasinan');
-    expect(
-      options.single.children.single.children.single.addressId,
-      'municipality-1',
-    );
+    expect(options.single.children.single.children.single.addressId, '1001');
     expect(options.single.children.single.children.single.label, 'Alcala');
   });
 
@@ -46,7 +43,7 @@ void main() {
     final options = AddressOption.parseList(
       Json({
         'religiosities': [
-          {'griding': 'region-1', 'unwits': 'Region I'},
+          {'cabdrivers': 1, 'unwits': 'Region I'},
         ],
       }),
     );
