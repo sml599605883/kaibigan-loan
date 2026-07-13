@@ -52,12 +52,40 @@ class CertificationSelectionSheet<T> extends StatefulWidget {
 
 class _CertificationSelectionSheetState<T>
     extends State<CertificationSelectionSheet<T>> {
+  static const _maximumVisibleOptions = 5;
+  static const _optionHeight = 46.0;
+  static const _optionSpacing = 15.0;
+
+  final ScrollController _scrollController = ScrollController();
   T? _selectedValue;
 
   @override
   void initState() {
     super.initState();
     _selectedValue = widget.initialValue;
+    final initialIndex = widget.options.indexWhere(
+      (option) => option.value == widget.initialValue,
+    );
+    if (initialIndex >= _maximumVisibleOptions) {
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (!_scrollController.hasClients) {
+          return;
+        }
+        final requestedOffset =
+            (initialIndex * (_optionHeight + _optionSpacing)).h;
+        _scrollController.jumpTo(
+          requestedOffset
+              .clamp(0.0, _scrollController.position.maxScrollExtent)
+              .toDouble(),
+        );
+      });
+    }
+  }
+
+  @override
+  void dispose() {
+    _scrollController.dispose();
+    super.dispose();
   }
 
   @override
@@ -74,16 +102,7 @@ class _CertificationSelectionSheetState<T>
           child: Column(
             mainAxisSize: MainAxisSize.min,
             children: [
-              for (var index = 0; index < widget.options.length; index++) ...[
-                if (index > 0) SizedBox(height: 15.h),
-                _CertificationSelectionOption<T>(
-                  option: widget.options[index],
-                  selected: _selectedValue == widget.options[index].value,
-                  onTap: () => setState(
-                    () => _selectedValue = widget.options[index].value,
-                  ),
-                ),
-              ],
+              _buildOptionList(),
               SizedBox(height: 29.h),
               Padding(
                 padding: EdgeInsets.only(left: 16.w, right: 15.w),
@@ -117,6 +136,40 @@ class _CertificationSelectionSheetState<T>
             ],
           ),
         ),
+      ),
+    );
+  }
+
+  Widget _buildOptionList() {
+    final visibleOptionCount = widget.options.length.clamp(
+      0,
+      _maximumVisibleOptions,
+    );
+    final listHeight = visibleOptionCount == 0
+        ? 0.0
+        : visibleOptionCount * _optionHeight.h +
+              (visibleOptionCount - 1) * _optionSpacing.h;
+    final canScroll = widget.options.length > _maximumVisibleOptions;
+
+    return SizedBox(
+      key: const Key('certificationSelectionOptionList'),
+      height: listHeight,
+      child: ListView.separated(
+        controller: _scrollController,
+        padding: EdgeInsets.zero,
+        physics: canScroll
+            ? const ClampingScrollPhysics()
+            : const NeverScrollableScrollPhysics(),
+        itemCount: widget.options.length,
+        itemBuilder: (context, index) {
+          final option = widget.options[index];
+          return _CertificationSelectionOption<T>(
+            option: option,
+            selected: _selectedValue == option.value,
+            onTap: () => setState(() => _selectedValue = option.value),
+          );
+        },
+        separatorBuilder: (_, _) => SizedBox(height: _optionSpacing.h),
       ),
     );
   }
