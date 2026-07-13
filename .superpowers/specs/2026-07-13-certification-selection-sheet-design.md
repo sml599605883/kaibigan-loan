@@ -30,6 +30,14 @@ The sheet accepts a list of options and an optional initial value. It owns only 
 - The personal/work picker initializes its selected row from the field's current selected value when available.
 - The upload picker remains initially unselected.
 
+## Option List Height
+
+- Show up to five option rows at once.
+- For one through five options, size the option area to its content.
+- For more than five options, constrain the option area to five 46px rows and four 15px gaps.
+- Scroll only the option area; keep the Cancel and Done actions fixed below it.
+- When the initial selection is beyond the first five options, reveal it automatically when the sheet opens.
+
 ## Integration
 
 - Expose one shared helper for presenting the modal so every caller receives identical modal configuration.
@@ -39,6 +47,7 @@ The sheet accepts a list of options and an optional initial value. It owns only 
 ## Verification
 
 - Widget-test the shared sheet's selection highlight, `Done` result, `Cancel` result, and iconless layout.
+- Widget-test the five-row height cap, scrolling to later options, and initial-selection visibility.
 - Update page tests to verify the personal/work selector uses the styled shared sheet and preserves the selected field value.
 - Run focused certification tests, formatting, and Flutter static analysis.
 
