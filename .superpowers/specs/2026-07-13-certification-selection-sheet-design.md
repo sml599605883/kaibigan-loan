@@ -22,6 +22,8 @@ Each `CertificationSelectionSheetOption<T>` contains:
 
 The sheet accepts a list of options and an optional initial value. It owns only temporary selection state. Selecting a row updates its highlight; `Done` returns the selected value; `Cancel`, swipe dismissal, or barrier dismissal returns `null`.
 
+Before presenting the modal, the shared presenter releases the current primary focus and yields one event-loop turn. Closing the modal must not restore a previously focused text field or reopen the keyboard.
+
 ## Visual Behavior
 
 - Use the existing transparent modal background, barrier color, elevation, spacing, white rounded container, selected-row background, typography, and action-button colors from `_UploadMethodSheet`.
@@ -48,6 +50,7 @@ The sheet accepts a list of options and an optional initial value. It owns only 
 
 - Widget-test the shared sheet's selection highlight, `Done` result, `Cancel` result, and iconless layout.
 - Widget-test the five-row height cap, scrolling to later options, and initial-selection visibility.
+- Widget-test that closing the sheet does not restore the input focus held before presentation.
 - Update page tests to verify the personal/work selector uses the styled shared sheet and preserves the selected field value.
 - Run focused certification tests, formatting, and Flutter static analysis.
 
