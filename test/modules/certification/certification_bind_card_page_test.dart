@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:dio/dio.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
@@ -92,6 +94,109 @@ void main() {
     expect(find.text('Metro Bank'), findsOneWidget);
   });
 
+  testWidgets('opening enum sheet dismisses active text keyboard', (
+    tester,
+  ) async {
+    apiClient.states = _bindCardStates();
+    await _pumpPage(tester, apiClient: apiClient, arguments: _arguments());
+    await tester.pumpAndSettle();
+
+    await tester.tap(find.byKey(const Key('bindCardField_wallet_number')));
+    await tester.pump();
+    expect(tester.testTextInput.isVisible, isTrue);
+
+    await tester.tap(find.byKey(const Key('bindCardTab_bank')));
+    await tester.pumpAndSettle();
+    await tester.tap(find.byKey(const Key('bindCardField_bank_code')));
+    await tester.pumpAndSettle();
+
+    expect(tester.testTextInput.isVisible, isFalse);
+  });
+
+  testWidgets('enum sheet scrolls a later initial selection into view', (
+    tester,
+  ) async {
+    apiClient.states = _bindCardStates(optionCount: 7, initialBankValue: '6');
+    await _pumpPage(tester, apiClient: apiClient, arguments: _arguments());
+    await tester.pumpAndSettle();
+
+    await tester.tap(find.byKey(const Key('bindCardTab_bank')));
+    await tester.pumpAndSettle();
+    await tester.tap(find.byKey(const Key('bindCardField_bank_code')));
+    await tester.pumpAndSettle();
+
+    final scrollable = tester.state<ScrollableState>(
+      find.descendant(
+        of: find.byKey(const Key('bindCardOptionList')),
+        matching: find.byType(Scrollable),
+      ),
+    );
+    expect(scrollable.position.pixels, greaterThan(0));
+    expect(
+      find.descendant(
+        of: find.byKey(const Key('bindCardOptionList')),
+        matching: find.text('Bank 6'),
+      ),
+      findsOneWidget,
+    );
+  });
+
+  testWidgets('back target and method tabs expose accessible semantics', (
+    tester,
+  ) async {
+    final semantics = tester.ensureSemantics();
+    apiClient.states = _bindCardStates();
+    await _pumpPage(tester, apiClient: apiClient, arguments: _arguments());
+    await tester.pumpAndSettle();
+
+    expect(find.byTooltip('Back'), findsOneWidget);
+    expect(tester.getSize(find.byTooltip('Back')), const Size(48, 48));
+    expect(
+      tester.getSemantics(find.byKey(const Key('bindCardTab_wallet'))),
+      matchesSemantics(
+        label: 'E-wallet',
+        hasSelectedState: true,
+        isButton: true,
+        isSelected: true,
+      ),
+    );
+    semantics.dispose();
+  });
+
+  testWidgets('large text scale keeps header title visible without overflow', (
+    tester,
+  ) async {
+    apiClient.states = _bindCardStates();
+    await _pumpPage(
+      tester,
+      apiClient: apiClient,
+      arguments: _arguments(),
+      textScaler: const TextScaler.linear(2),
+    );
+    await tester.pumpAndSettle();
+
+    expect(find.text('Identity verification'), findsOneWidget);
+    expect(tester.takeException(), isNull);
+  });
+
+  testWidgets('disposed page ignores pending bank info response', (
+    tester,
+  ) async {
+    final response = Completer<ApiResponse>();
+    apiClient.pendingResponse = response;
+    await _pumpPage(tester, apiClient: apiClient, arguments: _arguments());
+    await tester.pump();
+
+    Get.back<void>();
+    await tester.pumpAndSettle();
+    response.complete(
+      ApiResponse(code: 0, message: 'success', states: Json(_bindCardStates())),
+    );
+    await tester.pumpAndSettle();
+
+    expect(tester.takeException(), isNull);
+  });
+
   testWidgets('API error displays Retry and reloads', (tester) async {
     apiClient.error = ApiBusinessException('offline');
     await _pumpPage(tester, apiClient: apiClient, arguments: _arguments());
@@ -150,6 +255,7 @@ Future<void> _pumpPage(
   required _FakeApiClient apiClient,
   required Object? arguments,
   Size size = const Size(375, 812),
+  TextScaler textScaler = TextScaler.noScaling,
 }) async {
   tester.view.physicalSize = size;
   tester.view.devicePixelRatio = 1;
@@ -158,6 +264,10 @@ Future<void> _pumpPage(
   const routeName = '/bind-card-test';
   await tester.pumpWidget(
     GetMaterialApp(
+      builder: (context, child) => MediaQuery(
+        data: MediaQuery.of(context).copyWith(textScaler: textScaler),
+        child: child!,
+      ),
       initialRoute: '/',
       getPages: [
         GetPage(name: '/', page: () => const SizedBox()),
@@ -175,7 +285,10 @@ Future<void> _pumpPage(
 
 Map<String, String> _arguments() => {'geobotanists': ' product-bind '};
 
-Map<String, dynamic> _bindCardStates() => {
+Map<String, dynamic> _bindCardStates({
+  int optionCount = 1,
+  String initialBankValue = '7',
+}) => {
   'mourningly': 'Choose your payment method',
   'pollywogs': 'Details must match your identity',
   'enthrones': [
@@ -201,16 +314,25 @@ Map<String, dynamic> _bindCardStates() => {
           'griding': 'bank_code',
           'suppletive': 'Choose your bank',
           'prognosticator': 'enum',
-          'solonets': 'Old Bank',
-          'whackers': 7,
-          'metallurgists': [
-            {
-              'commensurate': 8,
-              'unwits': 'Metro Bank',
-              'vocalically': 'https://api.example.com/metro.png',
-              'bondmen': 0,
-            },
-          ],
+          'solonets': optionCount > 1 ? 'Bank $initialBankValue' : 'Old Bank',
+          'whackers': initialBankValue,
+          'metallurgists': optionCount > 1
+              ? List.generate(
+                  optionCount,
+                  (index) => {
+                    'commensurate': index,
+                    'unwits': 'Bank $index',
+                    'bondmen': 0,
+                  },
+                )
+              : [
+                  {
+                    'commensurate': 8,
+                    'unwits': 'Metro Bank',
+                    'vocalically': 'https://api.example.com/metro.png',
+                    'bondmen': 0,
+                  },
+                ],
         },
         {
           'primogenitor': 'Account number',
@@ -229,6 +351,7 @@ class _FakeApiClient extends ApiClient {
   final productIds = <String>[];
   Map<String, dynamic> states = <String, dynamic>{};
   Object? error;
+  Completer<ApiResponse>? pendingResponse;
 
   @override
   Future<ApiResponse> bankInfo({required String geobotanists}) async {
@@ -236,6 +359,10 @@ class _FakeApiClient extends ApiClient {
     final requestError = error;
     if (requestError != null) {
       throw requestError;
+    }
+    final pending = pendingResponse;
+    if (pending != null) {
+      return pending.future;
     }
     return ApiResponse(code: 0, message: 'success', states: Json(states));
   }

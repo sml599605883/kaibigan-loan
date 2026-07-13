@@ -63,10 +63,10 @@ class _CertificationBindCardPageState extends State<CertificationBindCardPage> {
     try {
       final response = await _apiClient.bankInfo(geobotanists: productId);
       final info = BindCardInfo.fromJson(response.ensureSuccess().states);
-      _initializeFormState(info);
       if (!mounted) {
         return;
       }
+      _initializeFormState(info);
       setState(() {
         _info = info;
         _selectedGroupType = info.groups.isEmpty ? '' : info.groups.first.type;
@@ -207,26 +207,32 @@ class _CertificationBindCardPageState extends State<CertificationBindCardPage> {
             itemBuilder: (_, index) {
               final tab = info.groups[index];
               final selected = tab.type == group.type;
-              return GestureDetector(
-                key: Key('bindCardTab_${tab.type}'),
-                onTap: () => setState(() => _selectedGroupType = tab.type),
-                child: DecoratedBox(
-                  decoration: BoxDecoration(
-                    color: selected
-                        ? AppColors.certificationTabActive
-                        : AppColors.certificationTabInactive,
-                    borderRadius: BorderRadius.circular(18.r),
-                  ),
-                  child: Padding(
-                    padding: EdgeInsets.symmetric(horizontal: 18.w),
-                    child: Center(
-                      child: Text(
-                        tab.label,
-                        style: TextStyle(
-                          color: selected
-                              ? AppColors.certificationTabActiveText
-                              : AppColors.certificationTabInactiveText,
-                          fontSize: 14.sp,
+              return Semantics(
+                button: true,
+                selected: selected,
+                label: tab.label,
+                excludeSemantics: true,
+                child: GestureDetector(
+                  key: Key('bindCardTab_${tab.type}'),
+                  onTap: () => setState(() => _selectedGroupType = tab.type),
+                  child: DecoratedBox(
+                    decoration: BoxDecoration(
+                      color: selected
+                          ? AppColors.certificationTabActive
+                          : AppColors.certificationTabInactive,
+                      borderRadius: BorderRadius.circular(18.r),
+                    ),
+                    child: Padding(
+                      padding: EdgeInsets.symmetric(horizontal: 18.w),
+                      child: Center(
+                        child: Text(
+                          tab.label,
+                          style: TextStyle(
+                            color: selected
+                                ? AppColors.certificationTabActiveText
+                                : AppColors.certificationTabInactiveText,
+                            fontSize: 14.sp,
+                          ),
                         ),
                       ),
                     ),
@@ -260,12 +266,18 @@ class _CertificationBindCardPageState extends State<CertificationBindCardPage> {
   }
 
   Future<void> _selectOption(BindCardGroup group, BindCardField field) async {
+    final pageContext = context;
+    FocusManager.instance.primaryFocus?.unfocus();
+    await Future<void>.delayed(Duration.zero);
+    if (!pageContext.mounted) {
+      return;
+    }
     if (field.options.isEmpty) {
       return;
     }
     final stateKey = _stateKey(group, field);
     final option = await _showOptionSheet(
-      context,
+      pageContext,
       field.options,
       _selections[stateKey]?.value,
     );
@@ -286,18 +298,24 @@ class _BindCardHeader extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return SizedBox(
-      height: 44.h,
+    return ConstrainedBox(
+      constraints: BoxConstraints(minHeight: 48.h),
       child: Stack(
         alignment: Alignment.center,
         children: [
           Align(
             alignment: Alignment.centerLeft,
             child: Padding(
-              padding: EdgeInsets.only(left: 20.w),
-              child: GestureDetector(
-                onTap: Get.back,
-                child: Image.asset(
+              padding: EdgeInsets.only(left: 8.w),
+              child: IconButton(
+                tooltip: 'Back',
+                onPressed: Get.back,
+                constraints: const BoxConstraints.tightFor(
+                  width: 48,
+                  height: 48,
+                ),
+                padding: EdgeInsets.zero,
+                icon: Image.asset(
                   AppAssets.loginBack,
                   width: 23.w,
                   height: 20.h,
@@ -305,12 +323,16 @@ class _BindCardHeader extends StatelessWidget {
               ),
             ),
           ),
-          Text(
-            'Identity verification',
-            style: TextStyle(
-              color: AppColors.certificationTitleText,
-              fontSize: 20.sp,
-              fontWeight: FontWeight.w700,
+          Padding(
+            padding: EdgeInsets.symmetric(horizontal: 64.w, vertical: 4.h),
+            child: Text(
+              'Identity verification',
+              textAlign: TextAlign.center,
+              style: TextStyle(
+                color: AppColors.certificationTitleText,
+                fontSize: 20.sp,
+                fontWeight: FontWeight.w700,
+              ),
             ),
           ),
         ],
@@ -515,6 +537,11 @@ class _BindCardOptionSheet extends StatefulWidget {
 }
 
 class _BindCardOptionSheetState extends State<_BindCardOptionSheet> {
+  static const _maximumVisibleOptions = 5;
+  static const _optionHeight = 46.0;
+  static const _optionSpacing = 12.0;
+
+  final ScrollController _scrollController = ScrollController();
   BindCardOption? _selected;
 
   @override
@@ -523,6 +550,29 @@ class _BindCardOptionSheetState extends State<_BindCardOptionSheet> {
     _selected = widget.options
         .where((option) => option.value == widget.initialValue)
         .firstOrNull;
+    final initialIndex = widget.options.indexWhere(
+      (option) => option.value == widget.initialValue,
+    );
+    if (initialIndex >= _maximumVisibleOptions) {
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (!_scrollController.hasClients) {
+          return;
+        }
+        final requestedOffset =
+            (initialIndex * (_optionHeight + _optionSpacing)).h;
+        _scrollController.jumpTo(
+          requestedOffset
+              .clamp(0.0, _scrollController.position.maxScrollExtent)
+              .toDouble(),
+        );
+      });
+    }
+  }
+
+  @override
+  void dispose() {
+    _scrollController.dispose();
+    super.dispose();
   }
 
   @override
@@ -539,10 +589,15 @@ class _BindCardOptionSheetState extends State<_BindCardOptionSheet> {
           child: Column(
             mainAxisSize: MainAxisSize.min,
             children: [
-              ConstrainedBox(
-                constraints: BoxConstraints(maxHeight: 300.h),
+              SizedBox(
+                key: const Key('bindCardOptionList'),
+                height: _optionListHeight,
                 child: ListView.separated(
+                  controller: _scrollController,
                   shrinkWrap: true,
+                  physics: widget.options.length > _maximumVisibleOptions
+                      ? const ClampingScrollPhysics()
+                      : const NeverScrollableScrollPhysics(),
                   itemCount: widget.options.length,
                   separatorBuilder: (_, _) => SizedBox(height: 12.h),
                   itemBuilder: (_, index) {
@@ -606,6 +661,18 @@ class _BindCardOptionSheetState extends State<_BindCardOptionSheet> {
         ),
       ),
     );
+  }
+
+  double get _optionListHeight {
+    final visibleOptionCount = widget.options.length.clamp(
+      0,
+      _maximumVisibleOptions,
+    );
+    if (visibleOptionCount == 0) {
+      return 0;
+    }
+    return visibleOptionCount * _optionHeight.h +
+        (visibleOptionCount - 1) * _optionSpacing.h;
   }
 }
 
