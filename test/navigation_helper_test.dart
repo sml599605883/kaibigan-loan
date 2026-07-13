@@ -295,6 +295,24 @@ void main() {
     expect(Get.arguments, {'geobotanists': 'product-work'});
   });
 
+  testWidgets('product detail external step opens contact information', (
+    tester,
+  ) async {
+    apiClient.productDetailStates = {
+      'grinner': {'unconfusing': 'Liri'},
+      'sensitized': {'cabdrivers': 'product-contact'},
+    };
+    await _pumpRoutes(tester);
+
+    await NavigationHelper.navigateRawTarget(
+      'ph://kaibigan-loan/ios/AlderwomenProtozoology?geobotanists=product-contact',
+    );
+    await tester.pumpAndSettle();
+
+    expect(Get.currentRoute, AppRoutes.certificationContactInfo);
+    expect(Get.arguments, {'geobotanists': 'product-contact'});
+  });
+
   testWidgets('product detail flow reads product fields from cache', (
     tester,
   ) async {
@@ -723,6 +741,10 @@ Future<void> _pumpRoutes(WidgetTester tester) async {
           name: AppRoutes.certificationWorkInfo,
           page: () => const _CertificationWorkInfoPageStub(),
         ),
+        GetPage(
+          name: AppRoutes.certificationContactInfo,
+          page: () => const _CertificationContactInfoPageStub(),
+        ),
       ],
     ),
   );
@@ -828,6 +850,15 @@ class _CertificationWorkInfoPageStub extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return const SizedBox(key: Key('certificationWorkInfoPageStub'));
+  }
+}
+
+class _CertificationContactInfoPageStub extends StatelessWidget {
+  const _CertificationContactInfoPageStub();
+
+  @override
+  Widget build(BuildContext context) {
+    return const SizedBox(key: Key('certificationContactInfoPageStub'));
   }
 }
 

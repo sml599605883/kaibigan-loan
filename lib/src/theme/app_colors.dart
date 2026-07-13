@@ -79,6 +79,7 @@ abstract final class AppColors {
   static const certificationFaceInstructionText = Color.fromRGBO(0, 0, 0, 1);
   static const certificationFieldLabel = Color.fromRGBO(153, 153, 153, 1);
   static const certificationFieldText = Color.fromRGBO(51, 51, 51, 1);
+  static const certificationSectionTitle = Color.fromRGBO(16, 66, 94, 1);
   static const certificationFieldBorder = Color.fromRGBO(236, 237, 237, 1);
   static const certificationIdPreviewBorder = Color.fromRGBO(199, 199, 199, 1);
   static const certificationSubmitText = Color(0xFFFFFFFF);

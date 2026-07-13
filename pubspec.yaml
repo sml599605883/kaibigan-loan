@@ -49,6 +49,7 @@ dependencies:
   device_info_plus: ^13.2.0
   package_info_plus: ^10.2.0
   flutter_inappwebview: ^6.1.5
+  flutter_native_contact_picker: ^0.0.12
 
 dev_dependencies:
   flutter_test:

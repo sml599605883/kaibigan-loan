@@ -207,6 +207,37 @@ void main() {
     );
   });
 
+  test(
+    'contact methods use the documented external information contract',
+    () async {
+      await client.contactInfo(geobotanists: '1001');
+
+      expect(adapter.lastRequest.method, 'GET');
+      expect(
+        adapter.lastRequest.path,
+        'https://api.example.test/plater/commensurate',
+      );
+      expect(adapter.lastRequest.queryParameters['geobotanists'], '1001');
+      expect(adapter.lastRequest.queryParameters['kielbasy'], '777777');
+
+      await client.saveContactInfo(
+        geobotanists: '1001',
+        fas: '[{"flashbulbs":"first"}]',
+      );
+
+      expect(adapter.lastRequest.method, 'POST');
+      expect(
+        adapter.lastRequest.path,
+        'https://api.example.test/plater/anchovetta',
+      );
+      expect(adapter.lastBody, {
+        'geobotanists': '1001',
+        'fas': '[{"flashbulbs":"first"}]',
+        'enfranchises': '777777',
+      });
+    },
+  );
+
   test('order methods expose only business params', () async {
     await client.orderRedirect(
       dodgy: 'ORDER001',
