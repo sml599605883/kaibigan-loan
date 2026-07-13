@@ -58,8 +58,6 @@ void main() {
     expect(option.label, 'Sample Bank');
     expect(option.logoUrl, 'https://example.com/bank.png');
     expect(option.status, '0');
-    expect(option.isMaintained, isTrue);
-    expect(option.isAvailable, isFalse);
   });
 
   test('parses string values and marks hairbreadth 1 as optional', () {
@@ -99,8 +97,7 @@ void main() {
     expect(field.initialLabel, isEmpty);
     expect(field.initialValue, isEmpty);
     expect(option.value, 'gcash');
-    expect(option.isMaintained, isFalse);
-    expect(option.isAvailable, isTrue);
+    expect(option.status, '1');
   });
 
   test(

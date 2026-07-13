@@ -115,7 +115,4 @@ class BindCardOption {
   final String label;
   final String logoUrl;
   final String status;
-
-  bool get isMaintained => status == '0';
-  bool get isAvailable => !isMaintained;
 }
