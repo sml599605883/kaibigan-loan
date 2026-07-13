@@ -1,6 +1,7 @@
 import 'package:get/get.dart';
 
 import 'modules/account/account_list_page.dart';
+import 'modules/certification/certification_bind_card_page.dart';
 import 'modules/certification/certification_identity_page.dart';
 import 'modules/certification/certification_identity_submit_page.dart';
 import 'modules/certification/certification_face_page.dart';
@@ -29,6 +30,7 @@ abstract final class AppRoutes {
   static const certificationPersonalInfo = '/certification/personal-info';
   static const certificationWorkInfo = '/certification/work-info';
   static const certificationContactInfo = '/certification/contact-info';
+  static const certificationBindCard = '/certification/bind-card';
   static const certificationUpload = '/certification/upload';
   static const webView = '/webview';
 }
@@ -122,6 +124,12 @@ abstract final class AppPages {
     GetPage(
       name: AppRoutes.certificationContactInfo,
       page: () => const CertificationContactInfoPage(),
+      transition: Transition.rightToLeft,
+      popGesture: false,
+    ),
+    GetPage(
+      name: AppRoutes.certificationBindCard,
+      page: () => const CertificationBindCardPage(),
       transition: Transition.rightToLeft,
       popGesture: false,
     ),

@@ -81,6 +81,20 @@ void main() {
     expect(Get.currentRoute, AppRoutes.setting);
   });
 
+  testWidgets('routes bind card route name through helper', (tester) async {
+    await _pumpRoutes(tester);
+
+    NavigationHelper.toNamed<void>(AppRoutes.certificationBindCard);
+    await tester.pumpAndSettle();
+
+    expect(Get.currentRoute, AppRoutes.certificationBindCard);
+    expect(Get.arguments, isNull);
+    expect(
+      find.byKey(const Key('certificationBindCardPageStub')),
+      findsOneWidget,
+    );
+  });
+
   testWidgets('pushes mine order list with initial status argument', (
     tester,
   ) async {
@@ -111,6 +125,16 @@ void main() {
       'geobotanists': 'product-1',
       'dodgy': 'order-2',
     });
+  });
+
+  testWidgets('pushes bind card with trimmed product argument', (tester) async {
+    await _pumpRoutes(tester);
+
+    NavigationHelper.toCertificationBindCard<void>(productId: ' product-bank ');
+    await tester.pumpAndSettle();
+
+    expect(Get.currentRoute, AppRoutes.certificationBindCard);
+    expect(Get.arguments, <String, String>{'geobotanists': 'product-bank'});
   });
 
   testWidgets('does not push duplicate login route', (tester) async {
@@ -313,6 +337,23 @@ void main() {
     expect(Get.arguments, {'geobotanists': 'product-contact'});
   });
 
+  testWidgets('product detail bank step opens bind card', (tester) async {
+    apiClient.productDetailStates = {
+      'grinner': {'unconfusing': 'bank'},
+      'sensitized': {'cabdrivers': 'product-bank'},
+    };
+    await _pumpRoutes(tester);
+
+    await NavigationHelper.navigateRawTarget(
+      'ph://kaibigan-loan/ios/AlderwomenProtozoology?geobotanists=product-bank',
+    );
+    await tester.pumpAndSettle();
+
+    expect(apiClient.productDetailIds, ['product-bank']);
+    expect(Get.currentRoute, AppRoutes.certificationBindCard);
+    expect(Get.arguments, {'geobotanists': 'product-bank'});
+  });
+
   testWidgets('product detail flow reads product fields from cache', (
     tester,
   ) async {
@@ -349,7 +390,7 @@ void main() {
     });
   });
 
-  testWidgets('product detail scheme handles grinner unconfusing first', (
+  testWidgets('product detail CocoShorting step opens bind card', (
     tester,
   ) async {
     final logs = <String>[];
@@ -374,10 +415,9 @@ void main() {
     expect(apiClient.productDetailIds, ['product-10']);
     expect(apiClient.orderRedirectRequests, isEmpty);
     expect(launchedUris, isEmpty);
-    expect(Get.currentRoute, AppRoutes.main);
-    expect(logs, [
-      'product detail next step: code=CocoShorting, routeKey=bank, productId=product-10',
-    ]);
+    expect(Get.currentRoute, AppRoutes.certificationBindCard);
+    expect(Get.arguments, {'geobotanists': 'product-10'});
+    expect(logs, isEmpty);
   });
 
   testWidgets(
@@ -745,6 +785,10 @@ Future<void> _pumpRoutes(WidgetTester tester) async {
           name: AppRoutes.certificationContactInfo,
           page: () => const _CertificationContactInfoPageStub(),
         ),
+        GetPage(
+          name: AppRoutes.certificationBindCard,
+          page: () => const _CertificationBindCardPageStub(),
+        ),
       ],
     ),
   );
@@ -859,6 +903,15 @@ class _CertificationContactInfoPageStub extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return const SizedBox(key: Key('certificationContactInfoPageStub'));
+  }
+}
+
+class _CertificationBindCardPageStub extends StatelessWidget {
+  const _CertificationBindCardPageStub();
+
+  @override
+  Widget build(BuildContext context) {
+    return const SizedBox(key: Key('certificationBindCardPageStub'));
   }
 }
 

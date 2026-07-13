@@ -253,6 +253,8 @@ class NavigationHelper {
         return toCertificationWorkInfo<T>();
       case AppRoutes.certificationContactInfo:
         return toCertificationContactInfo<T>();
+      case AppRoutes.certificationBindCard:
+        return toCertificationBindCard<T>();
       case AppRoutes.main:
         return offAllToMain<T>();
       default:
@@ -465,6 +467,18 @@ class NavigationHelper {
     );
   }
 
+  static Future<T?>? toCertificationBindCard<T extends Object?>({
+    String? productId,
+  }) {
+    final arguments = productId == null || productId.trim().isEmpty
+        ? null
+        : <String, String>{'geobotanists': productId.trim()};
+    return Get.toNamed<T>(
+      AppRoutes.certificationBindCard,
+      arguments: arguments,
+    );
+  }
+
   static Future<T?>? offAllToMain<T extends Object?>() {
     if (Get.isRegistered<MainController>()) {
       Get.find<MainController>().returnToHomeTab();
@@ -631,6 +645,10 @@ class NavigationHelper {
     }
     if (routeKey == 'ext') {
       toCertificationContactInfo<void>(productId: productId);
+      return;
+    }
+    if (routeKey == 'bank') {
+      toCertificationBindCard<void>(productId: productId);
       return;
     }
     logger(
