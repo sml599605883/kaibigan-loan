@@ -1,0 +1,216 @@
+import 'package:flutter/material.dart';
+
+import '../../../theme/app_colors.dart';
+import '../../../utils/screen_adapter.dart';
+
+class CertificationSelectionSheetOption<T> {
+  const CertificationSelectionSheetOption({
+    required this.value,
+    required this.label,
+    this.iconAsset,
+    this.key,
+  });
+
+  final T value;
+  final String label;
+  final String? iconAsset;
+  final Key? key;
+}
+
+Future<T?> showCertificationSelectionSheet<T>({
+  required BuildContext context,
+  required List<CertificationSelectionSheetOption<T>> options,
+  T? initialValue,
+}) {
+  return showModalBottomSheet<T>(
+    context: context,
+    backgroundColor: Colors.transparent,
+    barrierColor: AppColors.uploadMethodBarrier,
+    elevation: 0,
+    isScrollControlled: true,
+    builder: (_) => CertificationSelectionSheet<T>(
+      options: options,
+      initialValue: initialValue,
+    ),
+  );
+}
+
+class CertificationSelectionSheet<T> extends StatefulWidget {
+  const CertificationSelectionSheet({
+    super.key,
+    required this.options,
+    this.initialValue,
+  });
+
+  final List<CertificationSelectionSheetOption<T>> options;
+  final T? initialValue;
+
+  @override
+  State<CertificationSelectionSheet<T>> createState() =>
+      _CertificationSelectionSheetState<T>();
+}
+
+class _CertificationSelectionSheetState<T>
+    extends State<CertificationSelectionSheet<T>> {
+  T? _selectedValue;
+
+  @override
+  void initState() {
+    super.initState();
+    _selectedValue = widget.initialValue;
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Padding(
+      padding: EdgeInsets.fromLTRB(15.w, 0, 15.w, 13.h),
+      child: DecoratedBox(
+        decoration: BoxDecoration(
+          color: AppColors.uploadMethodSheetBackground,
+          borderRadius: BorderRadius.circular(24.r),
+        ),
+        child: Padding(
+          padding: EdgeInsets.only(top: 30.h, bottom: 15.h),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              for (var index = 0; index < widget.options.length; index++) ...[
+                if (index > 0) SizedBox(height: 15.h),
+                _CertificationSelectionOption<T>(
+                  option: widget.options[index],
+                  selected: _selectedValue == widget.options[index].value,
+                  onTap: () => setState(
+                    () => _selectedValue = widget.options[index].value,
+                  ),
+                ),
+              ],
+              SizedBox(height: 29.h),
+              Padding(
+                padding: EdgeInsets.only(left: 16.w, right: 15.w),
+                child: SizedBox(
+                  height: 46.h,
+                  child: Row(
+                    children: [
+                      Expanded(
+                        child: _CertificationSelectionActionButton(
+                          label: 'Cancel',
+                          backgroundColor:
+                              AppColors.uploadMethodCancelBackground,
+                          textColor: AppColors.uploadMethodCancelText,
+                          onTap: () => Navigator.of(context).pop(),
+                        ),
+                      ),
+                      SizedBox(width: 20.w),
+                      Expanded(
+                        child: _CertificationSelectionActionButton(
+                          label: 'Done',
+                          backgroundColor: AppColors.uploadMethodDoneBackground,
+                          textColor: AppColors.uploadMethodDoneText,
+                          onTap: () =>
+                              Navigator.of(context).pop(_selectedValue),
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+class _CertificationSelectionOption<T> extends StatelessWidget {
+  const _CertificationSelectionOption({
+    required this.option,
+    required this.selected,
+    required this.onTap,
+  });
+
+  final CertificationSelectionSheetOption<T> option;
+  final bool selected;
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    return GestureDetector(
+      key: option.key,
+      behavior: HitTestBehavior.opaque,
+      onTap: onTap,
+      child: DecoratedBox(
+        decoration: BoxDecoration(
+          color: selected ? AppColors.uploadMethodSelected : null,
+        ),
+        child: SizedBox(
+          height: 46.h,
+          width: double.infinity,
+          child: option.iconAsset == null
+              ? Center(child: _buildLabel())
+              : Row(
+                  children: [
+                    SizedBox(width: 45.w),
+                    Image.asset(option.iconAsset!, width: 30.w, height: 30.h),
+                    Expanded(child: Center(child: _buildLabel())),
+                    SizedBox(width: 75.w),
+                  ],
+                ),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildLabel() {
+    return Text(
+      option.label,
+      maxLines: 1,
+      overflow: TextOverflow.ellipsis,
+      style: TextStyle(
+        color: AppColors.uploadMethodText,
+        fontSize: 18.sp,
+        fontWeight: FontWeight.w600,
+        height: 25 / 18,
+      ),
+    );
+  }
+}
+
+class _CertificationSelectionActionButton extends StatelessWidget {
+  const _CertificationSelectionActionButton({
+    required this.label,
+    required this.backgroundColor,
+    required this.textColor,
+    required this.onTap,
+  });
+
+  final String label;
+  final Color backgroundColor;
+  final Color textColor;
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    return GestureDetector(
+      behavior: HitTestBehavior.opaque,
+      onTap: onTap,
+      child: DecoratedBox(
+        decoration: BoxDecoration(
+          color: backgroundColor,
+          borderRadius: BorderRadius.circular(24.r),
+        ),
+        child: Center(
+          child: Text(
+            label,
+            style: TextStyle(
+              color: textColor,
+              fontSize: 18.sp,
+              fontWeight: FontWeight.w700,
+              height: 22 / 18,
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+}
