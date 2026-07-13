@@ -47,17 +47,42 @@ void main() {
     });
   });
 
-  test('encrypted device payload keeps elapsed and uptime separate', () {
-    const key = 'key';
-    const iv = 'iv';
+  test('encrypted device payload follows the device-report API contract', () {
+    const key = '0123456789abcdef';
+    const iv = 'fedcba9876543210';
     final encrypted = ReportPayloadHelper.buildEncryptedDevicePayload(
       snapshot: const NativeDeviceSnapshot(
         idfv: 'idfv-1',
         idfa: 'idfa-1',
+        batteryLevel: 70,
+        isCharging: 1,
         elapsedMillis: 1234,
         uptimeMillis: '5678',
+        isUsingProxy: 1,
+        isUsingVpn: 1,
+        isJailbroken: 1,
+        isEmulator: 1,
+        language: 'en',
+        carrier: 'Carrier',
+        networkType: 'WIFI',
+        timeZoneName: 'GMT+8',
+        cpuCoreCount: 8,
+        brand: 'Apple',
+        deviceName: 'User iPhone',
+        model: 'iPhone15,3',
+        systemVersion: '17.5',
+        packageName: 'loan.kaibigan.app',
+        screenHeight: 844,
+        screenWidth: 390,
+        screenSize: '6.1',
+        innerIp: '10.0.0.2',
         currentWifiName: 'wifi',
         currentWifiBssid: 'bssid',
+        wifiCount: 2,
+        availableStorage: '100',
+        totalStorage: '200',
+        totalMemory: '300',
+        availableMemory: '150',
       ),
       location: const ReportLocation(
         fullAddress: 'Makati',
@@ -75,12 +100,30 @@ void main() {
     final decoded =
         jsonDecode(ApiCrypto(key: key, iv: iv).decryptText(encrypted))
             as Map<String, dynamic>;
-    final device = decoded['monocarp'] as Map<String, dynamic>;
-    final wifi = decoded['sanitorium'] as Map<String, dynamic>;
+    final gps = decoded['betwixt'] as Map<String, dynamic>;
+    final device = decoded['degases'] as Map<String, dynamic>;
+    final hardware = decoded['blunderer'] as Map<String, dynamic>;
+    final wifi = decoded['wany'] as Map<String, dynamic>;
+    final storage = decoded['misrelated'] as Map<String, dynamic>;
 
-    expect(device['catabolically'], 1234);
-    expect(device['cosponsoring'], '5678');
-    expect(wifi['etymologist'], '1');
-    expect(wifi['sandlots'], isA<List<dynamic>>());
+    expect(decoded['chlorines'], '17.5');
+    expect(decoded['overmilking'], 1700000000000);
+    expect(decoded['chewers'], 'loan.kaibigan.app');
+    expect(decoded['pinedrops'], {'hamster': 70, 'funnelling': 1});
+    expect(gps['mucoidal'], '121.02');
+    expect(gps['tallaging'], '14.55');
+    expect(device['teleprocessings'], '5678');
+    expect(device['exotoxic'], 1234);
+    expect(device['prutoth'], isEmpty);
+    expect(hardware['morelles'], 'Apple');
+    expect(hardware['leptophos'], '17.5');
+    expect(wifi['psychologist'], '2');
+    expect(wifi['foodstuffs'], isA<List<dynamic>>());
+    expect(storage, {
+      'resonances': '100',
+      'exoenzymes': '200',
+      'homeschooled': '300',
+      'splore': '150',
+    });
   });
 }

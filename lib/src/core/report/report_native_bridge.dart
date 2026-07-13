@@ -119,11 +119,25 @@ class MethodChannelReportNativeBridge implements ReportNativeBridge {
   NativeDeviceSnapshot _fallbackSnapshot() {
     return NativeDeviceSnapshot(
       language: PlatformDispatcher.instance.locale.languageCode,
-      timeZoneName: DateTime.now().timeZoneName,
+      timeZoneName: _gmtTimeZone(),
       cpuCoreCount: Platform.numberOfProcessors,
       brand: Platform.operatingSystem,
       model: Platform.localHostname,
       deviceName: Platform.localHostname,
     );
+  }
+
+  String _gmtTimeZone() {
+    final offset = DateTime.now().timeZoneOffset;
+    if (offset == Duration.zero) {
+      return 'GMT';
+    }
+    final totalMinutes = offset.inMinutes.abs();
+    final hours = totalMinutes ~/ 60;
+    final minutes = totalMinutes % 60;
+    final sign = offset.isNegative ? '-' : '+';
+    return minutes == 0
+        ? 'GMT$sign$hours'
+        : 'GMT$sign$hours:${minutes.toString().padLeft(2, '0')}';
   }
 }

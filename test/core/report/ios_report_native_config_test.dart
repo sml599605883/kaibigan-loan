@@ -27,4 +27,27 @@ void main() {
     expect(content, contains('getDeviceSnapshot'));
     expect(content, contains('FlutterStreamHandler'));
   });
+
+  test('iOS registrar collects report fields instead of hardcoding blanks', () {
+    final content = registrar.readAsStringSync();
+
+    expect(content, contains('import CoreTelephony'));
+    expect(content, contains('import NetworkExtension'));
+    expect(content, contains('import SystemConfiguration.CaptiveNetwork'));
+    expect(content, contains('buildDeviceSnapshot(result: result)'));
+    expect(content, contains('fetchCurrentSSIDBSSID'));
+    expect(content, contains('"carrier": currentCarrierName()'));
+    expect(content, contains('"networkType": currentNetworkType()'));
+    expect(content, contains('"innerIp": wifiIPv4Address()'));
+    expect(content, contains('"availableMemory": currentAvailableMemory()'));
+    expect(content, contains('geocoder.reverseGeocodeLocation'));
+  });
+
+  test('iOS registrar reports timezone as a GMT offset', () {
+    final content = registrar.readAsStringSync();
+
+    expect(content, contains('"timeZoneName": gmtTimeZone()'));
+    expect(content, contains('private func gmtTimeZone() -> String'));
+    expect(content, contains('return "GMT"'));
+  });
 }

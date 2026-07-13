@@ -84,7 +84,10 @@ void main() {
     'device report uses collector-enriched snapshot before encryption',
     () async {
       cache.loginAt = 1700000000000;
-      final crypto = ApiCrypto(key: 'key', iv: 'iv');
+      final crypto = ApiCrypto(
+        key: '0123456789abcdef',
+        iv: 'fedcba9876543210',
+      );
       manager = ReportManager(
         cache: cache,
         nativeBridge: bridge,
@@ -117,9 +120,9 @@ void main() {
       final decoded = Json.parse(
         crypto.decryptText(network.devicePayloads.single),
       );
-      expect(decoded['fluorinating'].stringValue, 'loan.kaibigan.app');
-      expect(decoded['vulgates'].stringValue, '17.5');
-      expect(decoded['ritz']['downshifts'].stringValue, 'iPhone15,3');
+      expect(decoded['chewers'].stringValue, 'loan.kaibigan.app');
+      expect(decoded['chlorines'].stringValue, '17.5');
+      expect(decoded['blunderer']['multimegawatts'].stringValue, 'iPhone15,3');
     },
   );
 

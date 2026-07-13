@@ -2,8 +2,11 @@ import AdSupport
 import AppTrackingTransparency
 import CFNetwork
 import CoreLocation
+import CoreTelephony
 import Flutter
+import NetworkExtension
 import Security
+import SystemConfiguration.CaptiveNetwork
 import TDMobRisk
 import UIKit
 import Darwin
@@ -17,6 +20,7 @@ final class ClientBridgeRegistrar: NSObject, FlutterStreamHandler, CLLocationMan
   private let pushTokenKey = "report.apple_push_token"
   private lazy var trustDecisionManager = TDMobRiskManager.sharedManager()
   private lazy var locationManager = CLLocationManager()
+  private let geocoder = CLGeocoder()
   private var hasConfiguredTrustDecision = false
   private var eventSink: FlutterEventSink?
   private var pendingLocationResult: FlutterResult?
@@ -80,7 +84,7 @@ final class ClientBridgeRegistrar: NSObject, FlutterStreamHandler, CLLocationMan
       case "getPushToken":
         result(UserDefaults.standard.string(forKey: self.pushTokenKey) ?? "")
       case "getDeviceSnapshot":
-        result(self.deviceSnapshot())
+        self.buildDeviceSnapshot(result: result)
       case "initializeAttribution":
         result(nil)
       default:
@@ -169,7 +173,24 @@ final class ClientBridgeRegistrar: NSObject, FlutterStreamHandler, CLLocationMan
       return
     }
     pendingLocationResult = nil
-    result(locationPayload(location: locations.last, status: locationStatusString(locationAuthorizationStatus())))
+    guard let location = locations.last else {
+      result(locationPayload(location: nil, status: locationStatusString(locationAuthorizationStatus())))
+      return
+    }
+
+    if geocoder.isGeocoding {
+      geocoder.cancelGeocode()
+    }
+    geocoder.reverseGeocodeLocation(location) { [weak self] placemarks, _ in
+      guard let self else {
+        return
+      }
+      result(self.locationPayload(
+        location: location,
+        placemark: placemarks?.first,
+        status: self.locationStatusString(self.locationAuthorizationStatus())
+      ))
+    }
   }
 
   func locationManager(_ manager: CLLocationManager, didFailWithError error: Error) {
@@ -312,7 +333,25 @@ final class ClientBridgeRegistrar: NSObject, FlutterStreamHandler, CLLocationMan
     return identifier
   }
 
-  private func deviceSnapshot() -> [String: Any] {
+  private func buildDeviceSnapshot(result: @escaping FlutterResult) {
+    fetchCurrentSSIDBSSID { [weak self] wifiName, wifiBssid in
+      guard let self else {
+        result([String: Any]())
+        return
+      }
+      result(self.deviceSnapshot(
+        wifiCount: self.currentWifiNetworkInfos().count,
+        currentWifiName: wifiName,
+        currentWifiBssid: wifiBssid
+      ))
+    }
+  }
+
+  private func deviceSnapshot(
+    wifiCount: Int,
+    currentWifiName: String,
+    currentWifiBssid: String
+  ) -> [String: Any] {
     let info = Bundle.main.infoDictionary
     let screen = UIScreen.main.bounds
     let batteryLevel = UIDevice.current.batteryLevel >= 0
@@ -332,9 +371,9 @@ final class ClientBridgeRegistrar: NSObject, FlutterStreamHandler, CLLocationMan
       "isJailbroken": isJailbroken() ? 1 : 0,
       "isEmulator": isSimulator() ? 1 : 0,
       "language": Locale.current.languageCode ?? "",
-      "carrier": "",
-      "networkType": "",
-      "timeZoneName": TimeZone.current.identifier,
+      "carrier": currentCarrierName(),
+      "networkType": currentNetworkType(),
+      "timeZoneName": gmtTimeZone(),
       "cpuCoreCount": ProcessInfo.processInfo.processorCount,
       "brand": "Apple",
       "deviceName": UIDevice.current.name,
@@ -345,14 +384,14 @@ final class ClientBridgeRegistrar: NSObject, FlutterStreamHandler, CLLocationMan
       "screenHeight": Int(screen.height * UIScreen.main.scale),
       "screenWidth": Int(screen.width * UIScreen.main.scale),
       "screenSize": "\(Int(screen.width * UIScreen.main.scale))x\(Int(screen.height * UIScreen.main.scale))",
-      "innerIp": "",
-      "currentWifiName": "",
-      "currentWifiBssid": "",
-      "wifiCount": 0,
+      "innerIp": wifiIPv4Address(),
+      "currentWifiName": currentWifiName,
+      "currentWifiBssid": currentWifiBssid,
+      "wifiCount": wifiCount,
       "availableStorage": "\(storage.available)",
       "totalStorage": "\(storage.total)",
       "totalMemory": "\(ProcessInfo.processInfo.physicalMemory)",
-      "availableMemory": "0",
+      "availableMemory": currentAvailableMemory(),
       "pushToken": UserDefaults.standard.string(forKey: pushTokenKey) ?? "",
       "riskDeviceId": stableVendorIdentifier()
     ]
@@ -365,6 +404,147 @@ final class ClientBridgeRegistrar: NSObject, FlutterStreamHandler, CLLocationMan
       }
     }
     return ASIdentifierManager.shared().advertisingIdentifier.uuidString
+  }
+
+  private func fetchCurrentSSIDBSSID(completion: @escaping (String, String) -> Void) {
+    if #available(iOS 14.0, *) {
+      NEHotspotNetwork.fetchCurrent { [weak self] network in
+        let ssid = network?.ssid ?? ""
+        let bssid = network?.bssid ?? ""
+        if !ssid.isEmpty || !bssid.isEmpty {
+          completion(ssid, bssid)
+          return
+        }
+        let fallback = self?.legacySSIDBSSID() ?? ("", "")
+        completion(fallback.0, fallback.1)
+      }
+      return
+    }
+
+    let fallback = legacySSIDBSSID()
+    completion(fallback.0, fallback.1)
+  }
+
+  private func legacySSIDBSSID() -> (String, String) {
+    guard let network = currentWifiNetworkInfos().first else {
+      return ("", "")
+    }
+    return (network.ssid, network.bssid)
+  }
+
+  private func currentWifiNetworkInfos() -> [(ssid: String, bssid: String)] {
+    guard let interfaces = CNCopySupportedInterfaces() as? [String] else {
+      return []
+    }
+
+    return interfaces.compactMap { interface in
+      guard let info = CNCopyCurrentNetworkInfo(interface as CFString) as? [String: Any] else {
+        return nil
+      }
+      let ssid = info[kCNNetworkInfoKeySSID as String] as? String ?? ""
+      let bssid = info[kCNNetworkInfoKeyBSSID as String] as? String ?? ""
+      return ssid.isEmpty && bssid.isEmpty ? nil : (ssid, bssid)
+    }
+  }
+
+  private func currentCarrierName() -> String {
+    let networkInfo = CTTelephonyNetworkInfo()
+    return networkInfo.serviceSubscriberCellularProviders?.values.first?.carrierName ?? ""
+  }
+
+  private func currentNetworkType() -> String {
+    if activeInterfaceNames().contains("en0") {
+      return "WIFI"
+    }
+
+    let radioTech = CTTelephonyNetworkInfo().serviceCurrentRadioAccessTechnology?.values.first
+    switch radioTech {
+    case CTRadioAccessTechnologyGPRS,
+      CTRadioAccessTechnologyEdge,
+      CTRadioAccessTechnologyCDMA1x:
+      return "2G"
+    case CTRadioAccessTechnologyWCDMA,
+      CTRadioAccessTechnologyHSDPA,
+      CTRadioAccessTechnologyHSUPA,
+      CTRadioAccessTechnologyCDMAEVDORev0,
+      CTRadioAccessTechnologyCDMAEVDORevA,
+      CTRadioAccessTechnologyCDMAEVDORevB,
+      CTRadioAccessTechnologyeHRPD:
+      return "3G"
+    case CTRadioAccessTechnologyLTE:
+      return "4G"
+    default:
+      if #available(iOS 14.1, *),
+         radioTech == CTRadioAccessTechnologyNR ||
+         radioTech == CTRadioAccessTechnologyNRNSA {
+        return "5G"
+      }
+      return "OTHER"
+    }
+  }
+
+  private func gmtTimeZone() -> String {
+    let offset = TimeZone.current.secondsFromGMT()
+    guard offset != 0 else {
+      return "GMT"
+    }
+
+    let sign = offset >= 0 ? "+" : "-"
+    let totalMinutes = abs(offset) / 60
+    let hours = totalMinutes / 60
+    let minutes = totalMinutes % 60
+    guard minutes != 0 else {
+      return "GMT\(sign)\(hours)"
+    }
+    return String(format: "GMT%@%d:%02d", sign, hours, minutes)
+  }
+
+  private func wifiIPv4Address() -> String {
+    var interfacePointer: UnsafeMutablePointer<ifaddrs>?
+    guard getifaddrs(&interfacePointer) == 0, let firstInterface = interfacePointer else {
+      return ""
+    }
+    defer { freeifaddrs(interfacePointer) }
+
+    for interface in sequence(first: firstInterface, next: { $0.pointee.ifa_next }) {
+      guard let address = interface.pointee.ifa_addr,
+            address.pointee.sa_family == UInt8(AF_INET),
+            String(cString: interface.pointee.ifa_name) == "en0" else {
+        continue
+      }
+      var hostname = [CChar](repeating: 0, count: Int(NI_MAXHOST))
+      var socketAddress = address.pointee
+      if getnameinfo(
+        &socketAddress,
+        socklen_t(address.pointee.sa_len),
+        &hostname,
+        socklen_t(hostname.count),
+        nil,
+        0,
+        NI_NUMERICHOST
+      ) == 0 {
+        return String(cString: hostname)
+      }
+    }
+    return ""
+  }
+
+  private func activeInterfaceNames() -> Set<String> {
+    var interfacePointer: UnsafeMutablePointer<ifaddrs>?
+    guard getifaddrs(&interfacePointer) == 0, let firstInterface = interfacePointer else {
+      return []
+    }
+    defer { freeifaddrs(interfacePointer) }
+
+    var names = Set<String>()
+    for interface in sequence(first: firstInterface, next: { $0.pointee.ifa_next }) {
+      let flags = Int32(interface.pointee.ifa_flags)
+      guard (flags & IFF_UP) == IFF_UP, (flags & IFF_RUNNING) == IFF_RUNNING else {
+        continue
+      }
+      names.insert(String(cString: interface.pointee.ifa_name))
+    }
+    return names
   }
 
   private func trackingStatusString() -> String {
@@ -390,19 +570,48 @@ final class ClientBridgeRegistrar: NSObject, FlutterStreamHandler, CLLocationMan
     }
   }
 
-  private func locationPayload(location: CLLocation?, status: String) -> [String: Any] {
+  private func locationPayload(
+    location: CLLocation?,
+    placemark: CLPlacemark? = nil,
+    status: String
+  ) -> [String: Any] {
     return [
-      "province": "",
-      "locality": "",
-      "fullAddress": "",
-      "countryCode": "",
-      "country": "",
-      "street": "",
+      "province": placemark?.administrativeArea ?? "",
+      "locality": placemark?.subAdministrativeArea ?? "",
+      "fullAddress": fullAddress(from: placemark),
+      "countryCode": placemark?.isoCountryCode ?? "",
+      "country": placemark?.country ?? "",
+      "street": street(from: placemark),
       "latitude": location.map { "\($0.coordinate.latitude)" } ?? "",
       "longitude": location.map { "\($0.coordinate.longitude)" } ?? "",
-      "city": "",
+      "city": placemark?.locality ?? placemark?.subAdministrativeArea ?? "",
       "permissionStatus": status
     ]
+  }
+
+  private func street(from placemark: CLPlacemark?) -> String {
+    guard let placemark else {
+      return ""
+    }
+    let parts = [placemark.subThoroughfare, placemark.thoroughfare, placemark.subLocality, placemark.name]
+      .compactMap { $0?.trimmingCharacters(in: .whitespacesAndNewlines) }
+      .filter { !$0.isEmpty }
+    return uniqueAddressParts(parts).joined(separator: " ")
+  }
+
+  private func fullAddress(from placemark: CLPlacemark?) -> String {
+    guard let placemark else {
+      return ""
+    }
+    let parts = [placemark.name, placemark.subLocality, placemark.locality, placemark.subAdministrativeArea, placemark.administrativeArea, placemark.country]
+      .compactMap { $0?.trimmingCharacters(in: .whitespacesAndNewlines) }
+      .filter { !$0.isEmpty }
+    return uniqueAddressParts(parts).joined(separator: ", ")
+  }
+
+  private func uniqueAddressParts(_ parts: [String]) -> [String] {
+    var seen = Set<String>()
+    return parts.filter { seen.insert($0).inserted }
   }
 
   private func locationAuthorizationStatus() -> CLAuthorizationStatus {
@@ -441,6 +650,27 @@ final class ClientBridgeRegistrar: NSObject, FlutterStreamHandler, CLLocationMan
     } catch {
       return (0, 0)
     }
+  }
+
+  private func currentAvailableMemory() -> String {
+    var vmStats = vm_statistics_data_t()
+    var count = mach_msg_type_number_t(
+      MemoryLayout<vm_statistics_data_t>.size / MemoryLayout<integer_t>.size
+    )
+    let status = withUnsafeMutableBytes(of: &vmStats) { rawBuffer in
+      host_statistics(
+        mach_host_self(),
+        HOST_VM_INFO,
+        rawBuffer.bindMemory(to: integer_t.self).baseAddress,
+        &count
+      )
+    }
+    guard status == KERN_SUCCESS else {
+      return "0"
+    }
+    let bytes = UInt64(vm_page_size) * UInt64(vmStats.free_count) +
+      UInt64(vm_page_size) * UInt64(vmStats.inactive_count)
+    return "\(bytes)"
   }
 
   private func isUsingVpn() -> Bool {

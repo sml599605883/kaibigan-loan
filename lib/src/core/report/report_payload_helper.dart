@@ -40,70 +40,71 @@ class ReportPayloadHelper {
     required ApiCrypto crypto,
   }) {
     final payload = {
-      'vulgates': normalize(snapshot.systemVersion),
-      'mycobacteria': lastLoginAtMillis,
-      'fluorinating': normalize(snapshot.packageName),
-      'lamas': {
-        'scalls': snapshot.batteryLevel,
-        'hedgehog': snapshot.isCharging,
+      'chlorines': normalize(snapshot.systemVersion),
+      'overmilking': lastLoginAtMillis,
+      'chewers': normalize(snapshot.packageName),
+      'pinedrops': {
+        'hamster': snapshot.batteryLevel,
+        'funnelling': snapshot.isCharging,
       },
-      'trouser': {
-        'zoolatry': normalize(location?.longitude),
-        'legendizes': normalize(location?.latitude),
-        'unchronological': normalize(location?.fullAddress),
-        'embranglement': {
-          'dreamlike': normalize(location?.country),
-          'paperclips': normalize(location?.countryCode),
-          'thionins': normalize(location?.province),
-          'baseboards': normalize(location?.city),
-          'crural': normalize(location?.locality),
-          'compeller': normalize(location?.street),
+      'betwixt': {
+        'mucoidal': normalize(location?.longitude),
+        'tallaging': normalize(location?.latitude),
+        'proselytising': normalize(location?.fullAddress),
+        'diddleys': {
+          'callee': normalize(location?.country),
+          'phrasemongers': normalize(location?.countryCode),
+          'verticil': normalize(location?.province),
+          'lushest': normalize(location?.city),
+          'cooches': normalize(location?.locality),
+          'clientless': normalize(location?.street),
         },
       },
-      'monocarp': {
-        'donkeys': normalize(snapshot.idfv),
-        'owlishly': normalize(snapshot.idfa),
-        'ejaculators': normalize(snapshot.currentWifiBssid),
-        'incantational': DateTime.now().millisecondsSinceEpoch,
-        'cosponsoring': normalize(snapshot.uptimeMillis),
-        'defiances': normalize(snapshot.networkType),
-        'recolor': normalize(snapshot.carrier),
-        'shrubbiest': normalize(snapshot.language),
-        'diphthongizes': normalize(snapshot.timeZoneName),
-        'catabolically': snapshot.elapsedMillis,
-        'discombobulated': snapshot.isUsingProxy,
-        'subrogated': snapshot.isUsingVpn,
-        'precommitments': snapshot.isJailbroken,
-        'wedeln': snapshot.isEmulator,
+      'degases': {
+        'simplistically': normalize(snapshot.idfv),
+        'preadjusts': normalize(snapshot.idfa),
+        'relive': normalize(snapshot.currentWifiBssid),
+        'weka': DateTime.now().millisecondsSinceEpoch,
+        'teleprocessings': normalize(snapshot.uptimeMillis),
+        'linebacker': snapshot.isUsingProxy,
+        'purposiveness': snapshot.isUsingVpn,
+        'notarizing': snapshot.isJailbroken,
+        'dialectologists': snapshot.isEmulator,
+        'entombs': normalize(snapshot.language),
+        'decussation': normalize(snapshot.carrier),
+        'discanted': normalize(snapshot.networkType),
+        'prutoth': const <Map<String, dynamic>>[],
+        'carbamyls': normalize(snapshot.timeZoneName),
+        'exotoxic': snapshot.elapsedMillis,
       },
-      'ritz': {
-        'humanity': normalize(snapshot.brand),
-        'downshifts': normalize(snapshot.model),
-        'cashoo': snapshot.cpuCoreCount,
-        'regilds': snapshot.screenHeight,
-        'trickily': normalize(snapshot.deviceName),
-        'winesap': snapshot.screenWidth,
-        'bombings': normalize(snapshot.model),
-        'aplombs': normalize(snapshot.screenSize),
-        'menazons': normalize(snapshot.systemVersion),
+      'blunderer': {
+        'bondages': '',
+        'morelles': normalize(snapshot.brand),
+        'triumvirs': snapshot.cpuCoreCount,
+        'receipted': snapshot.screenHeight,
+        'stopper': normalize(snapshot.deviceName),
+        'pyroninophilic': snapshot.screenWidth,
+        'multimegawatts': normalize(snapshot.model),
+        'entertainers': normalize(snapshot.screenSize),
+        'leptophos': normalize(snapshot.systemVersion),
       },
-      'sanitorium': {
-        'scourges': normalize(snapshot.innerIp),
-        'sandlots': [
+      'wany': {
+        'easels': normalize(snapshot.innerIp),
+        'foodstuffs': [
           {
-            'fornices': normalize(snapshot.currentWifiName),
-            'colatitudes': normalize(snapshot.currentWifiBssid),
-            'ejaculators': normalize(snapshot.currentWifiBssid),
-            'jokily': normalize(snapshot.currentWifiName),
+            'unwits': normalize(snapshot.currentWifiName),
+            'initiates': normalize(snapshot.currentWifiBssid),
+            'relive': normalize(snapshot.currentWifiBssid),
+            'pruriences': normalize(snapshot.currentWifiName),
           },
         ],
-        'crinites': {
-          'fornices': normalize(snapshot.currentWifiName),
-          'colatitudes': normalize(snapshot.currentWifiBssid),
-          'ejaculators': normalize(snapshot.currentWifiBssid),
-          'jokily': normalize(snapshot.currentWifiName),
+        'dismounted': {
+          'unwits': normalize(snapshot.currentWifiName),
+          'initiates': normalize(snapshot.currentWifiBssid),
+          'relive': normalize(snapshot.currentWifiBssid),
+          'pruriences': normalize(snapshot.currentWifiName),
         },
-        'etymologist': normalize(
+        'psychologist': normalize(
           snapshot.wifiCount > 0
               ? snapshot.wifiCount
               : snapshot.currentWifiBssid.isNotEmpty
@@ -111,11 +112,11 @@ class ReportPayloadHelper {
               : 0,
         ),
       },
-      'clubwomen': {
-        'wherever': normalize(snapshot.availableStorage),
-        'step': normalize(snapshot.totalStorage),
-        'outstarted': normalize(snapshot.totalMemory),
-        'trasher': normalize(snapshot.availableMemory),
+      'misrelated': {
+        'resonances': normalize(snapshot.availableStorage),
+        'exoenzymes': normalize(snapshot.totalStorage),
+        'homeschooled': normalize(snapshot.totalMemory),
+        'splore': normalize(snapshot.availableMemory),
       },
     };
 
