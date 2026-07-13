@@ -5,6 +5,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:get/get.dart';
 import 'package:kaibigan_loan/src/assets/app_assets.dart';
+import 'package:kaibigan_loan/src/core/client/client_bridge.dart';
 import 'package:kaibigan_loan/src/core/json/json.dart';
 import 'package:kaibigan_loan/src/core/network/api_client.dart';
 import 'package:kaibigan_loan/src/core/network/api_config.dart';
@@ -15,6 +16,8 @@ import 'package:kaibigan_loan/src/core/report/report_manager.dart';
 import 'package:kaibigan_loan/src/core/report/report_models.dart';
 import 'package:kaibigan_loan/src/core/report/report_native_bridge.dart';
 import 'package:kaibigan_loan/src/core/report/report_network.dart';
+import 'package:kaibigan_loan/src/core/session/product_detail_cache.dart';
+import 'package:kaibigan_loan/src/core/session/session_store.dart';
 import 'package:kaibigan_loan/src/modules/certification/certification_bind_card_page.dart';
 import 'package:kaibigan_loan/src/utils/app_toast.dart';
 
@@ -27,6 +30,7 @@ void main() {
     apiClient = _FakeApiClient();
     toastPresenter = _FakeToastPresenter();
     Get.put<ApiClient>(apiClient);
+    Get.put<SessionStore>(SessionStore.memory());
     AppToast.presenter = toastPresenter;
   });
 
@@ -401,12 +405,59 @@ void main() {
     expect(find.byKey(const Key('bindCardSubmit')), findsOneWidget);
   });
 
-  testWidgets('code 20000 stays on page without product flow', (tester) async {
+  testWidgets('resubmits documented liveness fields after code 20000', (
+    tester,
+  ) async {
     apiClient.states = _submissionStates();
-    apiClient.saveResponse = ApiResponse(
-      code: 20000,
-      message: 'verify',
-      states: Json(null),
+    apiClient.saveResponses.addAll([
+      ApiResponse(code: 20000, message: 'verify', states: Json(null)),
+      ApiResponse(code: 0, message: 'saved', states: Json(null)),
+    ]);
+    apiClient.faceTokenStates = {
+      'dwarfishly': '200',
+      'thatches': 'license-1',
+      'clevises': '7',
+    };
+    await SessionStore.instance.saveProductDetailCache(_productDetailCache());
+    final reportManager = _RecordingReportManager();
+    Get.put<ReportManager>(reportManager);
+    var launchedLicense = '';
+    await _pumpPage(
+      tester,
+      apiClient: apiClient,
+      arguments: _arguments(),
+      showTrustDecisionLiveness: (license) async {
+        launchedLicense = license;
+        return _livenessSuccess();
+      },
+    );
+    await tester.pumpAndSettle();
+
+    await _fillSubmissionForm(tester);
+    await tester.tap(find.byKey(const Key('bindCardSubmit')));
+    await tester.pumpAndSettle();
+
+    expect(apiClient.faceTokenRequests, [
+      const _FaceTokenRequest(dodgy: 'ORDER001', commensurate: '1'),
+    ]);
+    expect(launchedLicense, 'license-1');
+    expect(apiClient.saveRequests, hasLength(2));
+    expect(apiClient.saveRequests[1], {
+      ...apiClient.saveRequests.first,
+      'clevises': '7',
+      'scolloped': 'live-1',
+      'arrests': 'license-1',
+    });
+    expect(apiClient.productDetailIds, ['product-bind']);
+    expect(reportManager.riskReports, hasLength(1));
+    expect(toastPresenter.loadingMessages, [null, null, null]);
+    expect(toastPresenter.dismissCount, 3);
+  });
+
+  testWidgets('missing order skips liveness verification', (tester) async {
+    apiClient.states = _submissionStates();
+    apiClient.saveResponses.add(
+      ApiResponse(code: 20000, message: 'verify', states: Json(null)),
     );
     await _pumpPage(tester, apiClient: apiClient, arguments: _arguments());
     await tester.pumpAndSettle();
@@ -415,9 +466,303 @@ void main() {
     await tester.tap(find.byKey(const Key('bindCardSubmit')));
     await tester.pumpAndSettle();
 
+    expect(apiClient.faceTokenRequests, isEmpty);
+    expect(apiClient.saveRequests, hasLength(1));
+    expect(toastPresenter.errors, [
+      'Missing order information for liveness verification',
+    ]);
+  });
+
+  testWidgets('token failure and missing license stop liveness verification', (
+    tester,
+  ) async {
+    apiClient.states = _submissionStates();
+    apiClient.saveResponses.add(
+      ApiResponse(code: 20000, message: 'verify', states: Json(null)),
+    );
+    apiClient.faceTokenStates = {'dwarfishly': '500', 'rail': 'token denied'};
+    await SessionStore.instance.saveProductDetailCache(_productDetailCache());
+    await _pumpPage(tester, apiClient: apiClient, arguments: _arguments());
+    await tester.pumpAndSettle();
+
+    await _fillSubmissionForm(tester);
+    await tester.tap(find.byKey(const Key('bindCardSubmit')));
+    await tester.pumpAndSettle();
+
+    expect(apiClient.saveRequests, hasLength(1));
+    expect(toastPresenter.errors, ['token denied']);
+  });
+
+  testWidgets('missing token license stops liveness verification', (
+    tester,
+  ) async {
+    apiClient.states = _submissionStates();
+    apiClient.saveResponses.add(
+      ApiResponse(code: 20000, message: 'verify', states: Json(null)),
+    );
+    apiClient.faceTokenStates = {'dwarfishly': '200', 'clevises': '7'};
+    await SessionStore.instance.saveProductDetailCache(_productDetailCache());
+    await _pumpPage(tester, apiClient: apiClient, arguments: _arguments());
+    await tester.pumpAndSettle();
+
+    await _fillSubmissionForm(tester);
+    await tester.tap(find.byKey(const Key('bindCardSubmit')));
+    await tester.pumpAndSettle();
+
+    expect(apiClient.saveRequests, hasLength(1));
+    expect(toastPresenter.errors, ['Failed to get face token']);
+  });
+
+  testWidgets('unsupported face type stops liveness verification', (
+    tester,
+  ) async {
+    apiClient.states = _submissionStates();
+    apiClient.saveResponses.add(
+      ApiResponse(code: 20000, message: 'verify', states: Json(null)),
+    );
+    apiClient.faceTokenStates = {
+      'dwarfishly': '200',
+      'thatches': 'license-1',
+      'clevises': '11',
+    };
+    await SessionStore.instance.saveProductDetailCache(_productDetailCache());
+    await _pumpPage(tester, apiClient: apiClient, arguments: _arguments());
+    await tester.pumpAndSettle();
+
+    await _fillSubmissionForm(tester);
+    await tester.tap(find.byKey(const Key('bindCardSubmit')));
+    await tester.pumpAndSettle();
+
+    expect(apiClient.saveRequests, hasLength(1));
+    expect(toastPresenter.errors, ['Unsupported liveness verification type']);
+  });
+
+  testWidgets('native liveness failure stops resubmission', (tester) async {
+    apiClient.states = _submissionStates();
+    apiClient.saveResponses.add(
+      ApiResponse(code: 20000, message: 'verify', states: Json(null)),
+    );
+    apiClient.faceTokenStates = _validFaceTokenStates();
+    await SessionStore.instance.saveProductDetailCache(_productDetailCache());
+    await _pumpPage(
+      tester,
+      apiClient: apiClient,
+      arguments: _arguments(),
+      showTrustDecisionLiveness: (_) async => _livenessFailure('native failed'),
+    );
+    await tester.pumpAndSettle();
+
+    await _fillSubmissionForm(tester);
+    await tester.tap(find.byKey(const Key('bindCardSubmit')));
+    await tester.pumpAndSettle();
+
+    expect(apiClient.saveRequests, hasLength(1));
+    expect(toastPresenter.errors, ['native failed']);
+  });
+
+  testWidgets('native liveness failure uses the fallback message', (
+    tester,
+  ) async {
+    apiClient.states = _submissionStates();
+    apiClient.saveResponses.add(
+      ApiResponse(code: 20000, message: 'verify', states: Json(null)),
+    );
+    apiClient.faceTokenStates = _validFaceTokenStates();
+    await SessionStore.instance.saveProductDetailCache(_productDetailCache());
+    await _pumpPage(
+      tester,
+      apiClient: apiClient,
+      arguments: _arguments(),
+      showTrustDecisionLiveness: (_) async => _livenessFailure(''),
+    );
+    await tester.pumpAndSettle();
+
+    await _fillSubmissionForm(tester);
+    await tester.tap(find.byKey(const Key('bindCardSubmit')));
+    await tester.pumpAndSettle();
+
+    expect(apiClient.saveRequests, hasLength(1));
+    expect(toastPresenter.errors, ['Liveness verification failed']);
+  });
+
+  testWidgets('empty liveness ID stops resubmission', (tester) async {
+    apiClient.states = _submissionStates();
+    apiClient.saveResponses.add(
+      ApiResponse(code: 20000, message: 'verify', states: Json(null)),
+    );
+    apiClient.faceTokenStates = _validFaceTokenStates();
+    await SessionStore.instance.saveProductDetailCache(_productDetailCache());
+    await _pumpPage(
+      tester,
+      apiClient: apiClient,
+      arguments: _arguments(),
+      showTrustDecisionLiveness: (_) async => _livenessSuccess(livenessId: ''),
+    );
+    await tester.pumpAndSettle();
+
+    await _fillSubmissionForm(tester);
+    await tester.tap(find.byKey(const Key('bindCardSubmit')));
+    await tester.pumpAndSettle();
+
+    expect(apiClient.saveRequests, hasLength(1));
+    expect(toastPresenter.errors, ['Liveness verification failed']);
+  });
+
+  testWidgets('second code 20000 stops without another liveness loop', (
+    tester,
+  ) async {
+    apiClient.states = _submissionStates();
+    apiClient.saveResponses.addAll([
+      ApiResponse(code: 20000, message: 'verify', states: Json(null)),
+      ApiResponse(code: 20000, message: 'verify again', states: Json(null)),
+    ]);
+    apiClient.faceTokenStates = _validFaceTokenStates();
+    await SessionStore.instance.saveProductDetailCache(_productDetailCache());
+    await _pumpPage(
+      tester,
+      apiClient: apiClient,
+      arguments: _arguments(),
+      showTrustDecisionLiveness: (_) async => _livenessSuccess(),
+    );
+    await tester.pumpAndSettle();
+
+    await _fillSubmissionForm(tester);
+    await tester.tap(find.byKey(const Key('bindCardSubmit')));
+    await tester.pumpAndSettle();
+
+    expect(apiClient.saveRequests, hasLength(2));
+    expect(apiClient.faceTokenRequests, hasLength(1));
     expect(apiClient.productDetailIds, isEmpty);
-    expect(toastPresenter.errors, ['Liveness verification required']);
-    expect(find.byKey(const Key('bindCardSubmit')), findsOneWidget);
+    expect(toastPresenter.errors, ['Liveness verification was not accepted']);
+  });
+
+  testWidgets('second save exception resolves error and closes loading', (
+    tester,
+  ) async {
+    apiClient.states = _submissionStates();
+    apiClient.saveResponses.add(
+      ApiResponse(code: 20000, message: 'verify', states: Json(null)),
+    );
+    apiClient.throwOnSaveCall = 2;
+    apiClient.faceTokenStates = _validFaceTokenStates();
+    await SessionStore.instance.saveProductDetailCache(_productDetailCache());
+    await _pumpPage(
+      tester,
+      apiClient: apiClient,
+      arguments: _arguments(),
+      showTrustDecisionLiveness: (_) async => _livenessSuccess(),
+    );
+    await tester.pumpAndSettle();
+
+    await _fillSubmissionForm(tester);
+    await tester.tap(find.byKey(const Key('bindCardSubmit')));
+    await tester.pumpAndSettle();
+
+    expect(apiClient.saveRequests, hasLength(2));
+    expect(toastPresenter.errors, ['save failed']);
+    expect(toastPresenter.dismissCount, 2);
+  });
+
+  testWidgets('disposal during token request closes loading', (tester) async {
+    apiClient.states = _submissionStates();
+    apiClient.saveResponses.add(
+      ApiResponse(code: 20000, message: 'verify', states: Json(null)),
+    );
+    final tokenResponse = Completer<ApiResponse>();
+    apiClient.pendingFaceTokenResponse = tokenResponse;
+    await SessionStore.instance.saveProductDetailCache(_productDetailCache());
+    var nativeCalls = 0;
+    await _pumpPage(
+      tester,
+      apiClient: apiClient,
+      arguments: _arguments(),
+      showTrustDecisionLiveness: (_) async {
+        nativeCalls += 1;
+        return _livenessSuccess();
+      },
+    );
+    await tester.pumpAndSettle();
+
+    await _fillSubmissionForm(tester);
+    await tester.tap(find.byKey(const Key('bindCardSubmit')));
+    await tester.pump();
+    Get.back<void>();
+    await tester.pumpAndSettle();
+    tokenResponse.complete(_faceTokenResponse());
+    await tester.pump();
+    await tester.pump();
+
+    expect(nativeCalls, 0);
+    expect(apiClient.saveRequests, hasLength(1));
+    expect(toastPresenter.dismissCount, 1);
+  });
+
+  testWidgets('disposal during native liveness does not resubmit', (
+    tester,
+  ) async {
+    apiClient.states = _submissionStates();
+    apiClient.saveResponses.add(
+      ApiResponse(code: 20000, message: 'verify', states: Json(null)),
+    );
+    apiClient.faceTokenStates = _validFaceTokenStates();
+    await SessionStore.instance.saveProductDetailCache(_productDetailCache());
+    final livenessResult = Completer<TrustDecisionLivenessResult>();
+    await _pumpPage(
+      tester,
+      apiClient: apiClient,
+      arguments: _arguments(),
+      showTrustDecisionLiveness: (_) => livenessResult.future,
+    );
+    await tester.pumpAndSettle();
+
+    await _fillSubmissionForm(tester);
+    await tester.tap(find.byKey(const Key('bindCardSubmit')));
+    await tester.pump();
+    Get.back<void>();
+    await tester.pumpAndSettle();
+    livenessResult.complete(_livenessSuccess());
+    await tester.pump();
+    await tester.pump();
+
+    expect(apiClient.saveRequests, hasLength(1));
+    expect(toastPresenter.dismissCount, 1);
+  });
+
+  testWidgets('disposal during second save closes retry loading', (
+    tester,
+  ) async {
+    apiClient.states = _submissionStates();
+    apiClient.saveResponses.add(
+      ApiResponse(code: 20000, message: 'verify', states: Json(null)),
+    );
+    apiClient.faceTokenStates = _validFaceTokenStates();
+    final retryResponse = Completer<ApiResponse>();
+    apiClient.pendingSecondSaveResponse = retryResponse;
+    await SessionStore.instance.saveProductDetailCache(_productDetailCache());
+    await _pumpPage(
+      tester,
+      apiClient: apiClient,
+      arguments: _arguments(),
+      showTrustDecisionLiveness: (_) async => _livenessSuccess(),
+    );
+    await tester.pumpAndSettle();
+
+    await _fillSubmissionForm(tester);
+    await tester.tap(find.byKey(const Key('bindCardSubmit')));
+    for (var index = 0; index < 3; index++) {
+      await tester.pump();
+    }
+    expect(apiClient.saveRequests, hasLength(2));
+    Get.back<void>();
+    await tester.pumpAndSettle();
+    retryResponse.complete(
+      ApiResponse(code: 0, message: 'saved', states: Json(null)),
+    );
+    await tester.pump();
+    await tester.pump();
+
+    expect(apiClient.productDetailIds, isEmpty);
+    expect(toastPresenter.dismissCount, 2);
   });
 }
 
@@ -449,6 +794,7 @@ Future<void> _pumpPage(
   WidgetTester tester, {
   required _FakeApiClient apiClient,
   required Object? arguments,
+  BindCardLivenessLauncher? showTrustDecisionLiveness,
   Size size = const Size(375, 812),
   TextScaler textScaler = TextScaler.noScaling,
 }) async {
@@ -468,7 +814,10 @@ Future<void> _pumpPage(
         GetPage(name: '/', page: () => const SizedBox()),
         GetPage(
           name: routeName,
-          page: () => CertificationBindCardPage(apiClient: apiClient),
+          page: () => CertificationBindCardPage(
+            apiClient: apiClient,
+            showTrustDecisionLiveness: showTrustDecisionLiveness,
+          ),
         ),
       ],
     ),
@@ -479,6 +828,51 @@ Future<void> _pumpPage(
 }
 
 Map<String, String> _arguments() => {'geobotanists': ' product-bind '};
+
+ProductDetailCache _productDetailCache() => const ProductDetailCache(
+  amount: '',
+  productid: '',
+  orderNo: ' ORDER001 ',
+  orderId: '',
+  term: '',
+  termType: '',
+  note: {},
+  nextStep: {},
+);
+
+Map<String, dynamic> _validFaceTokenStates() => {
+  'dwarfishly': '200',
+  'thatches': 'license-1',
+  'clevises': '7',
+};
+
+ApiResponse _faceTokenResponse() => ApiResponse(
+  code: 0,
+  message: 'token ready',
+  states: Json(_validFaceTokenStates()),
+);
+
+TrustDecisionLivenessResult _livenessSuccess({String livenessId = 'live-1'}) =>
+    TrustDecisionLivenessResult(
+      success: true,
+      code: 0,
+      message: '',
+      image: '',
+      sequenceId: '',
+      livenessId: livenessId,
+      raw: const {},
+    );
+
+TrustDecisionLivenessResult _livenessFailure(String message) =>
+    TrustDecisionLivenessResult(
+      success: false,
+      code: -1,
+      message: message,
+      image: '',
+      sequenceId: '',
+      livenessId: '',
+      raw: const {},
+    );
 
 Map<String, dynamic> _bindCardStates({
   int optionCount = 1,
@@ -622,13 +1016,19 @@ class _FakeApiClient extends ApiClient {
   final productIds = <String>[];
   final productDetailIds = <String>[];
   final saveRequests = <Map<String, String>>[];
+  final faceTokenRequests = <_FaceTokenRequest>[];
+  final saveResponses = <ApiResponse>[];
   Map<String, dynamic> states = <String, dynamic>{};
   Map<String, dynamic> productDetailStates = <String, dynamic>{};
   Object? error;
   Object? saveError;
   Completer<ApiResponse>? pendingResponse;
   Completer<ApiResponse>? pendingSaveResponse;
+  Completer<ApiResponse>? pendingSecondSaveResponse;
+  Completer<ApiResponse>? pendingFaceTokenResponse;
   ApiResponse? saveResponse;
+  Map<String, dynamic> faceTokenStates = const {};
+  int? throwOnSaveCall;
 
   @override
   Future<ApiResponse> bankInfo({required String geobotanists}) async {
@@ -667,7 +1067,13 @@ class _FakeApiClient extends ApiClient {
       'coinable': coinable,
       'flabby': flabby,
       'rapt': rapt,
+      if (clevises.isNotEmpty) 'clevises': clevises,
+      if (scolloped.isNotEmpty) 'scolloped': scolloped,
+      if (arrests.isNotEmpty) 'arrests': arrests,
     });
+    if (throwOnSaveCall == saveRequests.length) {
+      throw ApiBusinessException('save failed');
+    }
     final requestError = saveError;
     if (requestError != null) {
       throw requestError;
@@ -676,8 +1082,33 @@ class _FakeApiClient extends ApiClient {
     if (pending != null) {
       return pending.future;
     }
+    if (saveRequests.length == 2 && pendingSecondSaveResponse != null) {
+      return pendingSecondSaveResponse!.future;
+    }
+    if (saveResponses.isNotEmpty) {
+      return saveResponses.removeAt(0);
+    }
     return saveResponse ??
         ApiResponse(code: 0, message: 'saved', states: Json(null));
+  }
+
+  @override
+  Future<ApiResponse> getFaceToken({
+    required String dodgy,
+    required String commensurate,
+  }) async {
+    faceTokenRequests.add(
+      _FaceTokenRequest(dodgy: dodgy, commensurate: commensurate),
+    );
+    final pending = pendingFaceTokenResponse;
+    if (pending != null) {
+      return pending.future;
+    }
+    return ApiResponse(
+      code: 0,
+      message: 'token ready',
+      states: Json(faceTokenStates),
+    );
   }
 
   @override
@@ -689,6 +1120,22 @@ class _FakeApiClient extends ApiClient {
       states: Json(productDetailStates),
     );
   }
+}
+
+class _FaceTokenRequest {
+  const _FaceTokenRequest({required this.dodgy, required this.commensurate});
+
+  final String dodgy;
+  final String commensurate;
+
+  @override
+  bool operator ==(Object other) =>
+      other is _FaceTokenRequest &&
+      other.dodgy == dodgy &&
+      other.commensurate == commensurate;
+
+  @override
+  int get hashCode => Object.hash(dodgy, commensurate);
 }
 
 class _FakeToastPresenter implements ToastPresenter {

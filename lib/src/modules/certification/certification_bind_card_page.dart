@@ -2,9 +2,12 @@ import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 
 import '../../assets/app_assets.dart';
+import '../../core/client/client_bridge.dart';
 import '../../core/network/api_client.dart';
 import '../../core/network/api_exception.dart';
+import '../../core/network/api_response.dart';
 import '../../core/report/risk_report_scene.dart';
+import '../../core/session/session_store.dart';
 import '../../navigation_helper.dart';
 import '../../theme/app_colors.dart';
 import '../../utils/app_toast.dart';
@@ -12,11 +15,20 @@ import '../../utils/screen_adapter.dart';
 import 'models/bind_card_info.dart';
 import 'widgets/certification_prompt_banner.dart';
 
+typedef BindCardLivenessLauncher =
+    Future<TrustDecisionLivenessResult> Function(String license);
+
 class CertificationBindCardPage extends StatefulWidget {
-  const CertificationBindCardPage({super.key, ApiClient? apiClient})
-    : _apiClient = apiClient;
+  const CertificationBindCardPage({
+    super.key,
+    ApiClient? apiClient,
+    BindCardLivenessLauncher? showTrustDecisionLiveness,
+  }) : _apiClient = apiClient,
+       showTrustDecisionLiveness =
+           showTrustDecisionLiveness ?? _defaultShowTrustDecisionLiveness;
 
   final ApiClient? _apiClient;
+  final BindCardLivenessLauncher showTrustDecisionLiveness;
 
   @override
   State<CertificationBindCardPage> createState() =>
@@ -348,33 +360,26 @@ class _CertificationBindCardPageState extends State<CertificationBindCardPage> {
       await AppToast.showLoading();
       ownsLoading = true;
       final productId = _productId;
-      final response = await _apiClient.saveBankInfo(
-        geobotanists: productId,
-        heirship: group.type,
-        bladers: values['channelCode'] ?? '',
-        zips: values['firstName'] ?? '',
-        acreage: values['middleName'] ?? '',
-        coinable: values['lastName'] ?? '',
-        flabby: values['cardNo'] ?? '',
-        rapt: values['confirmCardNo'] ?? '',
+      final response = await _saveBankInfo(
+        productId: productId,
+        groupType: group.type,
+        values: values,
       );
       if (!mounted) {
         return;
       }
       if (response.code == 20000) {
-        await AppToast.error('Liveness verification required');
         ownsLoading = false;
+        await _completeLivenessVerification(
+          productId: productId,
+          groupType: group.type,
+          values: values,
+        );
         return;
       }
       response.ensureSuccess();
-      await AppToast.dismissLoading();
       ownsLoading = false;
-      RiskReportScene.report(
-        productId: productId,
-        sceneType: '8',
-        startTimeSeconds: _sceneStartTimeSeconds,
-      );
-      await NavigationHelper.continueProductDetailFlow(productId);
+      await _completeNormalSuccess(productId);
     } catch (error) {
       if (mounted) {
         await AppToast.error(ApiErrorMessage.resolve(error));
@@ -390,6 +395,135 @@ class _CertificationBindCardPageState extends State<CertificationBindCardPage> {
     }
   }
 
+  Future<ApiResponse> _saveBankInfo({
+    required String productId,
+    required String groupType,
+    required Map<String, String> values,
+    String clevises = '',
+    String scolloped = '',
+    String arrests = '',
+  }) {
+    return _apiClient.saveBankInfo(
+      geobotanists: productId,
+      heirship: groupType,
+      bladers: values['channelCode'] ?? '',
+      zips: values['firstName'] ?? '',
+      acreage: values['middleName'] ?? '',
+      coinable: values['lastName'] ?? '',
+      flabby: values['cardNo'] ?? '',
+      rapt: values['confirmCardNo'] ?? '',
+      clevises: clevises,
+      scolloped: scolloped,
+      arrests: arrests,
+    );
+  }
+
+  Future<void> _completeLivenessVerification({
+    required String productId,
+    required String groupType,
+    required Map<String, String> values,
+  }) async {
+    var ownsLoading = true;
+    try {
+      final orderNo = Get.isRegistered<SessionStore>()
+          ? SessionStore.instance.productDetailCache()?.orderNo.trim() ?? ''
+          : '';
+      if (orderNo.isEmpty) {
+        await AppToast.error(
+          'Missing order information for liveness verification',
+        );
+        ownsLoading = false;
+        return;
+      }
+      final tokenResponse = await _apiClient.getFaceToken(
+        dodgy: orderNo,
+        commensurate: '1',
+      );
+      if (!mounted) {
+        return;
+      }
+      final token = _BindCardFaceToken.fromResponse(
+        tokenResponse.ensureSuccess(),
+      );
+      if (token.code != '200' || token.license.isEmpty) {
+        await AppToast.error(
+          token.message.isNotEmpty ? token.message : 'Failed to get face token',
+        );
+        ownsLoading = false;
+        return;
+      }
+      if (token.faceType != '7') {
+        await AppToast.error('Unsupported liveness verification type');
+        ownsLoading = false;
+        return;
+      }
+
+      await AppToast.dismissLoading();
+      ownsLoading = false;
+      final result = await widget.showTrustDecisionLiveness(token.license);
+      if (!mounted) {
+        return;
+      }
+      if (!result.success) {
+        await AppToast.error(
+          result.message.trim().isNotEmpty
+              ? result.message
+              : 'Liveness verification failed',
+        );
+        return;
+      }
+      final livenessId = result.livenessId.trim();
+      if (livenessId.isEmpty) {
+        await AppToast.error('Liveness verification failed');
+        return;
+      }
+
+      await AppToast.showLoading();
+      ownsLoading = true;
+      final response = await _saveBankInfo(
+        productId: productId,
+        groupType: groupType,
+        values: values,
+        clevises: '7',
+        scolloped: livenessId,
+        arrests: token.license,
+      );
+      if (!mounted) {
+        return;
+      }
+      if (response.code == 20000) {
+        await AppToast.error('Liveness verification was not accepted');
+        ownsLoading = false;
+        return;
+      }
+      response.ensureSuccess();
+      ownsLoading = false;
+      await _completeNormalSuccess(productId);
+    } catch (error) {
+      if (mounted) {
+        await AppToast.error(ApiErrorMessage.resolve(error));
+        ownsLoading = false;
+      }
+    } finally {
+      if (ownsLoading) {
+        await AppToast.dismissLoading();
+      }
+    }
+  }
+
+  Future<void> _completeNormalSuccess(String productId) async {
+    await AppToast.dismissLoading();
+    if (!mounted) {
+      return;
+    }
+    RiskReportScene.report(
+      productId: productId,
+      sceneType: '8',
+      startTimeSeconds: _sceneStartTimeSeconds,
+    );
+    await NavigationHelper.continueProductDetailFlow(productId);
+  }
+
   String _submitValue(BindCardGroup group, BindCardField field) {
     final stateKey = _stateKey(group, field);
     if (field.fieldType == BindCardFieldType.enumeration) {
@@ -397,6 +531,36 @@ class _CertificationBindCardPageState extends State<CertificationBindCardPage> {
     }
     return _controllers[stateKey]?.text.trim() ?? '';
   }
+}
+
+class _BindCardFaceToken {
+  const _BindCardFaceToken({
+    required this.code,
+    required this.license,
+    required this.faceType,
+    required this.message,
+  });
+
+  factory _BindCardFaceToken.fromResponse(dynamic response) {
+    final states = response.states;
+    return _BindCardFaceToken(
+      code: states['dwarfishly'].stringValue.trim(),
+      license: states['thatches'].stringValue.trim(),
+      faceType: states['clevises'].stringValue.trim(),
+      message: states['rail'].stringValue.trim(),
+    );
+  }
+
+  final String code;
+  final String license;
+  final String faceType;
+  final String message;
+}
+
+Future<TrustDecisionLivenessResult> _defaultShowTrustDecisionLiveness(
+  String license,
+) {
+  return ClientBridge().showTrustDecisionLiveness(license);
 }
 
 class _BindCardHeader extends StatelessWidget {
