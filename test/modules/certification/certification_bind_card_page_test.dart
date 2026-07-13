@@ -332,6 +332,36 @@ void main() {
     expect(toastPresenter.dismissCount, 2);
   });
 
+  testWidgets('dismisses owned loading when disposed during save', (
+    tester,
+  ) async {
+    apiClient.states = _submissionStates();
+    final saveResponse = Completer<ApiResponse>();
+    apiClient.pendingSaveResponse = saveResponse;
+    await _pumpPage(tester, apiClient: apiClient, arguments: _arguments());
+    await tester.pumpAndSettle();
+
+    await _fillSubmissionForm(tester);
+    await tester.tap(find.byKey(const Key('bindCardSubmit')));
+    await tester.pump();
+
+    expect(toastPresenter.loadingMessages, [null]);
+    Get.back<void>();
+    await tester.pumpAndSettle();
+    expect(find.byType(CertificationBindCardPage), findsNothing);
+
+    saveResponse.complete(
+      ApiResponse(code: 0, message: 'saved', states: Json(null)),
+    );
+    for (var index = 0; index < 3; index++) {
+      await tester.pump();
+    }
+
+    expect(toastPresenter.dismissCount, 1);
+    expect(apiClient.productDetailIds, isEmpty);
+    expect(tester.takeException(), isNull);
+  });
+
   testWidgets('normal success reports risk scene 8', (tester) async {
     final reportManager = _RecordingReportManager();
     Get.put<ReportManager>(reportManager);

@@ -343,8 +343,10 @@ class _CertificationBindCardPageState extends State<CertificationBindCardPage> {
     }
 
     setState(() => _isSubmitting = true);
-    await AppToast.showLoading();
+    var ownsLoading = false;
     try {
+      await AppToast.showLoading();
+      ownsLoading = true;
       final productId = _productId;
       final response = await _apiClient.saveBankInfo(
         geobotanists: productId,
@@ -361,10 +363,12 @@ class _CertificationBindCardPageState extends State<CertificationBindCardPage> {
       }
       if (response.code == 20000) {
         await AppToast.error('Liveness verification required');
+        ownsLoading = false;
         return;
       }
       response.ensureSuccess();
       await AppToast.dismissLoading();
+      ownsLoading = false;
       RiskReportScene.report(
         productId: productId,
         sceneType: '8',
@@ -374,8 +378,12 @@ class _CertificationBindCardPageState extends State<CertificationBindCardPage> {
     } catch (error) {
       if (mounted) {
         await AppToast.error(ApiErrorMessage.resolve(error));
+        ownsLoading = false;
       }
     } finally {
+      if (ownsLoading) {
+        await AppToast.dismissLoading();
+      }
       if (mounted) {
         setState(() => _isSubmitting = false);
       }
