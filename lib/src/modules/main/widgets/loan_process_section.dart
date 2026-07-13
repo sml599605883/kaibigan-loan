@@ -72,54 +72,65 @@ class _LoanProcessProgress extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final progress = _selectedProgress(items);
-    return Padding(
-      padding: EdgeInsets.symmetric(horizontal: 5.w),
-      child: SizedBox(
-        height: 16.h,
-        child: Stack(
-          alignment: Alignment.centerLeft,
-          children: [
-            Container(
-              height: 7.h,
-              decoration: BoxDecoration(
-                color: AppColors.homeProcessTrack,
-                borderRadius: BorderRadius.circular(4.r),
-              ),
-            ),
-            FractionallySizedBox(
-              widthFactor: progress,
-              child: Container(
-                height: 7.h,
-                decoration: BoxDecoration(
-                  color: AppColors.ordersYellow,
-                  borderRadius: BorderRadius.circular(4.r),
+    final selectedIndex = _selectedIndex(items);
+    return SizedBox(
+      height: 16.h,
+      child: LayoutBuilder(
+        builder: (context, constraints) {
+          final trackInset = 3.w;
+          final markerSize = 16.w;
+          final markerCenter =
+              constraints.maxWidth * ((selectedIndex + 0.5) / items.length);
+          return Stack(
+            alignment: Alignment.centerLeft,
+            children: [
+              Positioned(
+                left: trackInset,
+                right: trackInset,
+                child: Container(
+                  height: 7.h,
+                  decoration: BoxDecoration(
+                    color: AppColors.homeProcessTrack,
+                    borderRadius: BorderRadius.circular(4.r),
+                  ),
                 ),
               ),
-            ),
-            Align(
-              alignment: Alignment(-1 + 2 * progress, 0),
-              child: Container(
-                width: 16.w,
-                height: 16.w,
-                decoration: const BoxDecoration(
-                  color: AppColors.homeProcessDot,
-                  shape: BoxShape.circle,
+              Positioned(
+                left: trackInset,
+                width: markerCenter - trackInset,
+                child: Container(
+                  height: 7.h,
+                  decoration: BoxDecoration(
+                    color: AppColors.ordersYellow,
+                    borderRadius: BorderRadius.circular(4.r),
+                  ),
                 ),
-                child: Center(
-                  child: Container(
-                    width: 7.w,
-                    height: 7.w,
-                    decoration: const BoxDecoration(
-                      color: AppColors.homeProcessPanel,
-                      shape: BoxShape.circle,
+              ),
+              Positioned(
+                key: const ValueKey('home_loan_process_progress_marker'),
+                left: markerCenter - markerSize / 2,
+                width: markerSize,
+                height: markerSize,
+                child: Container(
+                  decoration: const BoxDecoration(
+                    color: AppColors.homeProcessDot,
+                    shape: BoxShape.circle,
+                  ),
+                  child: Center(
+                    child: Container(
+                      width: 7.w,
+                      height: 7.w,
+                      decoration: const BoxDecoration(
+                        color: AppColors.homeProcessPanel,
+                        shape: BoxShape.circle,
+                      ),
                     ),
                   ),
                 ),
               ),
-            ),
-          ],
-        ),
+            ],
+          );
+        },
       ),
     );
   }
@@ -164,67 +175,64 @@ class _LoanProcessAmounts extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Row(
-      children: items
-          .map(
-            (item) => Expanded(
-              child: Padding(
-                padding: EdgeInsets.symmetric(horizontal: 3.w),
-                child: Container(
-                  height: 36.h,
-                  decoration: BoxDecoration(
-                    color: item.selected
-                        ? AppColors.ordersYellow
-                        : AppColors.homeProcessTrack,
-                    borderRadius: BorderRadius.circular(4.r),
-                  ),
-                  padding: EdgeInsets.symmetric(horizontal: 4.w, vertical: 5.h),
-                  child: Column(
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    children: [
-                      FittedBox(
-                        fit: BoxFit.scaleDown,
-                        child: Text(
-                          item.amount,
-                          maxLines: 1,
-                          style: TextStyle(
-                            color: item.selected
-                                ? AppColors.ordersTitleText
-                                : AppColors.tabBackground,
-                            fontSize: 12.sp,
-                            fontWeight: FontWeight.w800,
-                            height: 1,
-                          ),
-                        ),
+      children: items.asMap().entries.map((entry) {
+        final index = entry.key;
+        final item = entry.value;
+        return Expanded(
+          child: Padding(
+            padding: EdgeInsets.symmetric(horizontal: 3.w),
+            child: Container(
+              key: ValueKey('home_loan_process_amount_$index'),
+              height: 36.h,
+              decoration: BoxDecoration(
+                color: item.selected
+                    ? AppColors.ordersYellow
+                    : AppColors.homeProcessTrack,
+                borderRadius: BorderRadius.circular(4.r),
+              ),
+              padding: EdgeInsets.symmetric(horizontal: 4.w, vertical: 5.h),
+              child: Column(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  FittedBox(
+                    fit: BoxFit.scaleDown,
+                    child: Text(
+                      item.amount,
+                      maxLines: 1,
+                      style: TextStyle(
+                        color: item.selected
+                            ? AppColors.ordersTitleText
+                            : AppColors.tabBackground,
+                        fontSize: 12.sp,
+                        fontWeight: FontWeight.w800,
+                        height: 1,
                       ),
-                      SizedBox(height: 3.h),
-                      Text(
-                        'Loan amount',
-                        maxLines: 1,
-                        overflow: TextOverflow.ellipsis,
-                        style: TextStyle(
-                          color: item.selected
-                              ? AppColors.homeProcessAmountMuted
-                              : AppColors.tabBackground,
-                          fontSize: 8.sp,
-                          height: 1,
-                        ),
-                      ),
-                    ],
+                    ),
                   ),
-                ),
+                  SizedBox(height: 3.h),
+                  Text(
+                    'Loan amount',
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    style: TextStyle(
+                      color: item.selected
+                          ? AppColors.homeProcessAmountMuted
+                          : AppColors.tabBackground,
+                      fontSize: 8.sp,
+                      height: 1,
+                    ),
+                  ),
+                ],
               ),
             ),
-          )
-          .toList(),
+          ),
+        );
+      }).toList(),
     );
   }
 }
 
-double _selectedProgress(List<HomeLoanProcessItem> items) {
-  if (items.length <= 1) {
-    return 0;
-  }
-  final selectedIndex = items.indexWhere((item) => item.selected);
-  final index = selectedIndex < 0 ? 0 : selectedIndex;
-  return (index / (items.length - 1)).clamp(0, 1).toDouble();
+int _selectedIndex(List<HomeLoanProcessItem> items) {
+  final selectedIndex = items.lastIndexWhere((item) => item.selected);
+  return selectedIndex < 0 ? 0 : selectedIndex;
 }
