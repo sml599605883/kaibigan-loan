@@ -47,12 +47,15 @@ class _CertificationBindCardPageState extends State<CertificationBindCardPage> {
   };
 
   final Map<String, TextEditingController> _controllers = {};
+  final Map<String, FocusNode> _focusNodes = {};
   final Map<String, _BindCardSelection> _selections = {};
+  final Set<String> _dismissedSuggestionKeys = {};
   bool _isLoading = true;
   bool _isSubmitting = false;
   String? _error;
   BindCardInfo? _info;
   String _selectedGroupType = '';
+  String? _activeSuggestionKey;
   late final int _sceneStartTimeSeconds;
 
   ApiClient get _apiClient => widget._apiClient ?? ApiClient.instance;
@@ -66,9 +69,7 @@ class _CertificationBindCardPageState extends State<CertificationBindCardPage> {
 
   @override
   void dispose() {
-    for (final controller in _controllers.values) {
-      controller.dispose();
-    }
+    _disposeFormState();
     super.dispose();
   }
 
@@ -119,30 +120,46 @@ class _CertificationBindCardPageState extends State<CertificationBindCardPage> {
   }
 
   void _initializeFormState(BindCardInfo info) {
+    _disposeFormState();
     for (final group in info.groups) {
       for (final field in group.fields) {
         final stateKey = _stateKey(group, field);
         if (field.fieldType == BindCardFieldType.text) {
-          _controllers.putIfAbsent(
-            stateKey,
-            () => TextEditingController(text: field.initialValue),
-          );
+          final controller = TextEditingController(text: field.initialValue);
+          final focusNode = FocusNode();
+          controller.addListener(_updateActiveSuggestion);
+          focusNode.addListener(_updateActiveSuggestion);
+          _controllers[stateKey] = controller;
+          _focusNodes[stateKey] = focusNode;
         } else {
           final matchedOption = _matchInitialOption(field);
-          _selections.putIfAbsent(
-            stateKey,
-            () => _BindCardSelection(
-              value: matchedOption?.value ?? field.initialValue,
-              label:
-                  matchedOption?.label ??
-                  (field.suggestedValue.isNotEmpty
-                      ? field.suggestedValue
-                      : field.initialValue),
-            ),
+          _selections[stateKey] = _BindCardSelection(
+            value: matchedOption?.value ?? field.initialValue,
+            label:
+                matchedOption?.label ??
+                (field.suggestedValue.isNotEmpty
+                    ? field.suggestedValue
+                    : field.initialValue),
           );
         }
       }
     }
+  }
+
+  void _disposeFormState() {
+    for (final controller in _controllers.values) {
+      controller.removeListener(_updateActiveSuggestion);
+      controller.dispose();
+    }
+    for (final focusNode in _focusNodes.values) {
+      focusNode.removeListener(_updateActiveSuggestion);
+      focusNode.dispose();
+    }
+    _controllers.clear();
+    _focusNodes.clear();
+    _selections.clear();
+    _dismissedSuggestionKeys.clear();
+    _activeSuggestionKey = null;
   }
 
   String _stateKey(BindCardGroup group, BindCardField field) =>
@@ -162,6 +179,96 @@ class _CertificationBindCardPageState extends State<CertificationBindCardPage> {
       }
     }
     return null;
+  }
+
+  void _updateActiveSuggestion() {
+    if (!mounted) {
+      return;
+    }
+    final info = _info;
+    if (info == null) {
+      return;
+    }
+    for (final group in info.groups) {
+      for (final field in group.fields) {
+        if (field.fieldType != BindCardFieldType.text) {
+          continue;
+        }
+        final stateKey = _stateKey(group, field);
+        if (_controllers[stateKey]?.text.trim().isNotEmpty == true) {
+          _dismissedSuggestionKeys.remove(stateKey);
+        }
+      }
+    }
+
+    String? nextKey;
+    final selectedGroup = info.groups.where(
+      (group) => group.type == _selectedGroupType,
+    );
+    if (selectedGroup.isNotEmpty) {
+      for (final field in selectedGroup.first.fields) {
+        if (field.fieldType != BindCardFieldType.text) {
+          continue;
+        }
+        final stateKey = _stateKey(selectedGroup.first, field);
+        final controller = _controllers[stateKey];
+        final focusNode = _focusNodes[stateKey];
+        if (focusNode?.hasFocus != true ||
+            controller?.text.trim().isNotEmpty == true ||
+            field.suggestedValue.trim().isEmpty ||
+            _dismissedSuggestionKeys.contains(stateKey)) {
+          continue;
+        }
+        nextKey = stateKey;
+        break;
+      }
+    }
+    if (_activeSuggestionKey == nextKey) {
+      return;
+    }
+    setState(() => _activeSuggestionKey = nextKey);
+  }
+
+  void _dismissActiveSuggestion() {
+    final stateKey = _activeSuggestionKey;
+    if (stateKey == null) {
+      return;
+    }
+    setState(() {
+      _dismissedSuggestionKeys.add(stateKey);
+      _activeSuggestionKey = null;
+    });
+  }
+
+  void _applySuggestions(BindCardGroup group) {
+    FocusScope.of(context).unfocus();
+    for (final field in group.fields) {
+      if (field.fieldType != BindCardFieldType.text) {
+        continue;
+      }
+      final controller = _controllers[_stateKey(group, field)];
+      final suggestion = field.suggestedValue.trim();
+      if (controller == null ||
+          controller.text.trim().isNotEmpty ||
+          suggestion.isEmpty) {
+        continue;
+      }
+      controller.text = suggestion;
+    }
+    if (mounted) {
+      setState(() => _activeSuggestionKey = null);
+    }
+  }
+
+  void _selectGroup(String groupType) {
+    if (_selectedGroupType == groupType) {
+      return;
+    }
+    FocusManager.instance.primaryFocus?.unfocus();
+    setState(() {
+      _selectedGroupType = groupType;
+      _activeSuggestionKey = null;
+    });
   }
 
   @override
@@ -261,7 +368,7 @@ class _CertificationBindCardPageState extends State<CertificationBindCardPage> {
                 excludeSemantics: true,
                 child: GestureDetector(
                   key: Key('bindCardTab_${tab.type}'),
-                  onTap: () => setState(() => _selectedGroupType = tab.type),
+                  onTap: () => _selectGroup(tab.type),
                   child: DecoratedBox(
                     decoration: BoxDecoration(
                       color: selected
@@ -299,8 +406,13 @@ class _CertificationBindCardPageState extends State<CertificationBindCardPage> {
                   _BindCardField(
                     field: field,
                     controller: _controllers[_stateKey(group, field)],
+                    focusNode: _focusNodes[_stateKey(group, field)],
                     selection: _selections[_stateKey(group, field)],
                     onPickerTap: () => _selectOption(group, field),
+                    showSuggestion:
+                        _activeSuggestionKey == _stateKey(group, field),
+                    onSuggestionTap: () => _applySuggestions(group),
+                    onSuggestionClose: _dismissActiveSuggestion,
                   ),
                   SizedBox(height: 14.h),
                 ],
@@ -636,14 +748,22 @@ class _BindCardField extends StatelessWidget {
   const _BindCardField({
     required this.field,
     required this.controller,
+    required this.focusNode,
     required this.selection,
     required this.onPickerTap,
+    required this.showSuggestion,
+    required this.onSuggestionTap,
+    required this.onSuggestionClose,
   });
 
   final BindCardField field;
   final TextEditingController? controller;
+  final FocusNode? focusNode;
   final _BindCardSelection? selection;
   final VoidCallback onPickerTap;
+  final bool showSuggestion;
+  final VoidCallback onSuggestionTap;
+  final VoidCallback onSuggestionClose;
 
   @override
   Widget build(BuildContext context) {
@@ -651,70 +771,122 @@ class _BindCardField extends StatelessWidget {
     final displayText = selection?.label.isNotEmpty == true
         ? selection!.label
         : field.placeholder;
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
+    return Stack(
+      clipBehavior: Clip.none,
       children: [
-        Text(
-          field.label,
-          style: TextStyle(
-            color: AppColors.certificationFieldLabel,
-            fontSize: 12.sp,
-          ),
-        ),
-        SizedBox(height: 7.h),
-        SizedBox(
-          height: 40.h,
-          child: isText
-              ? TextField(
-                  key: Key('bindCardField_${field.saveKey}'),
-                  controller: controller,
-                  decoration: _fieldDecoration(field.placeholder),
-                  style: TextStyle(
-                    color: AppColors.certificationFieldText,
-                    fontSize: 14.sp,
-                  ),
-                )
-              : Material(
-                  color: AppColors.certificationCardBackground,
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(20.r),
-                    side: const BorderSide(
-                      color: AppColors.certificationFieldBorder,
-                    ),
-                  ),
-                  child: InkWell(
-                    key: Key('bindCardField_${field.saveKey}'),
-                    borderRadius: BorderRadius.circular(20.r),
-                    onTap: onPickerTap,
-                    child: Padding(
-                      padding: EdgeInsets.symmetric(horizontal: 12.w),
-                      child: Row(
-                        children: [
-                          Expanded(
-                            child: Text(
-                              displayText,
-                              maxLines: 1,
-                              overflow: TextOverflow.ellipsis,
-                              style: TextStyle(
-                                color: selection?.label.isNotEmpty == true
-                                    ? AppColors.certificationFieldText
-                                    : AppColors.certificationFieldLabel,
-                                fontSize: 14.sp,
+        Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(
+              field.label,
+              style: TextStyle(
+                color: AppColors.certificationFieldLabel,
+                fontSize: 12.sp,
+              ),
+            ),
+            SizedBox(height: 7.h),
+            SizedBox(
+              height: 40.h,
+              child: isText
+                  ? TextField(
+                      key: Key('bindCardField_${field.saveKey}'),
+                      controller: controller,
+                      focusNode: focusNode,
+                      decoration: _fieldDecoration(field.placeholder),
+                      style: TextStyle(
+                        color: AppColors.certificationFieldText,
+                        fontSize: 14.sp,
+                      ),
+                    )
+                  : Material(
+                      color: AppColors.certificationCardBackground,
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(20.r),
+                        side: const BorderSide(
+                          color: AppColors.certificationFieldBorder,
+                        ),
+                      ),
+                      child: InkWell(
+                        key: Key('bindCardField_${field.saveKey}'),
+                        borderRadius: BorderRadius.circular(20.r),
+                        onTap: onPickerTap,
+                        child: Padding(
+                          padding: EdgeInsets.symmetric(horizontal: 12.w),
+                          child: Row(
+                            children: [
+                              Expanded(
+                                child: Text(
+                                  displayText,
+                                  maxLines: 1,
+                                  overflow: TextOverflow.ellipsis,
+                                  style: TextStyle(
+                                    color: selection?.label.isNotEmpty == true
+                                        ? AppColors.certificationFieldText
+                                        : AppColors.certificationFieldLabel,
+                                    fontSize: 14.sp,
+                                  ),
+                                ),
                               ),
-                            ),
+                              Image.asset(
+                                AppAssets.arrowRight,
+                                width: 15.w,
+                                height: 10.h,
+                                color: AppColors.profileArrowTint,
+                              ),
+                            ],
                           ),
-                          Image.asset(
-                            AppAssets.arrowRight,
-                            width: 15.w,
-                            height: 10.h,
-                            color: AppColors.profileArrowTint,
-                          ),
-                        ],
+                        ),
                       ),
                     ),
+            ),
+          ],
+        ),
+        if (isText && showSuggestion)
+          Positioned(
+            top: 0,
+            right: 25.w,
+            child: GestureDetector(
+              key: const Key('bindCardSuggestionBubble'),
+              behavior: HitTestBehavior.opaque,
+              onTap: onSuggestionTap,
+              child: DecoratedBox(
+                decoration: BoxDecoration(
+                  color: AppColors.certificationCardBackground,
+                  border: Border.all(color: AppColors.certificationFieldBorder),
+                  borderRadius: BorderRadius.circular(4.r),
+                ),
+                child: Padding(
+                  padding: EdgeInsets.only(left: 8.w),
+                  child: Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Text(
+                        field.suggestedValue,
+                        style: TextStyle(
+                          color: AppColors.certificationFieldText,
+                          fontSize: 14.sp,
+                        ),
+                      ),
+                      GestureDetector(
+                        key: const Key('bindCardSuggestionClose'),
+                        behavior: HitTestBehavior.opaque,
+                        onTap: onSuggestionClose,
+                        child: SizedBox(
+                          width: 32.w,
+                          height: 32.h,
+                          child: Icon(
+                            Icons.close,
+                            size: 16.w,
+                            color: AppColors.certificationFieldLabel,
+                          ),
+                        ),
+                      ),
+                    ],
                   ),
                 ),
-        ),
+              ),
+            ),
+          ),
       ],
     );
   }

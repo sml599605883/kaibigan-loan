@@ -136,6 +136,126 @@ void main() {
     expect(find.text('Suggested Name'), findsNothing);
   });
 
+  testWidgets('focused empty bind card field shows suggestion bubble', (
+    tester,
+  ) async {
+    apiClient.states = _suggestionStates();
+    await _pumpPage(tester, apiClient: apiClient, arguments: _arguments());
+    await tester.pumpAndSettle();
+
+    expect(find.byKey(const Key('bindCardSuggestionBubble')), findsNothing);
+
+    await tester.tap(find.byKey(const Key('bindCardField_firstName')));
+    await tester.pumpAndSettle();
+
+    expect(find.byKey(const Key('bindCardSuggestionBubble')), findsOneWidget);
+    expect(find.text('John'), findsOneWidget);
+  });
+
+  testWidgets('suggestion fills eligible empty fields in selected group', (
+    tester,
+  ) async {
+    apiClient.states = _suggestionStates();
+    await _pumpPage(tester, apiClient: apiClient, arguments: _arguments());
+    await tester.pumpAndSettle();
+
+    await tester.tap(find.byKey(const Key('bindCardField_firstName')));
+    await tester.pumpAndSettle();
+    await tester.tap(find.byKey(const Key('bindCardSuggestionBubble')));
+    await tester.pumpAndSettle();
+
+    expect(_textFieldValue(tester, 'firstName'), 'John');
+    expect(_textFieldValue(tester, 'middleName'), 'Michael');
+    expect(_textFieldValue(tester, 'lastName'), 'Doe');
+    expect(_textFieldValue(tester, 'optionalNote'), isEmpty);
+
+    await tester.tap(find.byKey(const Key('bindCardTab_bank')));
+    await tester.pumpAndSettle();
+    expect(_textFieldValue(tester, 'account_number'), isEmpty);
+  });
+
+  testWidgets('suggestion stays hidden for ineligible bind card fields', (
+    tester,
+  ) async {
+    apiClient.states = _suggestionStates();
+    await _pumpPage(tester, apiClient: apiClient, arguments: _arguments());
+    await tester.pumpAndSettle();
+
+    expect(find.byKey(const Key('bindCardSuggestionBubble')), findsNothing);
+
+    await tester.tap(find.byKey(const Key('bindCardField_lastName')));
+    await tester.pump();
+    expect(find.byKey(const Key('bindCardSuggestionBubble')), findsNothing);
+
+    await tester.tap(find.byKey(const Key('bindCardField_optionalNote')));
+    await tester.pump();
+    expect(find.byKey(const Key('bindCardSuggestionBubble')), findsNothing);
+
+    await tester.tap(find.byKey(const Key('bindCardField_channelCode')));
+    await tester.pumpAndSettle();
+    expect(find.byKey(const Key('bindCardSuggestionBubble')), findsNothing);
+  });
+
+  testWidgets('closed suggestion reopens after entering and clearing text', (
+    tester,
+  ) async {
+    apiClient.states = _suggestionStates();
+    await _pumpPage(tester, apiClient: apiClient, arguments: _arguments());
+    await tester.pumpAndSettle();
+
+    final firstName = find.byKey(const Key('bindCardField_firstName'));
+    await tester.tap(firstName);
+    await tester.pumpAndSettle();
+    await tester.tap(find.byKey(const Key('bindCardSuggestionClose')));
+    await tester.pump();
+    expect(find.byKey(const Key('bindCardSuggestionBubble')), findsNothing);
+
+    await tester.tap(find.byKey(const Key('bindCardField_optionalNote')));
+    await tester.tap(firstName);
+    await tester.pump();
+    expect(find.byKey(const Key('bindCardSuggestionBubble')), findsNothing);
+
+    await tester.enterText(firstName, 'A');
+    await tester.enterText(firstName, '');
+    await tester.pump();
+
+    expect(find.byKey(const Key('bindCardSuggestionBubble')), findsOneWidget);
+    expect(find.text('John'), findsOneWidget);
+  });
+
+  testWidgets('switching bind card groups clears bubble and preserves values', (
+    tester,
+  ) async {
+    apiClient.states = _suggestionStates();
+    await _pumpPage(tester, apiClient: apiClient, arguments: _arguments());
+    await tester.pumpAndSettle();
+
+    await tester.enterText(
+      find.byKey(const Key('bindCardField_firstName')),
+      'Alice',
+    );
+    await tester.tap(find.byKey(const Key('bindCardField_middleName')));
+    await tester.pump();
+    expect(find.byKey(const Key('bindCardSuggestionBubble')), findsOneWidget);
+
+    await tester.tap(find.byKey(const Key('bindCardTab_bank')));
+    await tester.pumpAndSettle();
+    expect(find.byKey(const Key('bindCardSuggestionBubble')), findsNothing);
+    await tester.enterText(
+      find.byKey(const Key('bindCardField_account_number')),
+      '999',
+    );
+
+    await tester.tap(find.byKey(const Key('bindCardTab_wallet')));
+    await tester.pumpAndSettle();
+    expect(_textFieldValue(tester, 'firstName'), 'Alice');
+    expect(find.byKey(const Key('bindCardSuggestionBubble')), findsNothing);
+
+    await tester.tap(find.byKey(const Key('bindCardTab_bank')));
+    await tester.pumpAndSettle();
+    expect(_textFieldValue(tester, 'account_number'), '999');
+  });
+
   testWidgets('enum initial value displays matched label and submits value', (
     tester,
   ) async {
@@ -832,6 +952,13 @@ Future<void> _fillSubmissionForm(WidgetTester tester) async {
   );
 }
 
+String _textFieldValue(WidgetTester tester, String saveKey) {
+  return tester
+      .widget<TextField>(find.byKey(Key('bindCardField_$saveKey')))
+      .controller!
+      .text;
+}
+
 Future<void> _pumpPage(
   WidgetTester tester, {
   required _FakeApiClient apiClient,
@@ -970,6 +1097,68 @@ Map<String, dynamic> _bindCardStates({
           'griding': 'account_number',
           'suppletive': 'Enter account number',
           'prognosticator': 'text',
+        },
+      ],
+    },
+  ],
+};
+
+Map<String, dynamic> _suggestionStates() => {
+  'enthrones': [
+    {
+      'primogenitor': 'E-wallet',
+      'commensurate': 'wallet',
+      'enthrones': [
+        {
+          'primogenitor': 'Channel',
+          'griding': 'channelCode',
+          'suppletive': 'Choose a channel',
+          'prognosticator': 'enum',
+          'whackers': 'GCash',
+          'metallurgists': [
+            {'commensurate': 'gcash', 'unwits': 'GCash'},
+          ],
+        },
+        {
+          'primogenitor': 'First name',
+          'griding': 'firstName',
+          'suppletive': 'Enter your first name',
+          'prognosticator': 'text',
+          'whackers': 'John',
+        },
+        {
+          'primogenitor': 'Middle name',
+          'griding': 'middleName',
+          'suppletive': 'Enter your middle name',
+          'prognosticator': 'text',
+          'whackers': 'Michael',
+        },
+        {
+          'primogenitor': 'Last name',
+          'griding': 'lastName',
+          'suppletive': 'Enter your last name',
+          'prognosticator': 'text',
+          'solonets': 'Doe',
+          'whackers': 'Smith',
+        },
+        {
+          'primogenitor': 'Optional note',
+          'griding': 'optionalNote',
+          'suppletive': 'Enter a note',
+          'prognosticator': 'text',
+        },
+      ],
+    },
+    {
+      'primogenitor': 'Bank',
+      'commensurate': 'bank',
+      'enthrones': [
+        {
+          'primogenitor': 'Account number',
+          'griding': 'account_number',
+          'suppletive': 'Enter account number',
+          'prognosticator': 'text',
+          'whackers': '1234567890',
         },
       ],
     },
