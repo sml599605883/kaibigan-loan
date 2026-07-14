@@ -19,6 +19,7 @@ import 'package:kaibigan_loan/src/core/report/report_network.dart';
 import 'package:kaibigan_loan/src/core/session/product_detail_cache.dart';
 import 'package:kaibigan_loan/src/core/session/session_store.dart';
 import 'package:kaibigan_loan/src/modules/certification/certification_bind_card_page.dart';
+import 'package:kaibigan_loan/src/theme/app_colors.dart';
 import 'package:kaibigan_loan/src/utils/app_toast.dart';
 
 void main() {
@@ -150,6 +151,99 @@ void main() {
 
     expect(find.byKey(const Key('bindCardSuggestionBubble')), findsOneWidget);
     expect(find.text('John'), findsOneWidget);
+  });
+
+  testWidgets('suggestion bubble sizes to content within field', (
+    tester,
+  ) async {
+    final semantics = tester.ensureSemantics();
+    const shortSuggestion = 'J';
+    const mediumSuggestion = 'Michael Santos';
+    const longSuggestion =
+        'This suggestion is intentionally too long for the payment field';
+    apiClient.states = _suggestionVisualStates(
+      shortSuggestion: shortSuggestion,
+      mediumSuggestion: mediumSuggestion,
+      longSuggestion: longSuggestion,
+    );
+    await _pumpPage(tester, apiClient: apiClient, arguments: _arguments());
+    await tester.pumpAndSettle();
+
+    await tester.tap(find.byKey(const Key('bindCardField_shortName')));
+    await tester.pump();
+    final bubble = find.byKey(const Key('bindCardSuggestionBubble'));
+    final shortWidth = tester.getSize(bubble).width;
+    expect(shortWidth, greaterThanOrEqualTo(44));
+    expect(shortWidth, lessThan(104));
+    expect(tester.getSize(bubble).height, 40);
+
+    final images = tester
+        .widgetList<Image>(
+          find.descendant(of: bubble, matching: find.byType(Image)),
+        )
+        .toList();
+    expect(
+      images
+          .map((image) => image.image)
+          .whereType<AssetImage>()
+          .map((image) => image.assetName),
+      containsAll(<String>[
+        AppAssets.certificationBindCardSuggestionBubble,
+        AppAssets.certificationBindCardSuggestionClose,
+      ]),
+    );
+    final closeImage = find.descendant(
+      of: find.byKey(const Key('bindCardSuggestionClose')),
+      matching: find.byWidgetPredicate(
+        (widget) =>
+            widget is Image &&
+            widget.image is AssetImage &&
+            (widget.image as AssetImage).assetName ==
+                AppAssets.certificationBindCardSuggestionClose,
+      ),
+    );
+    expect(tester.getSize(closeImage), const Size(12, 12));
+    expect(
+      tester.getSize(find.byKey(const Key('bindCardSuggestionClose'))),
+      const Size(24, 24),
+    );
+    expect(
+      tester.getSemantics(find.byKey(const Key('bindCardSuggestionClose'))),
+      matchesSemantics(label: 'Close suggestion', isButton: true),
+    );
+    final shortText = tester.widget<Text>(find.text(shortSuggestion));
+    expect(shortText.maxLines, 1);
+    expect(shortText.overflow, TextOverflow.ellipsis);
+    expect(shortText.style?.color, AppColors.certificationSubmitText);
+    expect(shortText.style?.fontSize, 16);
+    expect(shortText.style?.fontWeight, FontWeight.w600);
+
+    await tester.tap(find.byKey(const Key('bindCardField_mediumName')));
+    await tester.pump();
+    final mediumWidth = tester.getSize(bubble).width;
+    expect(mediumWidth, greaterThan(shortWidth));
+
+    await tester.tap(find.byKey(const Key('bindCardField_longName')));
+    await tester.pump();
+    final longBubbleRect = tester.getRect(bubble);
+    final longFieldRect = tester.getRect(
+      find.byKey(const Key('bindCardField_longName')),
+    );
+    expect(longBubbleRect.width, lessThanOrEqualTo(310));
+    expect(longBubbleRect.left, greaterThanOrEqualTo(longFieldRect.left));
+    expect(longBubbleRect.right, lessThanOrEqualTo(longFieldRect.right));
+    expect(longFieldRect.right - longBubbleRect.right, closeTo(25, 0.01));
+    expect(
+      tester.widget<Text>(find.text(longSuggestion)).overflow,
+      TextOverflow.ellipsis,
+    );
+    await tester.tap(find.byKey(const Key('bindCardSuggestionClose')));
+    await tester.pump();
+    expect(_textFieldValue(tester, 'shortName'), isEmpty);
+    expect(_textFieldValue(tester, 'mediumName'), isEmpty);
+    expect(_textFieldValue(tester, 'longName'), isEmpty);
+    expect(tester.takeException(), isNull);
+    semantics.dispose();
   });
 
   testWidgets('suggestion fills eligible empty fields in selected group', (
@@ -1159,6 +1253,42 @@ Map<String, dynamic> _suggestionStates() => {
           'suppletive': 'Enter account number',
           'prognosticator': 'text',
           'whackers': '1234567890',
+        },
+      ],
+    },
+  ],
+};
+
+Map<String, dynamic> _suggestionVisualStates({
+  required String shortSuggestion,
+  required String mediumSuggestion,
+  required String longSuggestion,
+}) => {
+  'enthrones': [
+    {
+      'primogenitor': 'E-wallet',
+      'commensurate': 'wallet',
+      'enthrones': [
+        {
+          'primogenitor': 'Short name',
+          'griding': 'shortName',
+          'suppletive': 'Enter a short name',
+          'prognosticator': 'text',
+          'whackers': shortSuggestion,
+        },
+        {
+          'primogenitor': 'Medium name',
+          'griding': 'mediumName',
+          'suppletive': 'Enter a medium name',
+          'prognosticator': 'text',
+          'whackers': mediumSuggestion,
+        },
+        {
+          'primogenitor': 'Long name',
+          'griding': 'longName',
+          'suppletive': 'Enter a long name',
+          'prognosticator': 'text',
+          'whackers': longSuggestion,
         },
       ],
     },

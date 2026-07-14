@@ -844,45 +844,16 @@ class _BindCardField extends StatelessWidget {
         if (isText && showSuggestion)
           Positioned(
             top: 0,
+            left: 0,
             right: 25.w,
-            child: GestureDetector(
-              key: const Key('bindCardSuggestionBubble'),
-              behavior: HitTestBehavior.opaque,
-              onTap: onSuggestionTap,
-              child: DecoratedBox(
-                decoration: BoxDecoration(
-                  color: AppColors.certificationCardBackground,
-                  border: Border.all(color: AppColors.certificationFieldBorder),
-                  borderRadius: BorderRadius.circular(4.r),
-                ),
-                child: Padding(
-                  padding: EdgeInsets.only(left: 8.w),
-                  child: Row(
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      Text(
-                        field.suggestedValue,
-                        style: TextStyle(
-                          color: AppColors.certificationFieldText,
-                          fontSize: 14.sp,
-                        ),
-                      ),
-                      GestureDetector(
-                        key: const Key('bindCardSuggestionClose'),
-                        behavior: HitTestBehavior.opaque,
-                        onTap: onSuggestionClose,
-                        child: SizedBox(
-                          width: 32.w,
-                          height: 32.h,
-                          child: Icon(
-                            Icons.close,
-                            size: 16.w,
-                            color: AppColors.certificationFieldLabel,
-                          ),
-                        ),
-                      ),
-                    ],
-                  ),
+            child: LayoutBuilder(
+              builder: (context, constraints) => Align(
+                alignment: Alignment.topRight,
+                child: _BindCardSuggestionBubble(
+                  suggestion: field.suggestedValue,
+                  maxWidth: constraints.maxWidth,
+                  onTap: onSuggestionTap,
+                  onClose: onSuggestionClose,
                 ),
               ),
             ),
@@ -902,6 +873,96 @@ class _BindCardField extends StatelessWidget {
     focusedBorder: _fieldBorder(),
     border: _fieldBorder(),
   );
+}
+
+class _BindCardSuggestionBubble extends StatelessWidget {
+  const _BindCardSuggestionBubble({
+    required this.suggestion,
+    required this.maxWidth,
+    required this.onTap,
+    required this.onClose,
+  });
+
+  final String suggestion;
+  final double maxWidth;
+  final VoidCallback onTap;
+  final VoidCallback onClose;
+
+  @override
+  Widget build(BuildContext context) {
+    return ConstrainedBox(
+      constraints: BoxConstraints(minWidth: 44.w, maxWidth: maxWidth),
+      child: IntrinsicWidth(
+        child: Semantics(
+          container: true,
+          explicitChildNodes: true,
+          button: true,
+          label: 'Apply suggestion',
+          child: GestureDetector(
+            key: const Key('bindCardSuggestionBubble'),
+            behavior: HitTestBehavior.opaque,
+            onTap: onTap,
+            child: SizedBox(
+              height: 40.h,
+              child: Stack(
+                children: [
+                  Positioned.fill(
+                    child: Image.asset(
+                      AppAssets.certificationBindCardSuggestionBubble,
+                      fit: BoxFit.fill,
+                    ),
+                  ),
+                  Padding(
+                    padding: EdgeInsets.fromLTRB(13.w, 4.h, 6.w, 12.h),
+                    child: Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        Flexible(
+                          child: Text(
+                            suggestion,
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                            style: TextStyle(
+                              color: AppColors.certificationSubmitText,
+                              fontSize: 16.sp,
+                              fontWeight: FontWeight.w600,
+                            ),
+                          ),
+                        ),
+                        Semantics(
+                          key: const Key('bindCardSuggestionClose'),
+                          container: true,
+                          button: true,
+                          label: 'Close suggestion',
+                          excludeSemantics: true,
+                          child: GestureDetector(
+                            behavior: HitTestBehavior.opaque,
+                            onTap: onClose,
+                            child: SizedBox(
+                              width: 24.w,
+                              height: 24.h,
+                              child: Center(
+                                child: Image.asset(
+                                  AppAssets
+                                      .certificationBindCardSuggestionClose,
+                                  width: 12.w,
+                                  height: 12.h,
+                                ),
+                              ),
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ),
+        ),
+      ),
+    );
+  }
 }
 
 OutlineInputBorder _fieldBorder() => OutlineInputBorder(
