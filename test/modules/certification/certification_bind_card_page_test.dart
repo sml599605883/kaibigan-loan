@@ -25,6 +25,17 @@ void main() {
   late _FakeApiClient apiClient;
   late _FakeToastPresenter toastPresenter;
 
+  test('uses semantic bind card suggestion assets', () {
+    expect(
+      AppAssets.certificationBindCardSuggestionBubble,
+      'assets/certification_bind_card_suggestion_bubble.png',
+    );
+    expect(
+      AppAssets.certificationBindCardSuggestionClose,
+      'assets/certification_bind_card_suggestion_close.png',
+    );
+  });
+
   setUp(() {
     Get.testMode = true;
     apiClient = _FakeApiClient();
