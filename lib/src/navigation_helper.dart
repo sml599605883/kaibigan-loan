@@ -12,6 +12,7 @@ import 'core/network/api_exception.dart';
 import 'core/report/report_manager.dart';
 import 'core/report/report_models.dart';
 import 'core/report/report_native_bridge.dart';
+import 'core/report/risk_report_scene.dart';
 import 'core/session/product_detail_cache.dart';
 import 'core/session/session_store.dart';
 import 'modules/main/main_controller.dart';
@@ -575,6 +576,10 @@ class NavigationHelper {
     }
 
     if (productDetail['threats'].intValue == 200) {
+      final productId = _firstNonEmpty(
+        cachedDetail?.productid,
+        product['cabdrivers'].stringValue,
+      );
       final orderNo = _firstNonEmpty(
         cachedDetail?.orderNo,
         product['chattinesses'].stringValue,
@@ -594,6 +599,12 @@ class NavigationHelper {
             cachedDetail?.termType,
             product['tythes'].stringValue,
           ),
+        );
+        RiskReportScene.report(
+          productId: productId,
+          sceneType: '9',
+          orderNo: orderNo,
+          startTimeSeconds: RiskReportScene.nowSeconds(),
         );
         final redirectTarget = redirect.states['bloomeries'].stringValue.trim();
         if (redirectTarget.isNotEmpty) {

@@ -100,6 +100,42 @@ void main() {
     expect(option.status, '1');
   });
 
+  test('field owns current text and enum submission state', () {
+    final textField = BindCardField.fromJson(
+      Json({
+        'primogenitor': 'First name',
+        'griding': 'firstName',
+        'prognosticator': 'Foxfishes',
+        'solonets': 'Initial',
+      }),
+    );
+    final enumField = BindCardField.fromJson(
+      Json({
+        'primogenitor': 'Channel',
+        'griding': 'channelCode',
+        'prognosticator': 'Metallike',
+        'solonets': '6',
+        'metallurgists': [
+          {'commensurate': '6', 'unwits': 'GCash'},
+          {'commensurate': '8', 'unwits': 'Maya'},
+        ],
+      }),
+    );
+
+    expect(textField.controller.text, 'Initial');
+    textField.controller.text = 'Updated';
+    expect(textField.currentSubmitValue, 'Updated');
+
+    expect(enumField.controller.text, 'GCash');
+    expect(enumField.currentSubmitValue, '6');
+    enumField.selectOption(enumField.options.last);
+    expect(enumField.controller.text, 'Maya');
+    expect(enumField.currentSubmitValue, '8');
+
+    textField.dispose();
+    enumField.dispose();
+  });
+
   test(
     'filters malformed groups, fields, and options without dropping maintenance',
     () {

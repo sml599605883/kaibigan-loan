@@ -221,6 +221,42 @@ void main() {
   });
 
   testWidgets(
+    'salary day shows group and child labels but submits the child value',
+    (tester) async {
+      apiClient.jobInfoStates = _salaryDayJobInfoStates();
+
+      await _pumpPage(
+        tester,
+        routeName: AppRoutes.certificationWorkInfo,
+        page: () => const CertificationPersonalInfoPage.work(),
+        arguments: {'geobotanists': 'product-payday'},
+      );
+      await tester.pumpAndSettle();
+
+      await tester.tap(find.text('Please select payday'));
+      await tester.pumpAndSettle();
+      await tester.tap(find.text('Weekly'));
+      await tester.tap(find.text('Done'));
+      await tester.pumpAndSettle();
+
+      expect(find.text('Fri'), findsOneWidget);
+
+      await tester.tap(find.text('Fri'));
+      await tester.tap(find.text('Done'));
+      await tester.pumpAndSettle();
+
+      expect(find.text('Weekly|Fri'), findsOneWidget);
+
+      await tester.tap(find.text('Submit'));
+      await tester.pumpAndSettle();
+
+      expect(apiClient.saveJobInfoPayloads, [
+        {'geobotanists': 'product-payday', 'passwords': '6'},
+      ]);
+    },
+  );
+
+  testWidgets(
     'citySelect field selects cached address and submits joined labels',
     (tester) async {
       apiClient.personalInfoStates = _addressPersonalInfoStates();
@@ -306,6 +342,38 @@ Map<String, dynamic> _personalInfoStates() {
         'prognosticator': 'Foxfishes',
         'hairbreadth': 0,
         'solonets': 'jane@example.com',
+      },
+    ],
+  };
+}
+
+Map<String, dynamic> _salaryDayJobInfoStates() {
+  return {
+    'enthrones': [
+      {
+        'primogenitor': 'Payday',
+        'suppletive': 'Please select payday',
+        'griding': 'passwords',
+        'prognosticator': 'Metallike',
+        'hairbreadth': 0,
+        'solonets': '',
+        'metallurgists': [
+          {
+            'unwits': 'Daily',
+            'commensurate': 1,
+            'metallurgists': [
+              {'unwits': 'Daily', 'commensurate': 1},
+            ],
+          },
+          {
+            'unwits': 'Weekly',
+            'commensurate': 2,
+            'metallurgists': [
+              {'unwits': 'Mon', 'commensurate': 2},
+              {'unwits': 'Fri', 'commensurate': 6},
+            ],
+          },
+        ],
       },
     ],
   };

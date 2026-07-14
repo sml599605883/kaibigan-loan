@@ -13,6 +13,8 @@ import '../../theme/app_colors.dart';
 import '../../utils/app_toast.dart';
 import '../../utils/screen_adapter.dart';
 import 'models/bind_card_info.dart';
+import 'widgets/certification_bind_card_form_widgets.dart';
+import 'widgets/certification_bind_card_option_sheet.dart';
 import 'widgets/certification_prompt_banner.dart';
 
 typedef BindCardLivenessLauncher =
@@ -37,18 +39,8 @@ class CertificationBindCardPage extends StatefulWidget {
 
 class _CertificationBindCardPageState extends State<CertificationBindCardPage> {
   static const _defaultHint = 'Please provide your payment method details.';
-  static const _supportedSaveKeys = <String>{
-    'channelCode',
-    'firstName',
-    'middleName',
-    'lastName',
-    'cardNo',
-    'confirmCardNo',
-  };
 
-  final Map<String, TextEditingController> _controllers = {};
   final Map<String, FocusNode> _focusNodes = {};
-  final Map<String, _BindCardSelection> _selections = {};
   final Set<String> _dismissedSuggestionKeys = {};
   bool _isLoading = true;
   bool _isSubmitting = false;
@@ -91,6 +83,7 @@ class _CertificationBindCardPageState extends State<CertificationBindCardPage> {
       final response = await _apiClient.bankInfo(geobotanists: productId);
       final info = BindCardInfo.fromJson(response.ensureSuccess().states);
       if (!mounted) {
+        info.dispose();
         return;
       }
       _initializeFormState(info);
@@ -125,61 +118,38 @@ class _CertificationBindCardPageState extends State<CertificationBindCardPage> {
       for (final field in group.fields) {
         final stateKey = _stateKey(group, field);
         if (field.fieldType == BindCardFieldType.text) {
-          final controller = TextEditingController(text: field.initialValue);
           final focusNode = FocusNode();
-          controller.addListener(_updateActiveSuggestion);
+          field.controller.addListener(_updateActiveSuggestion);
           focusNode.addListener(_updateActiveSuggestion);
-          _controllers[stateKey] = controller;
           _focusNodes[stateKey] = focusNode;
-        } else {
-          final matchedOption = _matchInitialOption(field);
-          _selections[stateKey] = _BindCardSelection(
-            value: matchedOption?.value ?? field.initialValue,
-            label:
-                matchedOption?.label ??
-                (field.suggestedValue.isNotEmpty
-                    ? field.suggestedValue
-                    : field.initialValue),
-          );
         }
       }
     }
   }
 
   void _disposeFormState() {
-    for (final controller in _controllers.values) {
-      controller.removeListener(_updateActiveSuggestion);
-      controller.dispose();
+    final info = _info;
+    if (info != null) {
+      for (final group in info.groups) {
+        for (final field in group.fields) {
+          if (field.fieldType == BindCardFieldType.text) {
+            field.controller.removeListener(_updateActiveSuggestion);
+          }
+        }
+      }
+      info.dispose();
     }
     for (final focusNode in _focusNodes.values) {
       focusNode.removeListener(_updateActiveSuggestion);
       focusNode.dispose();
     }
-    _controllers.clear();
     _focusNodes.clear();
-    _selections.clear();
     _dismissedSuggestionKeys.clear();
     _activeSuggestionKey = null;
   }
 
   String _stateKey(BindCardGroup group, BindCardField field) =>
       '${group.type}:${field.saveKey}';
-
-  BindCardOption? _matchInitialOption(BindCardField field) {
-    final normalizedValue = field.initialValue.toLowerCase();
-    final normalizedSuggestedValue = field.suggestedValue.toLowerCase();
-    for (final option in field.options) {
-      if (normalizedValue.isNotEmpty &&
-          option.value.toLowerCase() == normalizedValue) {
-        return option;
-      }
-      if (normalizedSuggestedValue.isNotEmpty &&
-          option.label.toLowerCase() == normalizedSuggestedValue) {
-        return option;
-      }
-    }
-    return null;
-  }
 
   void _updateActiveSuggestion() {
     if (!mounted) {
@@ -195,7 +165,7 @@ class _CertificationBindCardPageState extends State<CertificationBindCardPage> {
           continue;
         }
         final stateKey = _stateKey(group, field);
-        if (_controllers[stateKey]?.text.trim().isNotEmpty == true) {
+        if (field.controller.text.trim().isNotEmpty) {
           _dismissedSuggestionKeys.remove(stateKey);
         }
       }
@@ -211,10 +181,9 @@ class _CertificationBindCardPageState extends State<CertificationBindCardPage> {
           continue;
         }
         final stateKey = _stateKey(selectedGroup.first, field);
-        final controller = _controllers[stateKey];
         final focusNode = _focusNodes[stateKey];
         if (focusNode?.hasFocus != true ||
-            controller?.text.trim().isNotEmpty == true ||
+            field.controller.text.trim().isNotEmpty ||
             field.suggestedValue.trim().isEmpty ||
             _dismissedSuggestionKeys.contains(stateKey)) {
           continue;
@@ -246,14 +215,11 @@ class _CertificationBindCardPageState extends State<CertificationBindCardPage> {
       if (field.fieldType != BindCardFieldType.text) {
         continue;
       }
-      final controller = _controllers[_stateKey(group, field)];
       final suggestion = field.suggestedValue.trim();
-      if (controller == null ||
-          controller.text.trim().isNotEmpty ||
-          suggestion.isEmpty) {
+      if (field.controller.text.trim().isNotEmpty || suggestion.isEmpty) {
         continue;
       }
-      controller.text = suggestion;
+      field.controller.text = suggestion;
     }
     if (mounted) {
       setState(() => _activeSuggestionKey = null);
@@ -280,7 +246,7 @@ class _CertificationBindCardPageState extends State<CertificationBindCardPage> {
         child: Column(
           children: [
             SizedBox(height: 16.h),
-            const _BindCardHeader(),
+            const CertificationBindCardHeader(),
             SizedBox(height: 20.h),
             Padding(
               padding: EdgeInsets.symmetric(horizontal: 20.w),
@@ -304,7 +270,7 @@ class _CertificationBindCardPageState extends State<CertificationBindCardPage> {
           ],
         ),
       ),
-      bottomNavigationBar: _BindCardFooter(
+      bottomNavigationBar: CertificationBindCardFooter(
         hint: info?.bottomHint ?? '',
         onSubmit: _isSubmitting ? null : _submit,
       ),
@@ -403,12 +369,13 @@ class _CertificationBindCardPageState extends State<CertificationBindCardPage> {
             child: Column(
               children: [
                 for (final field in group.fields) ...[
-                  _BindCardField(
+                  CertificationBindCardField(
                     field: field,
-                    controller: _controllers[_stateKey(group, field)],
+                    controller: field.controller,
                     focusNode: _focusNodes[_stateKey(group, field)],
-                    selection: _selections[_stateKey(group, field)],
-                    onPickerTap: () => _selectOption(group, field),
+                    selectionLabel: field.controller.text,
+                    hasSelection: field.currentSubmitValue.isNotEmpty,
+                    onPickerTap: () => _selectOption(field),
                     showSuggestion:
                         _activeSuggestionKey == _stateKey(group, field),
                     onSuggestionTap: () => _applySuggestions(group),
@@ -424,7 +391,7 @@ class _CertificationBindCardPageState extends State<CertificationBindCardPage> {
     );
   }
 
-  Future<void> _selectOption(BindCardGroup group, BindCardField field) async {
+  Future<void> _selectOption(BindCardField field) async {
     final pageContext = context;
     FocusManager.instance.primaryFocus?.unfocus();
     await Future<void>.delayed(Duration.zero);
@@ -434,20 +401,16 @@ class _CertificationBindCardPageState extends State<CertificationBindCardPage> {
     if (field.options.isEmpty) {
       return;
     }
-    final stateKey = _stateKey(group, field);
-    final option = await _showOptionSheet(
+    final option = await showCertificationBindCardOptionSheet(
       pageContext,
-      field.options,
-      _selections[stateKey]?.value,
+      options: field.options,
+      initialValue: field.currentSubmitValue,
     );
     if (option == null || !mounted) {
       return;
     }
     setState(() {
-      _selections[stateKey] = _BindCardSelection(
-        value: option.value,
-        label: option.label,
-      );
+      field.selectOption(option);
     });
   }
 
@@ -465,10 +428,7 @@ class _CertificationBindCardPageState extends State<CertificationBindCardPage> {
     );
     final values = <String, String>{};
     for (final field in group.fields) {
-      if (!_supportedSaveKeys.contains(field.saveKey)) {
-        continue;
-      }
-      final value = _submitValue(group, field);
+      final value = field.currentSubmitValue;
       values[field.saveKey] = value;
       if (field.isRequired && value.isEmpty) {
         final placeholder = field.placeholder.trim();
@@ -479,12 +439,6 @@ class _CertificationBindCardPageState extends State<CertificationBindCardPage> {
         );
         return;
       }
-    }
-    if (values.containsKey('cardNo') &&
-        values.containsKey('confirmCardNo') &&
-        values['cardNo'] != values['confirmCardNo']) {
-      await AppToast.show('The two account entries do not match');
-      return;
     }
 
     setState(() => _isSubmitting = true);
@@ -539,12 +493,12 @@ class _CertificationBindCardPageState extends State<CertificationBindCardPage> {
     return _apiClient.saveBankInfo(
       geobotanists: productId,
       heirship: groupType,
-      bladers: values['channelCode'] ?? '',
-      zips: values['firstName'] ?? '',
-      acreage: values['middleName'] ?? '',
-      coinable: values['lastName'] ?? '',
-      flabby: values['cardNo'] ?? '',
-      rapt: values['confirmCardNo'] ?? '',
+      bladers: values['bladers'] ?? '',
+      zips: values['zips'] ?? '',
+      acreage: values['acreage'] ?? '',
+      coinable: values['coinable'] ?? '',
+      flabby: values['flabby'] ?? '',
+      rapt: values['rapt'] ?? '',
       clevises: clevises,
       scolloped: scolloped,
       arrests: arrests,
@@ -656,14 +610,6 @@ class _CertificationBindCardPageState extends State<CertificationBindCardPage> {
     );
     await NavigationHelper.continueProductDetailFlow(productId);
   }
-
-  String _submitValue(BindCardGroup group, BindCardField field) {
-    final stateKey = _stateKey(group, field);
-    if (field.fieldType == BindCardFieldType.enumeration) {
-      return _selections[stateKey]?.value.trim() ?? '';
-    }
-    return _controllers[stateKey]?.text.trim() ?? '';
-  }
 }
 
 class _BindCardFaceToken {
@@ -694,561 +640,4 @@ Future<TrustDecisionLivenessResult> _defaultShowTrustDecisionLiveness(
   String license,
 ) {
   return ClientBridge().showTrustDecisionLiveness(license);
-}
-
-class _BindCardHeader extends StatelessWidget {
-  const _BindCardHeader();
-
-  @override
-  Widget build(BuildContext context) {
-    return ConstrainedBox(
-      constraints: BoxConstraints(minHeight: 48.h),
-      child: Stack(
-        alignment: Alignment.center,
-        children: [
-          Align(
-            alignment: Alignment.centerLeft,
-            child: Padding(
-              padding: EdgeInsets.only(left: 8.w),
-              child: IconButton(
-                tooltip: 'Back',
-                onPressed: Get.back,
-                constraints: const BoxConstraints.tightFor(
-                  width: 48,
-                  height: 48,
-                ),
-                padding: EdgeInsets.zero,
-                icon: Image.asset(
-                  AppAssets.loginBack,
-                  width: 23.w,
-                  height: 20.h,
-                ),
-              ),
-            ),
-          ),
-          Padding(
-            padding: EdgeInsets.symmetric(horizontal: 64.w, vertical: 4.h),
-            child: Text(
-              'Identity verification',
-              textAlign: TextAlign.center,
-              style: TextStyle(
-                color: AppColors.certificationTitleText,
-                fontSize: 20.sp,
-                fontWeight: FontWeight.w700,
-              ),
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-}
-
-class _BindCardField extends StatelessWidget {
-  const _BindCardField({
-    required this.field,
-    required this.controller,
-    required this.focusNode,
-    required this.selection,
-    required this.onPickerTap,
-    required this.showSuggestion,
-    required this.onSuggestionTap,
-    required this.onSuggestionClose,
-  });
-
-  final BindCardField field;
-  final TextEditingController? controller;
-  final FocusNode? focusNode;
-  final _BindCardSelection? selection;
-  final VoidCallback onPickerTap;
-  final bool showSuggestion;
-  final VoidCallback onSuggestionTap;
-  final VoidCallback onSuggestionClose;
-
-  @override
-  Widget build(BuildContext context) {
-    final isText = field.fieldType == BindCardFieldType.text;
-    final displayText = selection?.label.isNotEmpty == true
-        ? selection!.label
-        : field.placeholder;
-    return Stack(
-      clipBehavior: Clip.none,
-      children: [
-        Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Text(
-              field.label,
-              style: TextStyle(
-                color: AppColors.certificationFieldLabel,
-                fontSize: 12.sp,
-              ),
-            ),
-            SizedBox(height: 7.h),
-            SizedBox(
-              height: 40.h,
-              child: isText
-                  ? TextField(
-                      key: Key('bindCardField_${field.saveKey}'),
-                      controller: controller,
-                      focusNode: focusNode,
-                      decoration: _fieldDecoration(field.placeholder),
-                      style: TextStyle(
-                        color: AppColors.certificationFieldText,
-                        fontSize: 14.sp,
-                      ),
-                    )
-                  : Material(
-                      color: AppColors.certificationCardBackground,
-                      shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(20.r),
-                        side: const BorderSide(
-                          color: AppColors.certificationFieldBorder,
-                        ),
-                      ),
-                      child: InkWell(
-                        key: Key('bindCardField_${field.saveKey}'),
-                        borderRadius: BorderRadius.circular(20.r),
-                        onTap: onPickerTap,
-                        child: Padding(
-                          padding: EdgeInsets.symmetric(horizontal: 12.w),
-                          child: Row(
-                            children: [
-                              Expanded(
-                                child: Text(
-                                  displayText,
-                                  maxLines: 1,
-                                  overflow: TextOverflow.ellipsis,
-                                  style: TextStyle(
-                                    color: selection?.label.isNotEmpty == true
-                                        ? AppColors.certificationFieldText
-                                        : AppColors.certificationFieldLabel,
-                                    fontSize: 14.sp,
-                                  ),
-                                ),
-                              ),
-                              Image.asset(
-                                AppAssets.arrowRight,
-                                width: 15.w,
-                                height: 10.h,
-                                color: AppColors.profileArrowTint,
-                              ),
-                            ],
-                          ),
-                        ),
-                      ),
-                    ),
-            ),
-          ],
-        ),
-        if (isText && showSuggestion)
-          Positioned(
-            top: 0,
-            left: 0,
-            right: 25.w,
-            child: LayoutBuilder(
-              builder: (context, constraints) => Align(
-                alignment: Alignment.topRight,
-                child: _BindCardSuggestionBubble(
-                  suggestion: field.suggestedValue,
-                  maxWidth: constraints.maxWidth,
-                  onTap: onSuggestionTap,
-                  onClose: onSuggestionClose,
-                ),
-              ),
-            ),
-          ),
-      ],
-    );
-  }
-
-  InputDecoration _fieldDecoration(String placeholder) => InputDecoration(
-    hintText: placeholder,
-    hintStyle: TextStyle(
-      color: AppColors.certificationFieldLabel,
-      fontSize: 14.sp,
-    ),
-    contentPadding: EdgeInsets.symmetric(horizontal: 12.w),
-    enabledBorder: _fieldBorder(),
-    focusedBorder: _fieldBorder(),
-    border: _fieldBorder(),
-  );
-}
-
-class _BindCardSuggestionBubble extends StatelessWidget {
-  const _BindCardSuggestionBubble({
-    required this.suggestion,
-    required this.maxWidth,
-    required this.onTap,
-    required this.onClose,
-  });
-
-  final String suggestion;
-  final double maxWidth;
-  final VoidCallback onTap;
-  final VoidCallback onClose;
-
-  @override
-  Widget build(BuildContext context) {
-    return ConstrainedBox(
-      constraints: BoxConstraints(minWidth: 44.w, maxWidth: maxWidth),
-      child: IntrinsicWidth(
-        child: Semantics(
-          container: true,
-          explicitChildNodes: true,
-          button: true,
-          label: 'Apply suggestion',
-          child: GestureDetector(
-            key: const Key('bindCardSuggestionBubble'),
-            behavior: HitTestBehavior.opaque,
-            onTap: onTap,
-            child: SizedBox(
-              height: 40.h,
-              child: Stack(
-                children: [
-                  Positioned.fill(
-                    child: Image.asset(
-                      AppAssets.certificationBindCardSuggestionBubble,
-                      fit: BoxFit.fill,
-                    ),
-                  ),
-                  Padding(
-                    padding: EdgeInsets.fromLTRB(13.w, 4.h, 6.w, 12.h),
-                    child: Row(
-                      mainAxisSize: MainAxisSize.min,
-                      children: [
-                        Flexible(
-                          child: Text(
-                            suggestion,
-                            maxLines: 1,
-                            overflow: TextOverflow.ellipsis,
-                            style: TextStyle(
-                              color: AppColors.certificationSubmitText,
-                              fontSize: 16.sp,
-                              fontWeight: FontWeight.w600,
-                            ),
-                          ),
-                        ),
-                        Semantics(
-                          key: const Key('bindCardSuggestionClose'),
-                          container: true,
-                          button: true,
-                          label: 'Close suggestion',
-                          excludeSemantics: true,
-                          child: GestureDetector(
-                            behavior: HitTestBehavior.opaque,
-                            onTap: onClose,
-                            child: SizedBox(
-                              width: 24.w,
-                              height: 24.h,
-                              child: Center(
-                                child: Image.asset(
-                                  AppAssets
-                                      .certificationBindCardSuggestionClose,
-                                  width: 12.w,
-                                  height: 12.h,
-                                ),
-                              ),
-                            ),
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
-                ],
-              ),
-            ),
-          ),
-        ),
-      ),
-    );
-  }
-}
-
-OutlineInputBorder _fieldBorder() => OutlineInputBorder(
-  borderRadius: BorderRadius.circular(20.r),
-  borderSide: const BorderSide(color: AppColors.certificationFieldBorder),
-);
-
-class _BindCardFooter extends StatelessWidget {
-  const _BindCardFooter({required this.hint, required this.onSubmit});
-
-  final String hint;
-  final VoidCallback? onSubmit;
-
-  @override
-  Widget build(BuildContext context) {
-    return SafeArea(
-      top: false,
-      child: Container(
-        decoration: const BoxDecoration(
-          border: Border(
-            top: BorderSide(color: AppColors.certificationBindFooterBorder),
-          ),
-        ),
-        padding: EdgeInsets.fromLTRB(20.w, 10.h, 20.w, 20.h),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            if (hint.isNotEmpty)
-              Text(
-                hint,
-                maxLines: 2,
-                overflow: TextOverflow.ellipsis,
-                style: TextStyle(
-                  color: AppColors.certificationBindFooterText,
-                  fontSize: 12.sp,
-                ),
-              ),
-            if (hint.isNotEmpty) SizedBox(height: 8.h),
-            SizedBox(
-              height: 50.h,
-              width: double.infinity,
-              child: ElevatedButton(
-                key: const Key('bindCardSubmit'),
-                onPressed: onSubmit,
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: AppColors.certificationTabActive,
-                  foregroundColor: AppColors.certificationSubmitText,
-                  elevation: 0,
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(25.r),
-                  ),
-                ),
-                child: Text('Submit', style: TextStyle(fontSize: 18.sp)),
-              ),
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-}
-
-class _BindCardSelection {
-  const _BindCardSelection({required this.value, required this.label});
-
-  final String value;
-  final String label;
-}
-
-Future<BindCardOption?> _showOptionSheet(
-  BuildContext context,
-  List<BindCardOption> options,
-  String? initialValue,
-) {
-  return showModalBottomSheet<BindCardOption>(
-    context: context,
-    backgroundColor: Colors.transparent,
-    barrierColor: AppColors.uploadMethodBarrier,
-    isScrollControlled: true,
-    builder: (_) =>
-        _BindCardOptionSheet(options: options, initialValue: initialValue),
-  );
-}
-
-class _BindCardOptionSheet extends StatefulWidget {
-  const _BindCardOptionSheet({
-    required this.options,
-    required this.initialValue,
-  });
-
-  final List<BindCardOption> options;
-  final String? initialValue;
-
-  @override
-  State<_BindCardOptionSheet> createState() => _BindCardOptionSheetState();
-}
-
-class _BindCardOptionSheetState extends State<_BindCardOptionSheet> {
-  static const _maximumVisibleOptions = 5;
-  static const _optionHeight = 46.0;
-  static const _optionSpacing = 12.0;
-
-  final ScrollController _scrollController = ScrollController();
-  BindCardOption? _selected;
-
-  @override
-  void initState() {
-    super.initState();
-    _selected = widget.options
-        .where((option) => option.value == widget.initialValue)
-        .firstOrNull;
-    final initialIndex = widget.options.indexWhere(
-      (option) => option.value == widget.initialValue,
-    );
-    if (initialIndex >= _maximumVisibleOptions) {
-      WidgetsBinding.instance.addPostFrameCallback((_) {
-        if (!_scrollController.hasClients) {
-          return;
-        }
-        final requestedOffset =
-            (initialIndex * (_optionHeight + _optionSpacing)).h;
-        _scrollController.jumpTo(
-          requestedOffset
-              .clamp(0.0, _scrollController.position.maxScrollExtent)
-              .toDouble(),
-        );
-      });
-    }
-  }
-
-  @override
-  void dispose() {
-    _scrollController.dispose();
-    super.dispose();
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    return Padding(
-      padding: EdgeInsets.fromLTRB(15.w, 0, 15.w, 13.h),
-      child: DecoratedBox(
-        decoration: BoxDecoration(
-          color: AppColors.uploadMethodSheetBackground,
-          borderRadius: BorderRadius.circular(24.r),
-        ),
-        child: Padding(
-          padding: EdgeInsets.fromLTRB(16.w, 24.h, 16.w, 15.h),
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              SizedBox(
-                key: const Key('bindCardOptionList'),
-                height: _optionListHeight,
-                child: ListView.separated(
-                  controller: _scrollController,
-                  shrinkWrap: true,
-                  physics: widget.options.length > _maximumVisibleOptions
-                      ? const ClampingScrollPhysics()
-                      : const NeverScrollableScrollPhysics(),
-                  itemCount: widget.options.length,
-                  separatorBuilder: (_, _) => SizedBox(height: 12.h),
-                  itemBuilder: (_, index) {
-                    final option = widget.options[index];
-                    final selected = option.value == _selected?.value;
-                    return GestureDetector(
-                      onTap: () => setState(() => _selected = option),
-                      child: Container(
-                        height: 46.h,
-                        color: selected ? AppColors.uploadMethodSelected : null,
-                        child: Row(
-                          children: [
-                            SizedBox(width: 12.w),
-                            _BusinessLogo(url: option.logoUrl),
-                            SizedBox(width: 12.w),
-                            Expanded(
-                              child: Text(
-                                option.label,
-                                maxLines: 1,
-                                overflow: TextOverflow.ellipsis,
-                                style: TextStyle(
-                                  color: AppColors.uploadMethodText,
-                                  fontSize: 18.sp,
-                                ),
-                              ),
-                            ),
-                          ],
-                        ),
-                      ),
-                    );
-                  },
-                ),
-              ),
-              SizedBox(height: 24.h),
-              SizedBox(
-                height: 46.h,
-                child: Row(
-                  children: [
-                    Expanded(
-                      child: _SheetButton(
-                        label: 'Cancel',
-                        background: AppColors.uploadMethodCancelBackground,
-                        textColor: AppColors.uploadMethodCancelText,
-                        onTap: () => Navigator.of(context).pop(),
-                      ),
-                    ),
-                    SizedBox(width: 20.w),
-                    Expanded(
-                      child: _SheetButton(
-                        label: 'Done',
-                        background: AppColors.uploadMethodDoneBackground,
-                        textColor: AppColors.uploadMethodDoneText,
-                        onTap: () => Navigator.of(context).pop(_selected),
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-            ],
-          ),
-        ),
-      ),
-    );
-  }
-
-  double get _optionListHeight {
-    final visibleOptionCount = widget.options.length.clamp(
-      0,
-      _maximumVisibleOptions,
-    );
-    if (visibleOptionCount == 0) {
-      return 0;
-    }
-    return visibleOptionCount * _optionHeight.h +
-        (visibleOptionCount - 1) * _optionSpacing.h;
-  }
-}
-
-class _BusinessLogo extends StatelessWidget {
-  const _BusinessLogo({required this.url});
-
-  final String url;
-
-  @override
-  Widget build(BuildContext context) {
-    if (url.isEmpty) {
-      return SizedBox(width: 30.w, height: 30.h);
-    }
-    return Image.network(
-      url,
-      width: 30.w,
-      height: 30.h,
-      fit: BoxFit.contain,
-      errorBuilder: (_, _, _) => SizedBox(width: 30.w, height: 30.h),
-    );
-  }
-}
-
-class _SheetButton extends StatelessWidget {
-  const _SheetButton({
-    required this.label,
-    required this.background,
-    required this.textColor,
-    required this.onTap,
-  });
-
-  final String label;
-  final Color background;
-  final Color textColor;
-  final VoidCallback onTap;
-
-  @override
-  Widget build(BuildContext context) {
-    return GestureDetector(
-      onTap: onTap,
-      child: DecoratedBox(
-        decoration: BoxDecoration(
-          color: background,
-          borderRadius: BorderRadius.circular(24.r),
-        ),
-        child: Center(
-          child: Text(
-            label,
-            style: TextStyle(color: textColor, fontSize: 18.sp),
-          ),
-        ),
-      ),
-    );
-  }
 }

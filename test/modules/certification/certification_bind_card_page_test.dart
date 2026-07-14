@@ -123,6 +123,112 @@ void main() {
     expect(find.text('Metro Bank'), findsOneWidget);
   });
 
+  testWidgets('bind card option content centers until label needs ellipsis', (
+    tester,
+  ) async {
+    const shortLabel = 'GCash';
+    const noLogoLabel = 'Maya';
+    const longLabel =
+        'This payment provider name is intentionally too long for the row';
+    apiClient.states = _optionLayoutStates(
+      shortLabel: shortLabel,
+      noLogoLabel: noLogoLabel,
+      longLabel: longLabel,
+    );
+    await _pumpPage(tester, apiClient: apiClient, arguments: _arguments());
+    await tester.pumpAndSettle();
+
+    await tester.tap(find.byKey(const Key('bindCardField_provider')));
+    await tester.pumpAndSettle();
+
+    final shortRow = find.byKey(const Key('bindCardOptionRow_0'));
+    final shortContent = find.byKey(const Key('bindCardOptionContent_0'));
+    final shortRowRect = tester.getRect(shortRow);
+    final shortContentRect = tester.getRect(shortContent);
+    final shortLogoRect = tester.getRect(
+      find.descendant(of: shortContent, matching: find.byType(Image)),
+    );
+    final shortTextRect = tester.getRect(
+      find.descendant(of: shortContent, matching: find.text(shortLabel)),
+    );
+    final shortVisibleCenter = (shortLogoRect.left + shortTextRect.right) / 2;
+    expect(shortContentRect.width, lessThan(shortRowRect.width));
+    expect(shortContentRect.center.dx, closeTo(shortRowRect.center.dx, 0.5));
+    expect(shortVisibleCenter, closeTo(shortRowRect.center.dx, 0.5));
+
+    final noLogoRow = find.byKey(const Key('bindCardOptionRow_1'));
+    final noLogoContent = find.byKey(const Key('bindCardOptionContent_1'));
+    final noLogoRowRect = tester.getRect(noLogoRow);
+    final noLogoContentRect = tester.getRect(noLogoContent);
+    expect(noLogoContentRect.width, lessThan(noLogoRowRect.width));
+    expect(noLogoContentRect.center.dx, closeTo(noLogoRowRect.center.dx, 0.5));
+    expect(
+      find.descendant(of: noLogoContent, matching: find.byType(Image)),
+      findsNothing,
+    );
+
+    final longRow = find.byKey(const Key('bindCardOptionRow_2'));
+    final longContent = find.byKey(const Key('bindCardOptionContent_2'));
+    final longTextFinder = find.descendant(
+      of: longContent,
+      matching: find.text(longLabel),
+    );
+    final longText = tester.widget<Text>(longTextFinder);
+    final longRowRect = tester.getRect(longRow);
+    final longContentRect = tester.getRect(longContent);
+    final longTextRect = tester.getRect(longTextFinder);
+    expect(longText.maxLines, 1);
+    expect(longText.overflow, TextOverflow.ellipsis);
+    expect(longContentRect.left, greaterThanOrEqualTo(longRowRect.left));
+    expect(longContentRect.right, lessThanOrEqualTo(longRowRect.right));
+    expect(longTextRect.left, greaterThanOrEqualTo(longRowRect.left));
+    expect(longTextRect.right, lessThanOrEqualTo(longRowRect.right));
+
+    final longLogo = find.descendant(
+      of: longContent,
+      matching: find.byType(Image),
+    );
+    expect(longLogo, findsOneWidget);
+    expect(tester.getSize(longLogo), const Size(30, 30));
+    expect(tester.takeException(), isNull);
+  });
+
+  testWidgets('bind card option row blank space remains tappable', (
+    tester,
+  ) async {
+    const noLogoLabel = 'Maya';
+    apiClient.states = _optionLayoutStates(
+      shortLabel: 'GCash',
+      noLogoLabel: noLogoLabel,
+      longLabel:
+          'This payment provider name is intentionally too long for the row',
+    );
+    await _pumpPage(tester, apiClient: apiClient, arguments: _arguments());
+    await tester.pumpAndSettle();
+
+    await tester.tap(find.byKey(const Key('bindCardField_provider')));
+    await tester.pumpAndSettle();
+
+    final optionRowRect = tester.getRect(
+      find.byKey(const Key('bindCardOptionRow_1')),
+    );
+    final optionContentRect = tester.getRect(
+      find.byKey(const Key('bindCardOptionContent_1')),
+    );
+    final blankSpacePoint = Offset(
+      optionRowRect.left + 2,
+      optionRowRect.center.dy,
+    );
+    expect(blankSpacePoint.dx, lessThan(optionContentRect.left));
+
+    await tester.tapAt(blankSpacePoint);
+    await tester.pump();
+    await tester.tap(find.text('Done'));
+    await tester.pumpAndSettle();
+
+    expect(find.text(noLogoLabel), findsOneWidget);
+  });
+
   testWidgets('text field displays initial value instead of display value', (
     tester,
   ) async {
@@ -131,7 +237,7 @@ void main() {
     await tester.pumpAndSettle();
 
     final firstName = tester.widget<TextField>(
-      find.byKey(const Key('bindCardField_firstName')),
+      find.byKey(const Key('bindCardField_zips')),
     );
     expect(firstName.controller!.text, 'Shown Name');
     expect(find.text('Suggested Name'), findsNothing);
@@ -537,20 +643,23 @@ void main() {
     expect(apiClient.saveRequests, isEmpty);
   });
 
-  testWidgets('different account entries do not call save API', (tester) async {
-    apiClient.states = _submissionStates(
-      initialCardNo: '09170000000',
-      initialConfirmCardNo: '09171111111',
-    );
-    await _pumpPage(tester, apiClient: apiClient, arguments: _arguments());
-    await tester.pumpAndSettle();
+  testWidgets(
+    'different account entries follow the server submission contract',
+    (tester) async {
+      apiClient.states = _submissionStates(
+        initialCardNo: '09170000000',
+        initialConfirmCardNo: '09171111111',
+      );
+      await _pumpPage(tester, apiClient: apiClient, arguments: _arguments());
+      await tester.pumpAndSettle();
 
-    await tester.tap(find.byKey(const Key('bindCardSubmit')));
-    await tester.pumpAndSettle();
+      await tester.tap(find.byKey(const Key('bindCardSubmit')));
+      await tester.pumpAndSettle();
 
-    expect(toastPresenter.messages, ['The two account entries do not match']);
-    expect(apiClient.saveRequests, isEmpty);
-  });
+      expect(toastPresenter.messages, isEmpty);
+      expect(apiClient.saveRequests, hasLength(1));
+    },
+  );
 
   testWidgets('submits documented string fields once', (tester) async {
     apiClient.states = _submissionStates();
@@ -1023,25 +1132,22 @@ void main() {
 }
 
 Future<void> _fillSubmissionForm(WidgetTester tester) async {
-  await tester.tap(find.byKey(const Key('bindCardField_channelCode')));
+  await tester.tap(find.byKey(const Key('bindCardField_bladers')));
   await tester.pumpAndSettle();
   await tester.tap(find.text('GCash').last);
   await tester.tap(find.text('Done'));
   await tester.pumpAndSettle();
+  await tester.enterText(find.byKey(const Key('bindCardField_zips')), ' Jane ');
   await tester.enterText(
-    find.byKey(const Key('bindCardField_firstName')),
-    ' Jane ',
-  );
-  await tester.enterText(
-    find.byKey(const Key('bindCardField_lastName')),
+    find.byKey(const Key('bindCardField_coinable')),
     ' Doe ',
   );
   await tester.enterText(
-    find.byKey(const Key('bindCardField_cardNo')),
+    find.byKey(const Key('bindCardField_flabby')),
     ' 09171234567 ',
   );
   await tester.enterText(
-    find.byKey(const Key('bindCardField_confirmCardNo')),
+    find.byKey(const Key('bindCardField_rapt')),
     '09171234567',
   );
 }
@@ -1197,6 +1303,40 @@ Map<String, dynamic> _bindCardStates({
   ],
 };
 
+Map<String, dynamic> _optionLayoutStates({
+  required String shortLabel,
+  required String noLogoLabel,
+  required String longLabel,
+}) => {
+  'enthrones': [
+    {
+      'primogenitor': 'E-wallet',
+      'commensurate': 'wallet',
+      'enthrones': [
+        {
+          'primogenitor': 'Provider',
+          'griding': 'provider',
+          'suppletive': 'Choose a provider',
+          'prognosticator': 'Metallike',
+          'metallurgists': [
+            {
+              'commensurate': 'short',
+              'unwits': shortLabel,
+              'vocalically': 'https://api.example.com/short.png',
+            },
+            {'commensurate': 'no-logo', 'unwits': noLogoLabel},
+            {
+              'commensurate': 'long',
+              'unwits': longLabel,
+              'vocalically': 'https://api.example.com/long.png',
+            },
+          ],
+        },
+      ],
+    },
+  ],
+};
+
 Map<String, dynamic> _suggestionStates() => {
   'enthrones': [
     {
@@ -1307,7 +1447,7 @@ Map<String, dynamic> _submissionStates({
       'enthrones': [
         {
           'primogenitor': 'Channel',
-          'griding': 'channelCode',
+          'griding': 'bladers',
           'suppletive': 'Choose a channel',
           'prognosticator': 'Metallike',
           'hairbreadth': 0,
@@ -1319,7 +1459,7 @@ Map<String, dynamic> _submissionStates({
         },
         {
           'primogenitor': 'First name',
-          'griding': 'firstName',
+          'griding': 'zips',
           'suppletive': 'Enter your first name',
           'prognosticator': 'Foxfishes',
           'hairbreadth': 0,
@@ -1327,14 +1467,14 @@ Map<String, dynamic> _submissionStates({
         },
         {
           'primogenitor': 'Middle name',
-          'griding': 'middleName',
+          'griding': 'acreage',
           'suppletive': '',
           'prognosticator': 'Foxfishes',
           'hairbreadth': 1,
         },
         {
           'primogenitor': 'Last name',
-          'griding': 'lastName',
+          'griding': 'coinable',
           'suppletive': 'Enter your last name',
           'prognosticator': 'Foxfishes',
           'hairbreadth': 0,
@@ -1342,7 +1482,7 @@ Map<String, dynamic> _submissionStates({
         },
         {
           'primogenitor': 'Account number',
-          'griding': 'cardNo',
+          'griding': 'flabby',
           'suppletive': 'Enter account number',
           'prognosticator': 'Foxfishes',
           'hairbreadth': 0,
@@ -1350,7 +1490,7 @@ Map<String, dynamic> _submissionStates({
         },
         {
           'primogenitor': 'Confirm account number',
-          'griding': 'confirmCardNo',
+          'griding': 'rapt',
           'suppletive': 'Confirm account number',
           'prognosticator': 'Foxfishes',
           'hairbreadth': 0,
@@ -1379,7 +1519,7 @@ Map<String, dynamic> _initialValueStates() => {
       'enthrones': [
         {
           'primogenitor': 'Bank',
-          'griding': 'channelCode',
+          'griding': 'bladers',
           'suppletive': 'Choose a bank',
           'prognosticator': 'Metallike',
           'hairbreadth': 0,
@@ -1392,7 +1532,7 @@ Map<String, dynamic> _initialValueStates() => {
         },
         {
           'primogenitor': 'First name',
-          'griding': 'firstName',
+          'griding': 'zips',
           'suppletive': 'First name',
           'prognosticator': 'Foxfishes',
           'hairbreadth': 0,
@@ -1401,27 +1541,27 @@ Map<String, dynamic> _initialValueStates() => {
         },
         {
           'primogenitor': 'Middle name',
-          'griding': 'middleName',
+          'griding': 'acreage',
           'prognosticator': 'Foxfishes',
           'hairbreadth': 1,
         },
         {
           'primogenitor': 'Last name',
-          'griding': 'lastName',
+          'griding': 'coinable',
           'prognosticator': 'Foxfishes',
           'hairbreadth': 0,
           'solonets': 'Doe',
         },
         {
           'primogenitor': 'Account number',
-          'griding': 'cardNo',
+          'griding': 'flabby',
           'prognosticator': 'Foxfishes',
           'hairbreadth': 0,
           'solonets': '09171234567',
         },
         {
           'primogenitor': 'Confirm account number',
-          'griding': 'confirmCardNo',
+          'griding': 'rapt',
           'prognosticator': 'Foxfishes',
           'hairbreadth': 0,
           'solonets': '09171234567',

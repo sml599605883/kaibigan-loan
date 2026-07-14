@@ -13,8 +13,10 @@ import '../../utils/screen_adapter.dart';
 import 'models/address_option.dart';
 import 'models/personal_info_field.dart';
 import 'models/personal_info_option.dart';
+import 'models/salary_day_option.dart';
 import 'widgets/certification_address_selection_sheet.dart';
 import 'widgets/certification_prompt_banner.dart';
+import 'widgets/certification_salary_day_selection_sheet.dart';
 import 'widgets/certification_selection_sheet.dart';
 
 class CertificationPersonalInfoPage extends StatefulWidget {
@@ -42,6 +44,8 @@ class _CertificationPersonalInfoPageState
   List<PersonalInfoField> _fields = <PersonalInfoField>[];
   List<AddressOption>? _cachedAddressOptions;
   Future<List<AddressOption>>? _addressOptionsFuture;
+  final Map<String, List<SalaryDayGroup>> _salaryDayOptions = {};
+  final Map<String, SalaryDaySelection> _salaryDaySelections = {};
   late final int _sceneStartTimeSeconds;
 
   @override
@@ -72,8 +76,26 @@ class _CertificationPersonalInfoPageState
           ? await ApiClient.instance.jobInfo(geobotanists: productId)
           : await ApiClient.instance.personalInfo(geobotanists: productId);
       final fields = <PersonalInfoField>[];
+      _salaryDayOptions.clear();
+      _salaryDaySelections.clear();
       for (final json in response.states['enthrones'].listValue) {
         final field = PersonalInfoField.fromJson(json);
+        if (widget._kind == _CertificationInfoKind.work &&
+            field.keyName == 'passwords') {
+          final options = SalaryDayGroup.parseList(json['metallurgists']);
+          if (options.isNotEmpty) {
+            _salaryDayOptions[field.keyName] = options;
+            final selection = SalaryDaySelection.fromCurrentValue(
+              options,
+              field.selectedValue,
+            );
+            if (selection != null) {
+              _salaryDaySelections[field.keyName] = selection;
+              field.selectedValue = selection.submitValue;
+              field.controller.text = selection.displayText;
+            }
+          }
+        }
         if (field.keyName.isNotEmpty && field.isSupported) {
           fields.add(field);
         } else {
@@ -225,11 +247,36 @@ class _CertificationPersonalInfoPageState
   }
 
   Future<void> _handleFieldTap(PersonalInfoField field) async {
+    if (widget._kind == _CertificationInfoKind.work &&
+        field.keyName == 'passwords') {
+      await _selectSalaryDay(field);
+      return;
+    }
     if (field.usesAddressPicker) {
       await _selectAddress(field);
       return;
     }
     await _selectOption(field);
+  }
+
+  Future<void> _selectSalaryDay(PersonalInfoField field) async {
+    final options = _salaryDayOptions[field.keyName];
+    if (options == null || options.isEmpty) {
+      return;
+    }
+    final selection = await showCertificationSalaryDaySelectionSheet(
+      context: context,
+      options: options,
+      initialSelection: _salaryDaySelections[field.keyName],
+    );
+    if (selection == null || !mounted) {
+      return;
+    }
+    setState(() {
+      _salaryDaySelections[field.keyName] = selection;
+      field.selectedValue = selection.submitValue;
+      field.controller.text = selection.displayText;
+    });
   }
 
   Future<void> _selectOption(PersonalInfoField field) async {

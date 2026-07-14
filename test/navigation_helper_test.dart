@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:dio/dio.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
@@ -8,7 +10,11 @@ import 'package:kaibigan_loan/src/core/network/api_client.dart';
 import 'package:kaibigan_loan/src/core/network/api_config.dart';
 import 'package:kaibigan_loan/src/core/network/api_exception.dart';
 import 'package:kaibigan_loan/src/core/network/api_response.dart';
+import 'package:kaibigan_loan/src/core/report/report_cache.dart';
+import 'package:kaibigan_loan/src/core/report/report_manager.dart';
 import 'package:kaibigan_loan/src/core/report/report_models.dart';
+import 'package:kaibigan_loan/src/core/report/report_native_bridge.dart';
+import 'package:kaibigan_loan/src/core/report/report_network.dart';
 import 'package:kaibigan_loan/src/core/session/session_store.dart';
 import 'package:kaibigan_loan/src/modules/main/main_controller.dart';
 import 'package:kaibigan_loan/src/modules/orders/order_list_models.dart';
@@ -458,6 +464,52 @@ void main() {
       });
     },
   );
+
+  testWidgets('reports scene 9 after order redirect succeeds', (tester) async {
+    final reportManager = _RecordingReportManager();
+    final redirectResponse = Completer<ApiResponse>();
+    Get.put<ReportManager>(reportManager);
+    apiClient.pendingOrderRedirectResponse = redirectResponse;
+    apiClient.productDetailStates = {
+      'threats': 200,
+      'sensitized': {
+        'cabdrivers': 'product-11',
+        'chattinesses': 'ORDER002',
+        'ecumenicalism': '3000',
+        'desertifying': '91',
+        'tythes': '1',
+      },
+    };
+    await _pumpRoutes(tester);
+
+    final navigation = NavigationHelper.navigateRawTarget(
+      'ph://kaibigan-loan/ios/AlderwomenProtozoology?geobotanists=product-11',
+    );
+    await tester.pump();
+
+    expect(apiClient.orderRedirectRequests, hasLength(1));
+    expect(reportManager.riskReports, isEmpty);
+
+    final responseTimeSeconds = DateTime.now().millisecondsSinceEpoch ~/ 1000;
+    redirectResponse.complete(
+      ApiResponse(
+        code: 0,
+        message: 'success',
+        states: Json({'bloomeries': 'https://h5.example.test/confirm'}),
+      ),
+    );
+    await navigation;
+    await tester.pumpAndSettle();
+
+    expect(reportManager.riskReports, hasLength(1));
+    expect(reportManager.riskReports.single['productId'], 'product-11');
+    expect(reportManager.riskReports.single['sceneType'], '9');
+    expect(reportManager.riskReports.single['orderNo'], 'ORDER002');
+    expect(
+      reportManager.riskReports.single['startTimeSeconds'],
+      greaterThanOrEqualTo(responseTimeSeconds),
+    );
+  });
 
   testWidgets('fetches product detail before opening detail page', (
     tester,
@@ -926,6 +978,7 @@ class _FakeApiClient extends ApiClient {
   Map<String, dynamic> applyStates = <String, dynamic>{};
   Map<String, dynamic>? productDetailStates;
   Map<String, dynamic> orderRedirectStates = <String, dynamic>{};
+  Completer<ApiResponse>? pendingOrderRedirectResponse;
   Object? productDetailError;
 
   @override
@@ -969,11 +1022,43 @@ class _FakeApiClient extends ApiClient {
       'desertifying': desertifying,
       'tythes': tythes,
     });
+    final pendingResponse = pendingOrderRedirectResponse;
+    if (pendingResponse != null) {
+      return pendingResponse.future;
+    }
     return ApiResponse(
       code: 0,
       message: 'success',
       states: Json(orderRedirectStates),
     );
+  }
+}
+
+class _RecordingReportManager extends ReportManager {
+  _RecordingReportManager()
+    : super(
+        cache: SharedPreferencesReportCache(
+          sessionStore: SessionStore.instance,
+        ),
+        nativeBridge: MethodChannelReportNativeBridge(),
+        network: ApiClientReportNetwork(ApiClient.instance),
+      );
+
+  final riskReports = <Map<String, Object>>[];
+
+  @override
+  Future<void> reportRiskBehavior({
+    required String productId,
+    required String sceneType,
+    required String orderNo,
+    required int startTimeSeconds,
+  }) async {
+    riskReports.add({
+      'productId': productId,
+      'sceneType': sceneType,
+      'orderNo': orderNo,
+      'startTimeSeconds': startTimeSeconds,
+    });
   }
 }
 
