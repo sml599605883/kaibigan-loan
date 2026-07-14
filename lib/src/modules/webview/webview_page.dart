@@ -11,6 +11,7 @@ import '../../core/report/report_manager.dart';
 import '../../navigation_helper.dart';
 import '../../theme/app_colors.dart';
 import '../../utils/app_toast.dart';
+import '../account/account_list_models.dart';
 import 'webview_bridge_constants.dart';
 import 'webview_bridge_dispatcher.dart';
 import 'webview_bridge_models.dart';
@@ -21,6 +22,16 @@ bool isInlineWebViewScheme(String scheme) => switch (scheme.toLowerCase()) {
 };
 
 bool shouldCloseWebView({required bool canGoBack}) => !canGoBack;
+
+bool canUseActiveWebViewController({
+  required bool mounted,
+  required Object? activeController,
+  required Object? controller,
+}) {
+  return mounted &&
+      activeController != null &&
+      identical(activeController, controller);
+}
 
 class WebViewPage extends StatefulWidget {
   const WebViewPage({super.key, required this.initialUrl, this.initialTitle});
@@ -79,6 +90,16 @@ class _WebViewPageState extends State<WebViewPage> with WidgetsBindingObserver {
         );
         return response.states['bloomeries'].stringValue.trim();
       },
+      changeAccount: ({required productId, required orderNo}) async {
+        final route = NavigationHelper.toAccountList<AccountListItem>(
+          productId: productId,
+          orderNo: orderNo,
+        );
+        if (route == null) {
+          return false;
+        }
+        return (await route) != null;
+      },
       showError: AppToast.error,
     );
   }
@@ -86,7 +107,8 @@ class _WebViewPageState extends State<WebViewPage> with WidgetsBindingObserver {
   @override
   void dispose() {
     _appForeground = false;
-    _syncBridgeState();
+    _controller = null;
+    _bridgeEnabled = false;
     WidgetsBinding.instance.removeObserver(this);
     super.dispose();
   }
@@ -144,7 +166,21 @@ class _WebViewPageState extends State<WebViewPage> with WidgetsBindingObserver {
     if (uri == null || controller == null) {
       return;
     }
+    if (!canUseActiveWebViewController(
+      mounted: mounted,
+      activeController: _controller,
+      controller: controller,
+    )) {
+      return;
+    }
     final currentUri = await controller.getUrl();
+    if (!canUseActiveWebViewController(
+      mounted: mounted,
+      activeController: _controller,
+      controller: controller,
+    )) {
+      return;
+    }
     if (currentUri?.toString().trim() == uri.toString()) {
       await controller.reload();
       return;
@@ -154,14 +190,27 @@ class _WebViewPageState extends State<WebViewPage> with WidgetsBindingObserver {
 
   Future<void> _handleBackPressed() async {
     final controller = _controller;
-    if (!mounted) {
+    if (controller == null) {
+      if (mounted) {
+        Get.back<void>();
+      }
       return;
     }
-    if (controller == null) {
-      Get.back<void>();
+    if (!canUseActiveWebViewController(
+      mounted: mounted,
+      activeController: _controller,
+      controller: controller,
+    )) {
       return;
     }
     final canGoBack = await controller.canGoBack();
+    if (!canUseActiveWebViewController(
+      mounted: mounted,
+      activeController: _controller,
+      controller: controller,
+    )) {
+      return;
+    }
     if (shouldCloseWebView(canGoBack: canGoBack)) {
       Get.back<void>();
       return;

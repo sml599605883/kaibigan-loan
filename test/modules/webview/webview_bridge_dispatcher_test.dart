@@ -4,6 +4,39 @@ import 'package:kaibigan_loan/src/modules/webview/webview_bridge_dispatcher.dart
 import 'package:kaibigan_loan/src/modules/webview/webview_bridge_models.dart';
 
 void main() {
+  test('uses the documented H5 action names', () {
+    expect(
+      WebViewBridgeActionNames.uploadRiskLoan,
+      'kaibigan_loan_TAAlKuFPyTVAexW',
+    );
+    expect(
+      WebViewBridgeActionNames.openExternalBrowser,
+      'kaibigan_loan_I6SZup98Aee801D',
+    );
+    expect(
+      WebViewBridgeActionNames.openScheme,
+      'kaibigan_loan_2rMMZjOR10rkmxP',
+    );
+    expect(WebViewBridgeActionNames.closePage, 'kaibigan_loan_cmag9tFa527yie7');
+    expect(
+      WebViewBridgeActionNames.backToHome,
+      'kaibigan_loan_6FBoMqtSpneEbkM',
+    );
+    expect(WebViewBridgeActionNames.toGrade, 'kaibigan_loan_x2xWItx6A1zrRnI');
+    expect(
+      WebViewBridgeActionNames.retryOrder,
+      'kaibigan_loan_zludGTQUWOfJiDD',
+    );
+    expect(
+      WebViewBridgeActionNames.changeAccount,
+      'kaibigan_loan_tG1ScTBB2N4bouJ',
+    );
+    expect(
+      WebViewBridgeActionNames.requestCommonParams,
+      'kaibigan_loan_WFWkobV9cU2jiDg',
+    );
+  });
+
   test('opens HTTP scheme in a new app WebView', () async {
     String? openedUrl;
     final dispatcher = WebViewBridgeDispatcher(
@@ -80,21 +113,75 @@ void main() {
   });
 
   test(
-    'reserved account change returns an explicit unavailable result',
+    'opens account selection with the H5 product and order fields',
     () async {
-      final dispatcher = WebViewBridgeDispatcher();
+      String? selectedProductId;
+      String? selectedOrderNo;
+      final dispatcher = WebViewBridgeDispatcher(
+        changeAccount: ({required productId, required orderNo}) async {
+          selectedProductId = productId;
+          selectedOrderNo = orderNo;
+          return true;
+        },
+      );
 
       final result = await dispatcher.dispatch(
         _request(
           WebViewBridgeActionNames.changeAccount,
-          const <String, dynamic>{},
+          const <String, dynamic>{
+            'seamounts': 'product-1',
+            'chattinesses': 'ORDER001',
+          },
         ),
       );
 
-      expect(result.code, -3);
-      expect(result.message, 'Account change is not available');
+      expect(result.code, 0);
+      expect(selectedProductId, 'product-1');
+      expect(selectedOrderNo, 'ORDER001');
     },
   );
+
+  test('reads H5 risk and retry payload fields', () async {
+    String? riskProductId;
+    String? riskOrderNo;
+    String? retriedOrderNo;
+    String? loadedUrl;
+    final dispatcher = WebViewBridgeDispatcher(
+      reportRisk:
+          ({
+            required productId,
+            required orderNo,
+            required startTimeSeconds,
+          }) async {
+            riskProductId = productId;
+            riskOrderNo = orderNo;
+          },
+      retryOrder: (orderNo) async {
+        retriedOrderNo = orderNo;
+        return 'https://example.test/retry';
+      },
+      reloadOrOpenInWebView: (url) async => loadedUrl = url,
+    );
+
+    final riskResult = await dispatcher.dispatch(
+      _request(WebViewBridgeActionNames.uploadRiskLoan, const <String, dynamic>{
+        'seamounts': 'product-2',
+        'chattinesses': 'ORDER002',
+      }),
+    );
+    final retryResult = await dispatcher.dispatch(
+      _request(WebViewBridgeActionNames.retryOrder, const <String, dynamic>{
+        'chattinesses': 'ORDER003',
+      }),
+    );
+
+    expect(riskResult.code, 0);
+    expect(riskProductId, 'product-2');
+    expect(riskOrderNo, 'ORDER002');
+    expect(retryResult.code, 0);
+    expect(retriedOrderNo, 'ORDER003');
+    expect(loadedUrl, 'https://example.test/retry');
+  });
 
   test('rejects unsupported actions', () async {
     final result = await WebViewBridgeDispatcher().dispatch(

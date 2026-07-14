@@ -12,6 +12,8 @@ typedef WebViewExternalUrlHandler = Future<bool> Function(Uri uri);
 typedef WebViewSignedParamsBuilder =
     Future<Map<String, dynamic>> Function(String path);
 typedef WebViewRetryOrder = Future<String> Function(String orderNo);
+typedef WebViewChangeAccount =
+    Future<bool> Function({required String productId, required String orderNo});
 typedef WebViewErrorPresenter = Future<void> Function(String message);
 
 class WebViewBridgeDispatcher {
@@ -26,6 +28,7 @@ class WebViewBridgeDispatcher {
     this.requestAppReview,
     this.buildSignedParams,
     this.retryOrder,
+    this.changeAccount,
     this.showError,
   });
 
@@ -39,6 +42,7 @@ class WebViewBridgeDispatcher {
   final Future<void> Function()? requestAppReview;
   final WebViewSignedParamsBuilder? buildSignedParams;
   final WebViewRetryOrder? retryOrder;
+  final WebViewChangeAccount? changeAccount;
   final WebViewErrorPresenter? showError;
 
   Future<WebViewBridgeResult> dispatch(WebViewBridgeRequest request) async {
@@ -64,10 +68,7 @@ class WebViewBridgeDispatcher {
         case WebViewBridgeActionNames.retryOrder:
           return _retryOrder(request);
         case WebViewBridgeActionNames.changeAccount:
-          return WebViewBridgeResult.failure(
-            'Account change is not available',
-            code: -3,
-          );
+          return _changeAccount(request);
         default:
           return WebViewBridgeResult.failure(
             'Unsupported action: ${request.action}',
@@ -85,13 +86,16 @@ class WebViewBridgeDispatcher {
   }
 
   Future<WebViewBridgeResult> _reportRisk(WebViewBridgeRequest request) async {
-    final productId = _readValue(request, const <String>['productId']);
+    final productId = _readValue(request, const <String>[
+      'seamounts',
+      'productId',
+    ]);
     if (productId.isEmpty) {
       return WebViewBridgeResult.failure('Missing productId');
     }
     await reportRisk?.call(
       productId: productId,
-      orderNo: _readValue(request, const <String>['orderNo']),
+      orderNo: _readValue(request, const <String>['chattinesses', 'orderNo']),
       startTimeSeconds: DateTime.now().millisecondsSinceEpoch ~/ 1000,
     );
     return WebViewBridgeResult.success();
@@ -145,7 +149,10 @@ class WebViewBridgeDispatcher {
   }
 
   Future<WebViewBridgeResult> _retryOrder(WebViewBridgeRequest request) async {
-    final orderNo = _readValue(request, const <String>['orderNo']);
+    final orderNo = _readValue(request, const <String>[
+      'chattinesses',
+      'orderNo',
+    ]);
     if (orderNo.isEmpty) {
       return WebViewBridgeResult.failure('Missing orderNo');
     }
@@ -155,6 +162,29 @@ class WebViewBridgeDispatcher {
     }
     await reloadOrOpenInWebView?.call(url.trim());
     return WebViewBridgeResult.success();
+  }
+
+  Future<WebViewBridgeResult> _changeAccount(
+    WebViewBridgeRequest request,
+  ) async {
+    final productId = _readValue(request, const <String>[
+      'seamounts',
+      'productId',
+    ]);
+    final orderNo = _readValue(request, const <String>[
+      'chattinesses',
+      'orderNo',
+    ]);
+    if (productId.isEmpty || orderNo.isEmpty) {
+      return WebViewBridgeResult.failure('Missing account information');
+    }
+    final changed = await changeAccount?.call(
+      productId: productId,
+      orderNo: orderNo,
+    );
+    return changed == true
+        ? WebViewBridgeResult.success()
+        : WebViewBridgeResult.failure('Account change was canceled');
   }
 
   String _readValue(WebViewBridgeRequest request, List<String> keys) {
