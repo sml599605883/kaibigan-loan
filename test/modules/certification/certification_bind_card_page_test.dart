@@ -111,6 +111,37 @@ void main() {
     expect(find.text('Metro Bank'), findsOneWidget);
   });
 
+  testWidgets('text field displays initial value instead of display value', (
+    tester,
+  ) async {
+    apiClient.states = _initialValueStates();
+    await _pumpPage(tester, apiClient: apiClient, arguments: _arguments());
+    await tester.pumpAndSettle();
+
+    final firstName = tester.widget<TextField>(
+      find.byKey(const Key('bindCardField_firstName')),
+    );
+    expect(firstName.controller!.text, 'Shown Name');
+    expect(find.text('Suggested Name'), findsNothing);
+  });
+
+  testWidgets('enum initial value displays matched label and submits value', (
+    tester,
+  ) async {
+    apiClient.states = _initialValueStates();
+    apiClient.productDetailStates = {'wofuller': 'stay on bind card'};
+    await _pumpPage(tester, apiClient: apiClient, arguments: _arguments());
+    await tester.pumpAndSettle();
+
+    expect(find.text('Union Bank'), findsOneWidget);
+    expect(find.text('UBP'), findsNothing);
+
+    await tester.tap(find.byKey(const Key('bindCardSubmit')));
+    await tester.pumpAndSettle();
+
+    expect(apiClient.saveRequests.single['bladers'], 'UBP');
+  });
+
   testWidgets('opening enum sheet dismisses active text keyboard', (
     tester,
   ) async {
@@ -890,7 +921,7 @@ Map<String, dynamic> _bindCardStates({
           'griding': 'wallet_number',
           'suppletive': 'Enter wallet number',
           'prognosticator': 'text',
-          'whackers': '09170000000',
+          'solonets': '09170000000',
         },
       ],
     },
@@ -903,8 +934,8 @@ Map<String, dynamic> _bindCardStates({
           'griding': 'bank_code',
           'suppletive': 'Choose your bank',
           'prognosticator': 'enum',
-          'solonets': optionCount > 1 ? 'Bank $initialBankValue' : 'Old Bank',
-          'whackers': initialBankValue,
+          'solonets': initialBankValue,
+          'whackers': optionCount > 1 ? 'Bank $initialBankValue' : 'Old Bank',
           'metallurgists': optionCount > 1
               ? List.generate(
                   optionCount,
@@ -950,8 +981,8 @@ Map<String, dynamic> _submissionStates({
           'suppletive': 'Choose a channel',
           'prognosticator': 'enum',
           'hairbreadth': 0,
-          'solonets': 'GCash',
-          'whackers': 6,
+          'solonets': 6,
+          'whackers': 'GCash',
           'metallurgists': [
             {'commensurate': 6, 'unwits': 'GCash', 'bondmen': 0},
           ],
@@ -962,7 +993,7 @@ Map<String, dynamic> _submissionStates({
           'suppletive': 'Enter your first name',
           'prognosticator': 'text',
           'hairbreadth': 0,
-          if (!emptyFirstName) 'whackers': 'Jane',
+          if (!emptyFirstName) 'solonets': 'Jane',
         },
         {
           'primogenitor': 'Middle name',
@@ -977,7 +1008,7 @@ Map<String, dynamic> _submissionStates({
           'suppletive': 'Enter your last name',
           'prognosticator': 'text',
           'hairbreadth': 0,
-          'whackers': 'Doe',
+          'solonets': 'Doe',
         },
         {
           'primogenitor': 'Account number',
@@ -985,7 +1016,7 @@ Map<String, dynamic> _submissionStates({
           'suppletive': 'Enter account number',
           'prognosticator': 'text',
           'hairbreadth': 0,
-          'whackers': initialCardNo.isEmpty ? '09171234567' : initialCardNo,
+          'solonets': initialCardNo.isEmpty ? '09171234567' : initialCardNo,
         },
         {
           'primogenitor': 'Confirm account number',
@@ -993,7 +1024,7 @@ Map<String, dynamic> _submissionStates({
           'suppletive': 'Confirm account number',
           'prognosticator': 'text',
           'hairbreadth': 0,
-          'whackers': initialConfirmCardNo.isEmpty
+          'solonets': initialConfirmCardNo.isEmpty
               ? '09171234567'
               : initialConfirmCardNo,
         },
@@ -1003,7 +1034,67 @@ Map<String, dynamic> _submissionStates({
           'suppletive': 'Ignore this field',
           'prognosticator': 'text',
           'hairbreadth': 0,
-          'whackers': 'must-not-submit',
+          'solonets': 'must-not-submit',
+        },
+      ],
+    },
+  ],
+};
+
+Map<String, dynamic> _initialValueStates() => {
+  'enthrones': [
+    {
+      'primogenitor': 'Bank',
+      'commensurate': '2',
+      'enthrones': [
+        {
+          'primogenitor': 'Bank',
+          'griding': 'channelCode',
+          'suppletive': 'Choose a bank',
+          'prognosticator': 'enum',
+          'hairbreadth': 0,
+          'solonets': 'UBP',
+          'whackers': 'Suggested Bank',
+          'metallurgists': [
+            {'commensurate': 'BDO', 'unwits': 'Banco de Oro'},
+            {'commensurate': 'UBP', 'unwits': 'Union Bank'},
+          ],
+        },
+        {
+          'primogenitor': 'First name',
+          'griding': 'firstName',
+          'suppletive': 'First name',
+          'prognosticator': 'text',
+          'hairbreadth': 0,
+          'solonets': 'Shown Name',
+          'whackers': 'Suggested Name',
+        },
+        {
+          'primogenitor': 'Middle name',
+          'griding': 'middleName',
+          'prognosticator': 'text',
+          'hairbreadth': 1,
+        },
+        {
+          'primogenitor': 'Last name',
+          'griding': 'lastName',
+          'prognosticator': 'text',
+          'hairbreadth': 0,
+          'solonets': 'Doe',
+        },
+        {
+          'primogenitor': 'Account number',
+          'griding': 'cardNo',
+          'prognosticator': 'text',
+          'hairbreadth': 0,
+          'solonets': '09171234567',
+        },
+        {
+          'primogenitor': 'Confirm account number',
+          'griding': 'confirmCardNo',
+          'prognosticator': 'text',
+          'hairbreadth': 0,
+          'solonets': '09171234567',
         },
       ],
     },

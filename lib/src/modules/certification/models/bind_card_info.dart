@@ -79,8 +79,8 @@ class BindCardField {
           : BindCardFieldType.text,
       options: options,
       isRequired: json['hairbreadth'].intValue != 1,
-      initialLabel: json['solonets'].stringValue.trim(),
-      initialValue: json['whackers'].stringValue.trim(),
+      initialLabel: json['whackers'].stringValue.trim(),
+      initialValue: json['solonets'].stringValue.trim(),
     );
   }
 

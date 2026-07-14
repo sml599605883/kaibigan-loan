@@ -128,11 +128,16 @@ class _CertificationBindCardPageState extends State<CertificationBindCardPage> {
             () => TextEditingController(text: field.initialValue),
           );
         } else {
+          final matchedOption = _matchInitialOption(field);
           _selections.putIfAbsent(
             stateKey,
             () => _BindCardSelection(
-              value: field.initialValue,
-              label: field.initialLabel,
+              value: matchedOption?.value ?? field.initialValue,
+              label:
+                  matchedOption?.label ??
+                  (field.initialLabel.isNotEmpty
+                      ? field.initialLabel
+                      : field.initialValue),
             ),
           );
         }
@@ -142,6 +147,22 @@ class _CertificationBindCardPageState extends State<CertificationBindCardPage> {
 
   String _stateKey(BindCardGroup group, BindCardField field) =>
       '${group.type}:${field.saveKey}';
+
+  BindCardOption? _matchInitialOption(BindCardField field) {
+    final normalizedValue = field.initialValue.toLowerCase();
+    final normalizedLabel = field.initialLabel.toLowerCase();
+    for (final option in field.options) {
+      if (normalizedValue.isNotEmpty &&
+          option.value.toLowerCase() == normalizedValue) {
+        return option;
+      }
+      if (normalizedLabel.isNotEmpty &&
+          option.label.toLowerCase() == normalizedLabel) {
+        return option;
+      }
+    }
+    return null;
+  }
 
   @override
   Widget build(BuildContext context) {

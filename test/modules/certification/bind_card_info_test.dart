@@ -19,8 +19,8 @@ void main() {
                 'suppletive': '  Select a bank  ',
                 'prognosticator': '  EnUm  ',
                 'hairbreadth': 0,
-                'solonets': '  Sample Bank  ',
-                'whackers': '  sample-bank  ',
+                'solonets': '  sample-bank  ',
+                'whackers': '  Sample Bank  ',
                 'metallurgists': [
                   {
                     'commensurate': 101,
