@@ -61,7 +61,7 @@ class BindCardField {
     required this.fieldType,
     required Iterable<BindCardOption> options,
     required this.isRequired,
-    required this.initialLabel,
+    required this.suggestedValue,
     required this.initialValue,
   }) : options = List<BindCardOption>.unmodifiable(options);
 
@@ -79,7 +79,7 @@ class BindCardField {
           : BindCardFieldType.text,
       options: options,
       isRequired: json['hairbreadth'].intValue != 1,
-      initialLabel: json['whackers'].stringValue.trim(),
+      suggestedValue: json['whackers'].stringValue.trim(),
       initialValue: json['solonets'].stringValue.trim(),
     );
   }
@@ -90,7 +90,7 @@ class BindCardField {
   final BindCardFieldType fieldType;
   final List<BindCardOption> options;
   final bool isRequired;
-  final String initialLabel;
+  final String suggestedValue;
   final String initialValue;
 }
 

@@ -135,8 +135,8 @@ class _CertificationBindCardPageState extends State<CertificationBindCardPage> {
               value: matchedOption?.value ?? field.initialValue,
               label:
                   matchedOption?.label ??
-                  (field.initialLabel.isNotEmpty
-                      ? field.initialLabel
+                  (field.suggestedValue.isNotEmpty
+                      ? field.suggestedValue
                       : field.initialValue),
             ),
           );
@@ -150,14 +150,14 @@ class _CertificationBindCardPageState extends State<CertificationBindCardPage> {
 
   BindCardOption? _matchInitialOption(BindCardField field) {
     final normalizedValue = field.initialValue.toLowerCase();
-    final normalizedLabel = field.initialLabel.toLowerCase();
+    final normalizedSuggestedValue = field.suggestedValue.toLowerCase();
     for (final option in field.options) {
       if (normalizedValue.isNotEmpty &&
           option.value.toLowerCase() == normalizedValue) {
         return option;
       }
-      if (normalizedLabel.isNotEmpty &&
-          option.label.toLowerCase() == normalizedLabel) {
+      if (normalizedSuggestedValue.isNotEmpty &&
+          option.label.toLowerCase() == normalizedSuggestedValue) {
         return option;
       }
     }

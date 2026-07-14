@@ -19,8 +19,8 @@ void main() {
                 'suppletive': '  Select a bank  ',
                 'prognosticator': '  EnUm  ',
                 'hairbreadth': 0,
-                'solonets': '  sample-bank  ',
-                'whackers': '  Sample Bank  ',
+                'solonets': '  Current Name  ',
+                'whackers': '  Suggested Name  ',
                 'metallurgists': [
                   {
                     'commensurate': 101,
@@ -50,8 +50,8 @@ void main() {
     expect(field.placeholder, 'Select a bank');
     expect(field.fieldType, BindCardFieldType.enumeration);
     expect(field.isRequired, isTrue);
-    expect(field.initialLabel, 'Sample Bank');
-    expect(field.initialValue, 'sample-bank');
+    expect(field.initialValue, 'Current Name');
+    expect(field.suggestedValue, 'Suggested Name');
 
     final option = field.options.single;
     expect(option.value, '101');
@@ -94,8 +94,8 @@ void main() {
     expect(group.type, 'wallet');
     expect(field.fieldType, BindCardFieldType.text);
     expect(field.isRequired, isFalse);
-    expect(field.initialLabel, isEmpty);
     expect(field.initialValue, isEmpty);
+    expect(field.suggestedValue, isEmpty);
     expect(option.value, 'gcash');
     expect(option.status, '1');
   });
