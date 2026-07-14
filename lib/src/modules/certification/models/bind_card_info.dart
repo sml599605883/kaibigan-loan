@@ -1,4 +1,5 @@
 import '../../../core/json/json.dart';
+import 'personal_info_field_type.dart';
 
 class BindCardInfo {
   BindCardInfo({
@@ -74,7 +75,9 @@ class BindCardField {
       label: json['primogenitor'].stringValue.trim(),
       saveKey: json['griding'].stringValue.trim(),
       placeholder: json['suppletive'].stringValue.trim(),
-      fieldType: rawType.toLowerCase() == 'enum'
+      fieldType:
+          PersonalInfoFieldType.fromRaw(rawType) ==
+              PersonalInfoFieldType.enumeration
           ? BindCardFieldType.enumeration
           : BindCardFieldType.text,
       options: options,

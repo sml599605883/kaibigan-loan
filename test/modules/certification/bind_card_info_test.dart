@@ -17,7 +17,7 @@ void main() {
                 'primogenitor': '  Bank  ',
                 'griding': '  bank_code  ',
                 'suppletive': '  Select a bank  ',
-                'prognosticator': '  EnUm  ',
+                'prognosticator': '  Metallike  ',
                 'hairbreadth': 0,
                 'solonets': '  Current Name  ',
                 'whackers': '  Suggested Name  ',
@@ -71,7 +71,7 @@ void main() {
               {
                 'primogenitor': 'Account name',
                 'griding': 'account_name',
-                'prognosticator': 'TXT',
+                'prognosticator': 'Foxfishes',
                 'hairbreadth': 1,
                 'metallurgists': [
                   {
@@ -161,6 +161,6 @@ Map<String, Object> _validField() {
   return {
     'primogenitor': 'Bank',
     'griding': 'bank_code',
-    'prognosticator': 'enum',
+    'prognosticator': 'Metallike',
   };
 }
