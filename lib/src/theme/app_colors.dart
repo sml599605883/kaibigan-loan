@@ -120,4 +120,10 @@ abstract final class AppColors {
   static const accountConfirmDisabled = Color(0xFFB5B5B5);
   static const accountConfirmText = Color(0xFFFFFFFF);
   static const accountStateText = Color(0xFF9AA8B1);
+  static const recreditPageBackground = Color.fromRGBO(255, 255, 255, 1);
+  static const recreditText = Color.fromRGBO(0, 0, 0, 1);
+  static const recreditEstimateHighlight = Color.fromRGBO(255, 190, 31, 1);
+  static const recreditProgressTrack = Color.fromRGBO(173, 225, 255, 1);
+  static const recreditProgressValue = Color.fromRGBO(72, 188, 255, 1);
+  static const recreditProgressLabel = Color.fromRGBO(255, 243, 149, 1);
 }

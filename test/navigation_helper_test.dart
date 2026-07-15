@@ -18,6 +18,7 @@ import 'package:kaibigan_loan/src/core/report/report_network.dart';
 import 'package:kaibigan_loan/src/core/session/session_store.dart';
 import 'package:kaibigan_loan/src/modules/main/main_controller.dart';
 import 'package:kaibigan_loan/src/modules/orders/order_list_models.dart';
+import 'package:kaibigan_loan/src/modules/recredit/recredit_page.dart';
 import 'package:kaibigan_loan/src/navigation_helper.dart';
 import 'package:kaibigan_loan/src/utils/app_toast.dart';
 import 'package:permission_handler/permission_handler.dart';
@@ -85,6 +86,104 @@ void main() {
     await tester.pumpAndSettle();
 
     expect(Get.currentRoute, AppRoutes.setting);
+  });
+
+  testWidgets('pushes recredit with explicit arguments', (tester) async {
+    await _pumpRoutes(tester);
+
+    NavigationHelper.toRecredit<void>(arguments: {'geobotanists': 'product-1'});
+    await tester.pumpAndSettle();
+
+    expect(Get.currentRoute, AppRoutes.recredit);
+    expect(Get.arguments, {'geobotanists': 'product-1'});
+  });
+
+  test('registers the real recredit page route', () {
+    final route = AppPages.pages.singleWhere(
+      (page) => page.name == AppRoutes.recredit,
+    );
+
+    expect(route.page(), isA<RecreditPage>());
+    expect(route.transition, Transition.rightToLeft);
+    expect(route.popGesture, isFalse);
+  });
+
+  testWidgets('prunes recredit before opening identity verification', (
+    tester,
+  ) async {
+    await _pumpRoutes(tester);
+
+    NavigationHelper.toRecredit<void>();
+    await tester.pumpAndSettle();
+
+    NavigationHelper.toCertificationIdentity<void>(
+      productId: ' product-identity ',
+    );
+    await tester.pumpAndSettle();
+
+    expect(Get.currentRoute, AppRoutes.certificationIdentity);
+    expect(Get.arguments, {'geobotanists': 'product-identity'});
+
+    NavigationHelper.back<void>();
+    await tester.pumpAndSettle();
+
+    expect(Get.currentRoute, AppRoutes.main);
+    expect(find.byKey(const Key('mainPageStub')), findsOneWidget);
+    expect(find.byKey(const Key('recreditPageStub')), findsNothing);
+  });
+
+  testWidgets('keeps normal identity verification back navigation', (
+    tester,
+  ) async {
+    await _pumpRoutes(tester);
+
+    NavigationHelper.toCertificationIdentity<void>(
+      productId: ' product-identity ',
+    );
+    await tester.pumpAndSettle();
+
+    expect(Get.currentRoute, AppRoutes.certificationIdentity);
+    expect(Get.arguments, {'geobotanists': 'product-identity'});
+
+    NavigationHelper.back<void>();
+    await tester.pumpAndSettle();
+
+    expect(Get.currentRoute, AppRoutes.main);
+    expect(find.byKey(const Key('mainPageStub')), findsOneWidget);
+  });
+
+  testWidgets('routes recredit with preserved scheme product id', (
+    tester,
+  ) async {
+    await _pumpRoutes(tester);
+
+    await NavigationHelper.navigateRawTarget(
+      'ph://kaibigan-loan/ios/ContradictSentimentalist?source=query&cohabiter=product-2',
+      arguments: {'source': 'apply'},
+    );
+    await tester.pumpAndSettle();
+
+    expect(Get.currentRoute, AppRoutes.recredit);
+    expect(Get.arguments, {'source': 'apply', 'cohabiter': 'product-2'});
+  });
+
+  testWidgets('prefers explicit payload product id over scheme alias', (
+    tester,
+  ) async {
+    await _pumpRoutes(tester);
+
+    await NavigationHelper.navigateRawTarget(
+      'ph://kaibigan-loan/ios/ContradictSentimentalist?geobotanists=query-product',
+      arguments: {
+        'payload': {'cohabiter': 'explicit-product'},
+      },
+    );
+    await tester.pumpAndSettle();
+
+    expect(Get.currentRoute, AppRoutes.recredit);
+    expect(Get.arguments, {
+      'payload': {'cohabiter': 'explicit-product'},
+    });
   });
 
   testWidgets('routes bind card route name through helper', (tester) async {
@@ -809,6 +908,10 @@ Future<void> _pumpRoutes(WidgetTester tester) async {
         GetPage(name: AppRoutes.detail, page: () => const _DetailPageStub()),
         GetPage(name: AppRoutes.setting, page: () => const _SettingPageStub()),
         GetPage(
+          name: AppRoutes.recredit,
+          page: () => const _RecreditPageStub(),
+        ),
+        GetPage(
           name: AppRoutes.accountList,
           page: () => const _AccountListPageStub(),
         ),
@@ -892,6 +995,15 @@ class _SettingPageStub extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return const SizedBox(key: Key('settingPageStub'));
+  }
+}
+
+class _RecreditPageStub extends StatelessWidget {
+  const _RecreditPageStub();
+
+  @override
+  Widget build(BuildContext context) {
+    return const SizedBox(key: Key('recreditPageStub'));
   }
 }
 

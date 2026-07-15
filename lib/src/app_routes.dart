@@ -13,6 +13,7 @@ import 'modules/login/login_page.dart';
 import 'modules/main/main_binding.dart';
 import 'modules/main/main_shell_page.dart';
 import 'modules/orders/mine_order_list_page.dart';
+import 'modules/recredit/recredit_page.dart';
 import 'modules/settings/setting_page.dart';
 import 'modules/webview/webview_page.dart';
 import 'core/json/json.dart';
@@ -22,6 +23,7 @@ abstract final class AppRoutes {
   static const login = '/login';
   static const detail = '/detail';
   static const setting = '/setting';
+  static const recredit = '/recredit';
   static const accountList = '/account/list';
   static const mineOrderList = '/mine/order-list';
   static const certificationIdentity = '/certification/identity';
@@ -58,6 +60,12 @@ abstract final class AppPages {
     GetPage(
       name: AppRoutes.setting,
       page: () => const SettingPage(),
+      transition: Transition.rightToLeft,
+      popGesture: false,
+    ),
+    GetPage(
+      name: AppRoutes.recredit,
+      page: () => const RecreditPage(),
       transition: Transition.rightToLeft,
       popGesture: false,
     ),

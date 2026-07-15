@@ -1,7 +1,9 @@
 import 'package:flutter/material.dart';
+import 'package:get/get.dart';
 
 import '../../app_routes.dart';
 import '../../assets/app_assets.dart';
+import '../../core/network/api_client.dart';
 import '../../navigation_helper.dart';
 import '../../theme/app_colors.dart';
 import '../../utils/screen_adapter.dart';
@@ -164,6 +166,7 @@ class _ServiceSection extends StatelessWidget {
       asset: AppAssets.profileServiceOnline,
       iconWidth: 21,
       iconHeight: 16,
+      webPath: '/#/OverfloodBigamously',
     ),
     _ServiceItemData(
       title: 'Setting',
@@ -177,6 +180,7 @@ class _ServiceSection extends StatelessWidget {
       asset: AppAssets.profileServicePrivacy,
       iconWidth: 16,
       iconHeight: 18,
+      webPath: '/#/Pastitsios',
     ),
   ];
 
@@ -220,9 +224,7 @@ class _ServiceListItem extends StatelessWidget {
       color: Colors.transparent,
       child: InkWell(
         borderRadius: BorderRadius.circular(20.r),
-        onTap: data.routeName == null
-            ? null
-            : () => NavigationHelper.toNamed<void>(data.routeName!),
+        onTap: data.onTap,
         child: Ink(
           height: 42.h,
           padding: EdgeInsets.fromLTRB(13.w, 12.h, 13.w, 11.h),
@@ -273,6 +275,7 @@ class _ServiceItemData {
     required this.iconWidth,
     required this.iconHeight,
     this.routeName,
+    this.webPath,
   });
 
   final String title;
@@ -280,4 +283,22 @@ class _ServiceItemData {
   final double iconWidth;
   final double iconHeight;
   final String? routeName;
+  final String? webPath;
+
+  VoidCallback? get onTap {
+    final targetRoute = routeName;
+    if (targetRoute != null) {
+      return () => NavigationHelper.toNamed<void>(targetRoute);
+    }
+    final targetWebPath = webPath;
+    if (targetWebPath != null) {
+      return () {
+        final webBaseUrl = Get.find<ApiClient>().config.webBaseUrl;
+        NavigationHelper.toWebView<void>(
+          url: '${webBaseUrl.replaceFirst(RegExp(r'/+$'), '')}$targetWebPath',
+        );
+      };
+    }
+    return null;
+  }
 }

@@ -1,7 +1,10 @@
+import 'package:dio/dio.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:get/get.dart';
 import 'package:kaibigan_loan/src/app_routes.dart';
+import 'package:kaibigan_loan/src/core/network/api_client.dart';
+import 'package:kaibigan_loan/src/core/network/api_config.dart';
 import 'package:kaibigan_loan/src/modules/profile/profile_page.dart';
 
 void main() {
@@ -37,6 +40,44 @@ void main() {
     expect(Get.currentRoute, AppRoutes.mineOrderList);
     expect(Get.arguments, {'initialStatus': '5'});
   });
+
+  testWidgets('online services opens configured web page', (tester) async {
+    Get.put<ApiClient>(
+      ApiClient(
+        ApiConfig(webBaseUrl: 'https://h5.example.test'),
+        dio: Dio(),
+      ),
+    );
+    await _pumpProfileWithRoutes(tester);
+
+    await tester.tap(find.text('Online Services'));
+    await tester.pumpAndSettle();
+
+    expect(Get.currentRoute, AppRoutes.webView);
+    expect(Get.arguments, {
+      'url': 'https://h5.example.test/#/OverfloodBigamously',
+      'title': null,
+    });
+  });
+
+  testWidgets('privacy agreement opens configured web page', (tester) async {
+    Get.put<ApiClient>(
+      ApiClient(
+        ApiConfig(webBaseUrl: 'https://h5.example.test'),
+        dio: Dio(),
+      ),
+    );
+    await _pumpProfileWithRoutes(tester);
+
+    await tester.tap(find.text('Privacy Agreement'));
+    await tester.pumpAndSettle();
+
+    expect(Get.currentRoute, AppRoutes.webView);
+    expect(Get.arguments, {
+      'url': 'https://h5.example.test/#/Pastitsios',
+      'title': null,
+    });
+  });
 }
 
 Future<void> _pumpProfileWithRoutes(WidgetTester tester) async {
@@ -53,6 +94,10 @@ Future<void> _pumpProfileWithRoutes(WidgetTester tester) async {
         GetPage(
           name: AppRoutes.mineOrderList,
           page: () => const SizedBox(key: Key('mineOrderListStub')),
+        ),
+        GetPage(
+          name: AppRoutes.webView,
+          page: () => const SizedBox(key: Key('webViewStub')),
         ),
       ],
     ),

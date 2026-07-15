@@ -49,6 +49,11 @@ class NavigationHelper {
   static const _appScheme = 'ph';
   static const _appSchemeHost = 'kaibigan-loan';
   static const _appSchemePlatform = 'ios';
+  static const Set<String> _productIdAliases = {
+    'geobotanists',
+    'productId',
+    'cohabiter',
+  };
   static const Map<String, String> _productDetailAuthStepCodes =
       <String, String>{
         'public': 'public',
@@ -240,6 +245,8 @@ class NavigationHelper {
         return toDetail<T>();
       case AppRoutes.setting:
         return toSetting<T>();
+      case AppRoutes.recredit:
+        return toRecredit<T>();
       case AppRoutes.accountList:
         return Get.toNamed<T>(AppRoutes.accountList);
       case AppRoutes.mineOrderList:
@@ -264,7 +271,10 @@ class NavigationHelper {
   }
 
   static Future<T?>? toDetail<T extends Object?>({Object? arguments}) {
-    return Get.toNamed<T>(AppRoutes.detail, arguments: arguments);
+    return _toNamedAfterPruningRecredit<T>(
+      AppRoutes.detail,
+      arguments: arguments,
+    );
   }
 
   static Future<void> toProductDetail(String productId) async {
@@ -356,6 +366,24 @@ class NavigationHelper {
         await _toProductDetailFromTarget(target, arguments: arguments);
         return;
       }
+      if (routeName == AppRoutes.recredit) {
+        final uri = Uri.tryParse(target);
+        final mergedArguments = <String, dynamic>{...?uri?.queryParameters};
+        if (arguments is Map) {
+          if (_hasExplicitProductId(arguments)) {
+            mergedArguments.removeWhere(
+              (key, _) => _productIdAliases.contains(key),
+            );
+          }
+          for (final entry in arguments.entries) {
+            mergedArguments[entry.key.toString()] = entry.value;
+          }
+        }
+        toRecredit<void>(
+          arguments: mergedArguments.isEmpty ? arguments : mergedArguments,
+        );
+        return;
+      }
       toNamed<void>(routeName);
       return;
     }
@@ -370,6 +398,10 @@ class NavigationHelper {
     return _toNamedIfNotCurrent<T>(AppRoutes.setting);
   }
 
+  static Future<T?>? toRecredit<T extends Object?>({Object? arguments}) {
+    return Get.toNamed<T>(AppRoutes.recredit, arguments: arguments);
+  }
+
   static Future<T?>? toWebView<T extends Object?>({
     required String url,
     String? title,
@@ -378,7 +410,7 @@ class NavigationHelper {
     if (uri == null) {
       return null;
     }
-    return Get.toNamed<T>(
+    return _toNamedAfterPruningRecredit<T>(
       AppRoutes.webView,
       arguments: <String, dynamic>{'url': uri.toString(), 'title': title},
     );
@@ -417,7 +449,7 @@ class NavigationHelper {
     final arguments = productId == null || productId.trim().isEmpty
         ? null
         : <String, String>{'geobotanists': productId.trim()};
-    return Get.toNamed<T>(
+    return _toNamedAfterPruningRecredit<T>(
       AppRoutes.certificationIdentity,
       arguments: arguments,
     );
@@ -429,7 +461,10 @@ class NavigationHelper {
     final arguments = productId == null || productId.trim().isEmpty
         ? null
         : <String, String>{'geobotanists': productId.trim()};
-    return Get.toNamed<T>(AppRoutes.certificationFace, arguments: arguments);
+    return _toNamedAfterPruningRecredit<T>(
+      AppRoutes.certificationFace,
+      arguments: arguments,
+    );
   }
 
   static Future<T?>? toCertificationPersonalInfo<T extends Object?>({
@@ -438,7 +473,7 @@ class NavigationHelper {
     final arguments = productId == null || productId.trim().isEmpty
         ? null
         : <String, String>{'geobotanists': productId.trim()};
-    return Get.toNamed<T>(
+    return _toNamedAfterPruningRecredit<T>(
       AppRoutes.certificationPersonalInfo,
       arguments: arguments,
     );
@@ -450,7 +485,7 @@ class NavigationHelper {
     final arguments = productId == null || productId.trim().isEmpty
         ? null
         : <String, String>{'geobotanists': productId.trim()};
-    return Get.toNamed<T>(
+    return _toNamedAfterPruningRecredit<T>(
       AppRoutes.certificationWorkInfo,
       arguments: arguments,
     );
@@ -462,7 +497,7 @@ class NavigationHelper {
     final arguments = productId == null || productId.trim().isEmpty
         ? null
         : <String, String>{'geobotanists': productId.trim()};
-    return Get.toNamed<T>(
+    return _toNamedAfterPruningRecredit<T>(
       AppRoutes.certificationContactInfo,
       arguments: arguments,
     );
@@ -474,7 +509,7 @@ class NavigationHelper {
     final arguments = productId == null || productId.trim().isEmpty
         ? null
         : <String, String>{'geobotanists': productId.trim()};
-    return Get.toNamed<T>(
+    return _toNamedAfterPruningRecredit<T>(
       AppRoutes.certificationBindCard,
       arguments: arguments,
     );
@@ -492,6 +527,20 @@ class NavigationHelper {
       return null;
     }
     return Get.toNamed<T>(routeName);
+  }
+
+  static Future<T?>? _toNamedAfterPruningRecredit<T extends Object?>(
+    String routeName, {
+    Object? arguments,
+  }) {
+    if (Get.currentRoute != AppRoutes.recredit) {
+      return Get.toNamed<T>(routeName, arguments: arguments);
+    }
+    return Get.offNamedUntil<T>(
+      routeName,
+      (route) => route.settings.name != AppRoutes.recredit,
+      arguments: arguments,
+    );
   }
 
   static Future<void> _runApiNavigation(Future<void> Function() action) async {
@@ -636,6 +685,24 @@ class NavigationHelper {
         .trim();
   }
 
+  static bool _hasExplicitProductId(Map<dynamic, dynamic> arguments) {
+    if (_hasNonEmptyProductIdAlias(arguments)) {
+      return true;
+    }
+    final payload = arguments['payload'];
+    return payload is Map && _hasNonEmptyProductIdAlias(payload);
+  }
+
+  static bool _hasNonEmptyProductIdAlias(Map<dynamic, dynamic> arguments) {
+    for (final alias in _productIdAliases) {
+      final value = arguments[alias];
+      if (value is String && value.trim().isNotEmpty) {
+        return true;
+      }
+    }
+    return false;
+  }
+
   static void _handleProductDetailNextStep(String rawCode, String productId) {
     final routeKey = _productDetailAuthStepCodes[rawCode.trim()];
     if (routeKey == 'public') {
@@ -727,6 +794,10 @@ class NavigationHelper {
       case 'setting':
       case 'AmoxicillinHistamines':
         return AppRoutes.setting;
+      case AppRoutes.recredit:
+      case 'recredit':
+      case 'ContradictSentimentalist':
+        return AppRoutes.recredit;
       case AppRoutes.mineOrderList:
       case 'orderList':
       case 'mineOrderList':
