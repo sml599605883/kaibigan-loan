@@ -12,7 +12,7 @@ abstract final class AppColors {
   static const homeProcessBorder = Color(0xFFA2DDFF);
   static const homeProcessTrack = Color(0xFFADE1FF);
   static const homeProcessDot = Color(0xFF40F4E6);
-  static const homeProcessInactiveText = Color(0xFFD7F0FF);
+  static const homeProcessInactiveText = Color(0xFFAFC8D8);
   static const homeProcessAmountMuted = Color(0xFFA9A049);
   static const homeBannerText = Color(0xFF131560);
   static const homeBannerAccent = Color(0xFFFF712E);
@@ -35,6 +35,7 @@ abstract final class AppColors {
   static const ordersRedText = Color(0xFFCA4D4D);
   static const ordersStatusRed = Color(0xFF9C1A1A);
   static const ordersActionBlueText = Color(0xFF1A77AD);
+  static const recommendationButtonDisabled = Color(0xFFCCCCCC);
   static const ordersMutedText = Color(0xFF9A9A9A);
   static const ordersTitleText = Color(0xFF000000);
   static const ordersStrongText = Color(0xFF303030);
@@ -51,6 +52,8 @@ abstract final class AppColors {
   static const settingValueText = Color(0xFF333333);
   static const settingDeactivateText = Color(0xFFA1A1A1);
   static const settingDeactivateBorder = Color(0xFFE3E3E3);
+  static const settingPopupBarrier = uploadMethodBarrier;
+  static const settingPopupSecondaryText = Color.fromRGBO(51, 67, 82, 1);
   static const loginPanel = Color(0xFF7BCFFF);
   static const loginPanelBorder = Color(0xFFA2DDFF);
   static const loginTitleText = Color(0xFF10425E);

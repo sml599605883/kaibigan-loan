@@ -6,6 +6,8 @@ import '../../core/json/json.dart';
 import '../../core/network/api_client.dart';
 import '../../core/session/session_store.dart';
 import '../../navigation_helper.dart';
+import 'home_popup.dart';
+import 'home_popup_data.dart';
 
 class MainController extends GetxController with WidgetsBindingObserver {
   final selectedIndex = 0.obs;
@@ -16,6 +18,7 @@ class MainController extends GetxController with WidgetsBindingObserver {
   final topLoanCardItems = <HomeTopLoanCardItem>[].obs;
 
   bool _homeRefreshRequesting = false;
+  bool _profilePopupRequesting = false;
   bool _topHeroApplyRequesting = false;
 
   ApiClient get _apiClient => ApiClient.instance;
@@ -29,7 +32,7 @@ class MainController extends GetxController with WidgetsBindingObserver {
   @override
   void onReady() {
     super.onReady();
-    requestHomeDataIfVisible();
+    _requestVisibleTabData();
   }
 
   @override
@@ -41,7 +44,7 @@ class MainController extends GetxController with WidgetsBindingObserver {
   @override
   void didChangeAppLifecycleState(AppLifecycleState state) {
     if (state == AppLifecycleState.resumed) {
-      requestHomeDataIfVisible();
+      _requestVisibleTabData();
     }
   }
 
@@ -54,7 +57,7 @@ class MainController extends GetxController with WidgetsBindingObserver {
       return;
     }
     selectedIndex.value = index;
-    requestHomeDataIfVisible();
+    _requestVisibleTabData();
   }
 
   void returnToHomeTab() {
@@ -62,7 +65,17 @@ class MainController extends GetxController with WidgetsBindingObserver {
   }
 
   void onRouteChanged() {
-    requestHomeDataIfVisible();
+    _requestVisibleTabData();
+  }
+
+  void _requestVisibleTabData() {
+    if (_isHomeVisible) {
+      requestHomeDataIfVisible();
+      return;
+    }
+    if (_isProfileVisible) {
+      requestProfilePopupIfVisible();
+    }
   }
 
   Future<void> requestHomeDataIfVisible() async {
@@ -79,7 +92,7 @@ class MainController extends GetxController with WidgetsBindingObserver {
         HomeRecommendationItem.fromHome(response.states),
       );
       topLoanCardItems.assignAll(HomeTopLoanCardItem.fromHome(response.states));
-      await _apiClient.dialog(loungy: 1);
+      await _requestAndShowPopup(scene: 1);
     } catch (_) {
       // Home refresh failures must not block the home page.
     } finally {
@@ -87,10 +100,37 @@ class MainController extends GetxController with WidgetsBindingObserver {
     }
   }
 
+  Future<void> requestProfilePopupIfVisible() async {
+    if (!_isProfileVisible || _profilePopupRequesting) {
+      return;
+    }
+    _profilePopupRequesting = true;
+    try {
+      await _requestAndShowPopup(scene: 2);
+    } catch (_) {
+      // Popup failures must not block the personal center page.
+    } finally {
+      _profilePopupRequesting = false;
+    }
+  }
+
+  Future<void> _requestAndShowPopup({required int scene}) async {
+    final response = await _apiClient.dialog(loungy: scene);
+    final popup = HomePopupData.fromJson(response.states);
+    if (popup.shouldShow) {
+      await HomePopup.show(popup);
+    }
+  }
+
   bool get _isHomeVisible {
+    return selectedIndex.value == 0 && _isMainRoute;
+  }
+
+  bool get _isProfileVisible => selectedIndex.value == 2 && _isMainRoute;
+
+  bool get _isMainRoute {
     final route = Get.currentRoute;
-    return selectedIndex.value == 0 &&
-        (route.isEmpty || route == AppRoutes.main);
+    return route.isEmpty || route == AppRoutes.main;
   }
 
   Future<void> handleBannerTap(HomeBanner banner) async {
@@ -341,6 +381,7 @@ class HomeRecommendationItem {
     required this.productName,
     required this.productLogo,
     required this.buttonText,
+    required this.buttonColor,
     required this.amountRange,
     required this.amountRangeDescription,
     required this.termInfo,
@@ -354,6 +395,7 @@ class HomeRecommendationItem {
   final String productName;
   final String productLogo;
   final String buttonText;
+  final String buttonColor;
   final String amountRange;
   final String amountRangeDescription;
   final String termInfo;
@@ -361,6 +403,11 @@ class HomeRecommendationItem {
   final String loanRate;
   final String loanRateDescription;
   final String linkUrl;
+
+  bool get canApply {
+    final color = buttonColor.trim().toLowerCase();
+    return color == 'yellow' || color == 'red';
+  }
 
   static List<HomeRecommendationItem> fromHome(Json states) {
     return _itemsForTypes(states, const [
@@ -379,15 +426,16 @@ class HomeRecommendationItem {
 
   factory HomeRecommendationItem.fromJson(Json json) {
     return HomeRecommendationItem(
-      productId: json['geobotanists'].stringValue,
+      productId: json['cabdrivers'].stringValue,
       productName: json['omissible'].stringValue,
       productLogo: json['biontic'].stringValue,
       buttonText: json['restless'].stringValue,
+      buttonColor: json['logophiles'].stringValue,
       amountRange: json['ghillies'].stringValue,
       amountRangeDescription: json['geometrically'].stringValue,
       termInfo: json['mainlined'].stringValue,
-      termInfoDescription: json['outmarching'].stringValue,
-      loanRate: json['pulpit'].stringValue,
+      termInfoDescription: json['cultrate'].stringValue,
+      loanRate: json['whops'].stringValue,
       loanRateDescription: json['rescinders'].stringValue,
       linkUrl: json['preattuned'].stringValue,
     );

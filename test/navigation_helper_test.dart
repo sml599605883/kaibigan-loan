@@ -152,6 +152,83 @@ void main() {
     expect(find.byKey(const Key('mainPageStub')), findsOneWidget);
   });
 
+  testWidgets('certification navigation prunes previous certification pages', (
+    tester,
+  ) async {
+    await _pumpRoutes(tester);
+
+    NavigationHelper.toCertificationIdentity<void>(productId: 'product-1');
+    await tester.pumpAndSettle();
+    NavigationHelper.toCertificationUpload<void>(
+      arguments: const {'geobotanists': 'product-1', 'cardType': 'id-card'},
+    );
+    await tester.pumpAndSettle();
+    NavigationHelper.toCertificationIdentitySubmit<void>(
+      arguments: const {
+        'geobotanists': 'product-1',
+        'recognizedInfo': {'name': 'Test User'},
+      },
+    );
+    await tester.pumpAndSettle();
+    NavigationHelper.toCertificationFace<void>(productId: 'product-1');
+    await tester.pumpAndSettle();
+
+    expect(Get.currentRoute, AppRoutes.certificationFace);
+    expect(Get.arguments, {'geobotanists': 'product-1'});
+
+    NavigationHelper.back<void>();
+    await tester.pumpAndSettle();
+
+    expect(Get.currentRoute, AppRoutes.main);
+    expect(
+      find.byKey(const Key('certificationIdentityPageStub')),
+      findsNothing,
+    );
+    expect(find.byKey(const Key('certificationUploadPageStub')), findsNothing);
+    expect(
+      find.byKey(const Key('certificationIdentitySubmitPageStub')),
+      findsNothing,
+    );
+  });
+
+  testWidgets(
+    'certification navigation prunes web account and recredit pages',
+    (tester) async {
+      await _pumpRoutes(tester);
+
+      NavigationHelper.toRecredit<void>();
+      await tester.pumpAndSettle();
+      NavigationHelper.toWebView<void>(url: 'https://example.test/start');
+      await tester.pumpAndSettle();
+      NavigationHelper.toAccountList<void>(
+        productId: 'product-1',
+        orderNo: 'order-1',
+      );
+      await tester.pumpAndSettle();
+      NavigationHelper.toCertificationBindCard<void>(productId: 'product-1');
+      await tester.pumpAndSettle();
+      NavigationHelper.toWebView<void>(url: 'https://example.test/result');
+      await tester.pumpAndSettle();
+
+      expect(Get.currentRoute, AppRoutes.webView);
+      expect(Get.arguments, {
+        'url': 'https://example.test/result',
+        'title': null,
+      });
+
+      NavigationHelper.back<void>();
+      await tester.pumpAndSettle();
+
+      expect(Get.currentRoute, AppRoutes.main);
+      expect(find.byKey(const Key('recreditPageStub')), findsNothing);
+      expect(find.byKey(const Key('accountListPageStub')), findsNothing);
+      expect(
+        find.byKey(const Key('certificationBindCardPageStub')),
+        findsNothing,
+      );
+    },
+  );
+
   testWidgets('routes recredit with preserved scheme product id', (
     tester,
   ) async {
@@ -328,6 +405,52 @@ void main() {
       'url': 'https://example.test/loan',
       'title': null,
     });
+  });
+
+  testWidgets('Jalaps web target confirms loan with the real product id', (
+    tester,
+  ) async {
+    final logs = <String>[];
+    NavigationHelper.logger = logs.add;
+    await _pumpRoutes(tester);
+
+    await NavigationHelper.navigateRawTarget(
+      'https://h5.example.test/Jalaps/confirm',
+      arguments: const {'seamounts': 'product-42'},
+    );
+    await tester.pumpAndSettle();
+
+    expect(apiClient.confirmLoanRequests, [
+      {
+        'ecumenicalism': 2000,
+        'cajoler': 7,
+        'woodshedded': 1,
+        'seamounts': 'product-42',
+        'cheerlessly': 1,
+      },
+    ]);
+    expect(logs.single, contains('temporary confirm loan succeeded'));
+  });
+
+  testWidgets('Jalaps web target still opens WebView after confirm failure', (
+    tester,
+  ) async {
+    final logs = <String>[];
+    NavigationHelper.logger = logs.add;
+    apiClient.confirmLoanError = StateError('temporary confirm failed');
+    await _pumpRoutes(tester);
+
+    await NavigationHelper.navigateRawTarget(
+      'https://h5.example.test/jalaps/confirm?seamounts=product-43',
+    );
+    await tester.pumpAndSettle();
+
+    expect(Get.currentRoute, AppRoutes.webView);
+    expect(Get.arguments, <String, dynamic>{
+      'url': 'https://h5.example.test/jalaps/confirm?seamounts=product-43',
+      'title': null,
+    });
+    expect(logs.single, contains('temporary confirm loan failed'));
   });
 
   testWidgets('product detail public step opens identity verification', (
@@ -925,6 +1048,14 @@ Future<void> _pumpRoutes(WidgetTester tester) async {
           page: () => const _CertificationIdentityPageStub(),
         ),
         GetPage(
+          name: AppRoutes.certificationUpload,
+          page: () => const _CertificationUploadPageStub(),
+        ),
+        GetPage(
+          name: AppRoutes.certificationIdentitySubmit,
+          page: () => const _CertificationIdentitySubmitPageStub(),
+        ),
+        GetPage(
           name: AppRoutes.certificationFace,
           page: () => const _CertificationFacePageStub(),
         ),
@@ -1034,6 +1165,24 @@ class _CertificationIdentityPageStub extends StatelessWidget {
   }
 }
 
+class _CertificationUploadPageStub extends StatelessWidget {
+  const _CertificationUploadPageStub();
+
+  @override
+  Widget build(BuildContext context) {
+    return const SizedBox(key: Key('certificationUploadPageStub'));
+  }
+}
+
+class _CertificationIdentitySubmitPageStub extends StatelessWidget {
+  const _CertificationIdentitySubmitPageStub();
+
+  @override
+  Widget build(BuildContext context) {
+    return const SizedBox(key: Key('certificationIdentitySubmitPageStub'));
+  }
+}
+
 class _CertificationFacePageStub extends StatelessWidget {
   const _CertificationFacePageStub();
 
@@ -1086,12 +1235,14 @@ class _FakeApiClient extends ApiClient {
   final productApplySuccumbs = <String>[];
   final productDetailIds = <String>[];
   final orderRedirectRequests = <Map<String, String>>[];
+  final confirmLoanRequests = <Map<String, Object>>[];
   void Function()? onProductApply;
   Map<String, dynamic> applyStates = <String, dynamic>{};
   Map<String, dynamic>? productDetailStates;
   Map<String, dynamic> orderRedirectStates = <String, dynamic>{};
   Completer<ApiResponse>? pendingOrderRedirectResponse;
   Object? productDetailError;
+  Object? confirmLoanError;
 
   @override
   Future<ApiResponse> productApply({
@@ -1142,6 +1293,32 @@ class _FakeApiClient extends ApiClient {
       code: 0,
       message: 'success',
       states: Json(orderRedirectStates),
+    );
+  }
+
+  @override
+  Future<ApiResponse> confirmLoan({
+    required int ecumenicalism,
+    required int cajoler,
+    required int woodshedded,
+    required String seamounts,
+    required int cheerlessly,
+  }) async {
+    confirmLoanRequests.add({
+      'ecumenicalism': ecumenicalism,
+      'cajoler': cajoler,
+      'woodshedded': woodshedded,
+      'seamounts': seamounts,
+      'cheerlessly': cheerlessly,
+    });
+    final error = confirmLoanError;
+    if (error != null) {
+      throw error;
+    }
+    return ApiResponse(
+      code: 0,
+      message: 'success',
+      states: Json({'rawer': 'https://h5.example.test/loan-details'}),
     );
   }
 }

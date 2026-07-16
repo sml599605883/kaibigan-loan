@@ -4,6 +4,7 @@ import 'package:get/get.dart';
 import '../../app_routes.dart';
 import '../../assets/app_assets.dart';
 import '../../core/network/api_client.dart';
+import '../../core/session/session_store.dart';
 import '../../navigation_helper.dart';
 import '../../theme/app_colors.dart';
 import '../../utils/screen_adapter.dart';
@@ -13,8 +14,6 @@ import '../widgets/section_title.dart';
 class ProfilePage extends StatelessWidget {
   const ProfilePage({super.key});
 
-  static const _phoneNumber = '962****1300';
-
   @override
   Widget build(BuildContext context) {
     return ColoredBox(
@@ -23,13 +22,26 @@ class ProfilePage extends StatelessWidget {
         physics: const AlwaysScrollableScrollPhysics(),
         padding: EdgeInsets.fromLTRB(20.w, 0, 20.w, 120.h),
         children: [
-          const _ProfileSummaryCard(phoneNumber: _phoneNumber),
+          FutureBuilder<String>(
+            future: SessionStore.instance.phone(),
+            builder: (context, snapshot) => _ProfileSummaryCard(
+              phoneNumber: _maskPhoneNumber(snapshot.data ?? ''),
+            ),
+          ),
           SizedBox(height: 20.h),
           const _ServiceSection(),
         ],
       ),
     );
   }
+}
+
+String _maskPhoneNumber(String phoneNumber) {
+  final phone = phoneNumber.trim();
+  if (phone.length < 7) {
+    return phone;
+  }
+  return '${phone.substring(0, 3)}***${phone.substring(phone.length - 4)}';
 }
 
 class _ProfileSummaryCard extends StatelessWidget {
@@ -166,7 +178,7 @@ class _ServiceSection extends StatelessWidget {
       asset: AppAssets.profileServiceOnline,
       iconWidth: 21,
       iconHeight: 16,
-      webPath: '/#/OverfloodBigamously',
+      webPath: NavigationHelper.customerServicePath,
     ),
     _ServiceItemData(
       title: 'Setting',

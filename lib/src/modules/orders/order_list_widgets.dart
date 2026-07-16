@@ -100,21 +100,26 @@ class _OrderTab extends StatelessWidget {
 }
 
 class OrderListRow extends StatelessWidget {
-  const OrderListRow({super.key, required this.item});
+  const OrderListRow({super.key, required this.item, required this.onTap});
 
   final OrderListItem item;
+  final VoidCallback onTap;
 
   @override
   Widget build(BuildContext context) {
     final actionText = item.actionText.isEmpty ? 'Details' : item.actionText;
 
-    return SizedBox(
-      height: 105.h,
-      child: Row(
-        children: [
-          Expanded(child: _OrderCard(item: item)),
-          _OrderActionButton(text: actionText, isRepay: item.isRepayAction),
-        ],
+    return GestureDetector(
+      behavior: HitTestBehavior.opaque,
+      onTap: onTap,
+      child: SizedBox(
+        height: 105.h,
+        child: Row(
+          children: [
+            Expanded(child: _OrderCard(item: item)),
+            _OrderActionButton(text: actionText, isRepay: item.isRepayAction),
+          ],
+        ),
       ),
     );
   }

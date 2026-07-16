@@ -76,6 +76,14 @@ class _MineOrderListPageState extends State<MineOrderListPage> {
     _loadOrders();
   }
 
+  Future<void> _handleOrderTap(OrderListItem item) async {
+    if (item.redirectTarget.isNotEmpty) {
+      await NavigationHelper.navigateRawTarget(item.redirectTarget);
+      return;
+    }
+    await NavigationHelper.applyProductWithFlow(item.productId);
+  }
+
   Future<void> _refreshOrders() {
     return _loadOrders();
   }
@@ -111,7 +119,7 @@ class _MineOrderListPageState extends State<MineOrderListPage> {
               else ...[
                 SizedBox(height: 31.h),
                 for (final item in _items) ...[
-                  OrderListRow(item: item),
+                  OrderListRow(item: item, onTap: () => _handleOrderTap(item)),
                   SizedBox(height: 10.h),
                 ],
               ],

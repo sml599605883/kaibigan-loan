@@ -9,6 +9,7 @@ import '../main/main_controller.dart';
 import '../../theme/app_colors.dart';
 import '../../utils/app_toast.dart';
 import '../../utils/screen_adapter.dart';
+import 'setting_confirm_dialog.dart';
 
 class SettingPage extends StatelessWidget {
   const SettingPage({super.key});
@@ -41,7 +42,7 @@ class SettingPage extends StatelessWidget {
                   backgroundColor: AppColors.tabBackground,
                   borderColor: AppColors.settingDeactivateBorder,
                   fontWeight: FontWeight.w400,
-                  onTap: () => _deactivateAccount(context),
+                  onTap: () => _showDeactivateDialog(context),
                 ),
                 SizedBox(height: 10.h),
                 _SettingActionButton(
@@ -49,13 +50,35 @@ class SettingPage extends StatelessWidget {
                   foregroundColor: AppColors.tabBackground,
                   backgroundColor: AppColors.appBackground,
                   fontWeight: FontWeight.w700,
-                  onTap: () => _logout(context),
+                  onTap: () => _showLogoutDialog(context),
                 ),
               ],
             ),
           ),
         ),
       ),
+    );
+  }
+
+  static Future<void> _showLogoutDialog(BuildContext context) {
+    return Get.dialog<void>(
+      SettingConfirmDialog(
+        type: SettingConfirmDialogType.logout,
+        onConfirm: () => _logout(context),
+      ),
+      barrierColor: AppColors.settingPopupBarrier,
+      transitionDuration: Duration.zero,
+    );
+  }
+
+  static Future<void> _showDeactivateDialog(BuildContext context) {
+    return Get.dialog<void>(
+      SettingConfirmDialog(
+        type: SettingConfirmDialogType.deleteAccount,
+        onConfirm: () => _deactivateAccount(context),
+      ),
+      barrierColor: AppColors.settingPopupBarrier,
+      transitionDuration: Duration.zero,
     );
   }
 

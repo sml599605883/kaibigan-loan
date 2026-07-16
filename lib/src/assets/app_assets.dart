@@ -49,6 +49,7 @@ abstract final class AppAssets {
   static const profileServicePrivacy = 'assets/profile_service_privacy.png';
   static const mineOrderEmpty = 'assets/mine_order_empty.png';
   static const settingLogo = 'assets/setting_logo.png';
+  static const settingPopupBackground = 'assets/setting_popup_background.png';
   static const loginLogo = 'assets/login_logo.png';
   static const loginBack = 'assets/login_back.png';
   static const loginAgreementIndicator = 'assets/login_agreement_indicator.png';

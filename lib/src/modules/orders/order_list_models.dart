@@ -24,6 +24,8 @@ enum OrderListStatus {
 
 class OrderListItem {
   const OrderListItem({
+    required this.productId,
+    required this.redirectTarget,
     required this.productName,
     required this.amountText,
     required this.statusText,
@@ -34,6 +36,8 @@ class OrderListItem {
 
   factory OrderListItem.fromJson(Json json) {
     return OrderListItem(
+      productId: json['seamounts'].stringValue.trim(),
+      redirectTarget: json['overrule'].stringValue.trim(),
       productName: _firstText(json, const [
         'appName',
         'productName',
@@ -89,6 +93,8 @@ class OrderListItem {
     );
   }
 
+  final String productId;
+  final String redirectTarget;
   final String productName;
   final String amountText;
   final String statusText;

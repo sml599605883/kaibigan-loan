@@ -44,12 +44,13 @@ class _RecommendationCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final buttonText = item.buttonText.isEmpty ? 'Apply Now' : item.buttonText;
+    final canApply = item.productId.isNotEmpty && item.canApply;
     return GestureDetector(
       key: ValueKey('home_recommendation_${item.productId}'),
       behavior: HitTestBehavior.opaque,
-      onTap: item.productId.isEmpty
-          ? null
-          : () => NavigationHelper.applyProduct(item.productId),
+      onTap: canApply
+          ? () => NavigationHelper.applyProduct(item.productId)
+          : null,
       child: SizedBox(
         height: 105.h,
         child: Stack(
@@ -63,11 +64,19 @@ class _RecommendationCard extends StatelessWidget {
                 alignment: Alignment.centerRight,
                 padding: EdgeInsets.only(right: 12.w),
                 decoration: BoxDecoration(
-                  gradient: const LinearGradient(
-                    begin: Alignment.centerLeft,
-                    end: Alignment.centerRight,
-                    colors: [AppColors.ordersYellow, AppColors.ordersYellowEnd],
-                  ),
+                  color: canApply
+                      ? null
+                      : AppColors.recommendationButtonDisabled,
+                  gradient: canApply
+                      ? const LinearGradient(
+                          begin: Alignment.centerLeft,
+                          end: Alignment.centerRight,
+                          colors: [
+                            AppColors.ordersYellow,
+                            AppColors.ordersYellowEnd,
+                          ],
+                        )
+                      : null,
                   borderRadius: BorderRadius.circular(20.r),
                 ),
                 child: SizedBox(
@@ -248,11 +257,9 @@ class _InfoPill extends StatelessWidget {
                 style: TextStyle(
                   color: AppColors.ordersTitleText,
                   fontSize: 14.sp,
-                  height: 17 / 14,
                 ),
               ),
             ),
-            SizedBox(height: 1.h),
             Text(
               label,
               maxLines: 1,

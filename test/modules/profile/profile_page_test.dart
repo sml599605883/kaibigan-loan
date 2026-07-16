@@ -5,14 +5,30 @@ import 'package:get/get.dart';
 import 'package:kaibigan_loan/src/app_routes.dart';
 import 'package:kaibigan_loan/src/core/network/api_client.dart';
 import 'package:kaibigan_loan/src/core/network/api_config.dart';
+import 'package:kaibigan_loan/src/core/session/session_store.dart';
 import 'package:kaibigan_loan/src/modules/profile/profile_page.dart';
 
 void main() {
-  setUp(() {
+  late SessionStore sessionStore;
+
+  setUp(() async {
     Get.testMode = true;
+    sessionStore = SessionStore.memory();
+    Get.put<SessionStore>(sessionStore);
   });
 
   tearDown(Get.reset);
+
+  testWidgets('shows the cached phone number with the middle masked', (
+    tester,
+  ) async {
+    await sessionStore.savePhone('09175551234');
+
+    await _pumpProfileWithRoutes(tester);
+
+    expect(find.text('091***1234'), findsOneWidget);
+    expect(find.text('09175551234'), findsNothing);
+  });
 
   testWidgets('order shortcuts open mine order list with matching tab', (
     tester,

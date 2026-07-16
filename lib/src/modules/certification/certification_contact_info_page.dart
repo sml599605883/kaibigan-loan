@@ -14,6 +14,7 @@ import '../../utils/screen_adapter.dart';
 import '../../navigation_helper.dart';
 import 'models/personal_info_option.dart';
 import 'widgets/certification_prompt_banner.dart';
+import 'widgets/certification_retention_guard.dart';
 import 'widgets/certification_selection_sheet.dart';
 
 class CertificationContactInfoPage extends StatefulWidget {
@@ -108,7 +109,12 @@ class _CertificationContactInfoPageState
         child: Column(
           children: [
             SizedBox(height: 16.h),
-            const _ContactInfoHeader(),
+            _ContactInfoHeader(
+              onBack: CertificationRetentionGuard.backHandler(
+                type: '4',
+                productId: _productIdFromArguments(),
+              ),
+            ),
             SizedBox(height: 20.h),
             Padding(
               padding: EdgeInsets.symmetric(horizontal: 20.w),
@@ -372,7 +378,9 @@ class _ContactGroup {
 }
 
 class _ContactInfoHeader extends StatelessWidget {
-  const _ContactInfoHeader();
+  const _ContactInfoHeader({required this.onBack});
+
+  final VoidCallback onBack;
 
   @override
   Widget build(BuildContext context) {
@@ -387,7 +395,7 @@ class _ContactInfoHeader extends StatelessWidget {
               padding: EdgeInsets.only(left: 20.w),
               child: GestureDetector(
                 behavior: HitTestBehavior.opaque,
-                onTap: NavigationHelper.back,
+                onTap: onBack,
                 child: Image.asset(
                   AppAssets.loginBack,
                   width: 23.w,

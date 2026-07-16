@@ -16,6 +16,7 @@ import 'models/personal_info_option.dart';
 import 'models/salary_day_option.dart';
 import 'widgets/certification_address_selection_sheet.dart';
 import 'widgets/certification_prompt_banner.dart';
+import 'widgets/certification_retention_guard.dart';
 import 'widgets/certification_salary_day_selection_sheet.dart';
 import 'widgets/certification_selection_sheet.dart';
 
@@ -156,7 +157,12 @@ class _CertificationPersonalInfoPageState
         child: Column(
           children: [
             SizedBox(height: 16.h),
-            _PersonalInfoHeader(onBack: NavigationHelper.back),
+            _PersonalInfoHeader(
+              onBack: CertificationRetentionGuard.backHandler(
+                type: widget._kind == _CertificationInfoKind.work ? '3' : '2',
+                productId: _productIdFromArguments(),
+              ),
+            ),
             SizedBox(height: 20.h),
             Padding(
               padding: EdgeInsets.symmetric(horizontal: 20.w),

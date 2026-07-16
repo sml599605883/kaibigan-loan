@@ -104,13 +104,11 @@ class ReportPayloadHelper {
           'relive': normalize(snapshot.currentWifiBssid),
           'pruriences': normalize(snapshot.currentWifiName),
         },
-        'psychologist': normalize(
-          snapshot.wifiCount > 0
-              ? snapshot.wifiCount
-              : snapshot.currentWifiBssid.isNotEmpty
-              ? 1
-              : 0,
-        ),
+        'psychologist': snapshot.wifiCount > 0
+            ? snapshot.wifiCount
+            : snapshot.currentWifiBssid.isNotEmpty
+            ? 1
+            : 0,
       },
       'misrelated': {
         'resonances': normalize(snapshot.availableStorage),

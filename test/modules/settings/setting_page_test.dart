@@ -11,6 +11,7 @@ import 'package:kaibigan_loan/src/core/network/api_response.dart';
 import 'package:kaibigan_loan/src/core/session/session_store.dart';
 import 'package:kaibigan_loan/src/modules/main/main_controller.dart';
 import 'package:kaibigan_loan/src/modules/settings/setting_page.dart';
+import 'package:kaibigan_loan/src/theme/app_colors.dart';
 import 'package:kaibigan_loan/src/utils/app_toast.dart';
 
 void main() {
@@ -35,12 +36,33 @@ void main() {
     Get.reset();
   });
 
-  testWidgets('logout calls API and returns to existing app home', (
+  testWidgets('logout confirms before calling API and returning home', (
     tester,
   ) async {
     await _pumpSettingWithRoutes(tester);
 
     await tester.tap(find.text('Logout'));
+    await tester.pumpAndSettle();
+
+    expect(find.text('Stay Signed In'), findsOneWidget);
+    expect(
+      find.text(
+        'Staying logged in ensures you can access funds in seconds whenever you need them.',
+      ),
+      findsOneWidget,
+    );
+    final backgroundRect = tester.getRect(
+      find.byKey(const Key('settingPopupBackground')),
+    );
+    expect(backgroundRect, const Rect.fromLTWH(27.5, 164, 320, 372));
+    final barrier = tester
+        .widgetList<ModalBarrier>(find.byType(ModalBarrier))
+        .lastWhere((item) => item.color != null);
+    expect(barrier.color, AppColors.uploadMethodBarrier);
+    expect(barrier.color?.a, closeTo(0.6, 0.001));
+    expect(apiClient.logoutRequestCount, 0);
+
+    await tester.tap(find.text('Logout').last);
     await tester.pumpAndSettle();
 
     expect(apiClient.logoutRequestCount, 1);
@@ -56,12 +78,22 @@ void main() {
     expect(_homeStubInitCount, 1);
   });
 
-  testWidgets('deactivate calls delete API and returns to existing app home', (
-    tester,
-  ) async {
+  testWidgets('deactivate confirms before calling delete API', (tester) async {
     await _pumpSettingWithRoutes(tester);
 
     await tester.tap(find.text('Deactivate Account'));
+    await tester.pumpAndSettle();
+
+    expect(find.text('Delete Your Account?'), findsOneWidget);
+    expect(
+      find.text(
+        'Deleting your account will remove your loan records and current benefits.',
+      ),
+      findsOneWidget,
+    );
+    expect(apiClient.deleteRequestCount, 0);
+
+    await tester.tap(find.text('Delete'));
     await tester.pumpAndSettle();
 
     expect(apiClient.deleteRequestCount, 1);
@@ -76,6 +108,26 @@ void main() {
     expect(_homeStubInitCount, 1);
   });
 
+  testWidgets('cancel and keep close dialogs without account requests', (
+    tester,
+  ) async {
+    await _pumpSettingWithRoutes(tester);
+
+    await tester.tap(find.text('Logout'));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Cancel'));
+    await tester.pumpAndSettle();
+
+    await tester.tap(find.text('Deactivate Account'));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Keep'));
+    await tester.pumpAndSettle();
+
+    expect(apiClient.logoutRequestCount, 0);
+    expect(apiClient.deleteRequestCount, 0);
+    expect(Get.currentRoute, AppRoutes.setting);
+  });
+
   testWidgets('logout failure keeps setting page and shows API error', (
     tester,
   ) async {
@@ -83,6 +135,8 @@ void main() {
     await _pumpSettingWithRoutes(tester);
 
     await tester.tap(find.text('Logout'));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Logout').last);
     await tester.pump();
 
     expect(apiClient.logoutRequestCount, 1);

@@ -20,6 +20,7 @@ void main() {
 
     final sessionStore = SessionStore.memory();
     await sessionStore.setLoggedIn(true);
+    await sessionStore.savePhone('96200001300');
     Get.put<SessionStore>(sessionStore);
     final apiClient = _FakeApiClient();
     apiClient.orderResponses['4'] = Json({
@@ -99,7 +100,7 @@ void main() {
     );
     await tester.pumpAndSettle();
 
-    expect(find.text('962****1300'), findsOneWidget);
+    expect(find.text('962***1300'), findsOneWidget);
     expect(find.text('All order'), findsOneWidget);
     expect(find.text('Outstanding'), findsOneWidget);
     expect(find.text('Settled'), findsOneWidget);

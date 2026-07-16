@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 
 import '../../core/network/api_client.dart';
 import '../../core/network/api_exception.dart';
+import '../../navigation_helper.dart';
 import '../../theme/app_colors.dart';
 import '../../utils/screen_adapter.dart';
 import 'order_list_models.dart';
@@ -68,6 +69,14 @@ class _OrdersPageState extends State<OrdersPage> {
     return _loadOrders();
   }
 
+  Future<void> _handleOrderTap(OrderListItem item) async {
+    if (item.redirectTarget.isNotEmpty) {
+      await NavigationHelper.navigateRawTarget(item.redirectTarget);
+      return;
+    }
+    await NavigationHelper.applyProductWithFlow(item.productId);
+  }
+
   @override
   Widget build(BuildContext context) {
     return ColoredBox(
@@ -96,7 +105,7 @@ class _OrdersPageState extends State<OrdersPage> {
               const _OrdersEmptyState()
             else
               for (final order in _orders) ...[
-                OrderListRow(item: order),
+                OrderListRow(item: order, onTap: () => _handleOrderTap(order)),
                 SizedBox(height: 10.h),
               ],
           ],

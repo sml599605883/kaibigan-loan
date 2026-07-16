@@ -15,6 +15,7 @@ import '../../theme/app_colors.dart';
 import '../../utils/app_toast.dart';
 import '../../utils/screen_adapter.dart';
 import 'widgets/certification_prompt_banner.dart';
+import 'widgets/certification_retention_guard.dart';
 
 typedef TrustDecisionLivenessLauncher =
     Future<TrustDecisionLivenessResult> Function(String license);
@@ -58,7 +59,12 @@ class _CertificationFacePageState extends State<CertificationFacePage> {
         child: Column(
           children: [
             SizedBox(height: 16.h),
-            _FaceHeader(onBack: NavigationHelper.back),
+            _FaceHeader(
+              onBack: CertificationRetentionGuard.backHandler(
+                type: '1',
+                productId: _productIdFromArguments(),
+              ),
+            ),
             SizedBox(height: 20.h),
             CertificationPromptBanner(message: _promptTextFromCache()),
             SizedBox(height: 40.h),

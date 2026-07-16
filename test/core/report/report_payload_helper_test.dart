@@ -117,7 +117,7 @@ void main() {
     expect(device['prutoth'], isEmpty);
     expect(hardware['morelles'], 'Apple');
     expect(hardware['leptophos'], '17.5');
-    expect(wifi['psychologist'], '2');
+    expect(wifi['psychologist'], 2);
     expect(wifi['foodstuffs'], isA<List<dynamic>>());
     expect(storage, {
       'resonances': '100',

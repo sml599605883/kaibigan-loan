@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 
-import '../../app_routes.dart';
 import '../../assets/app_assets.dart';
 import '../../core/json/json.dart';
 import '../../core/network/api_client.dart';
@@ -220,8 +219,8 @@ class _CertificationIdentitySubmitPageState
         await NavigationHelper.continueProductDetailFlow(productId);
         return;
       }
-      Get.toNamed<void>(
-        AppRoutes.certificationFace,
+      NavigationHelper.toCertificationFace<void>(
+        productId: productId,
         arguments: {
           'geobotanists': productId,
           'cardType': _cardTypeFromArguments(),
@@ -285,21 +284,21 @@ class _IdentitySubmitHeader extends StatelessWidget {
       child: Stack(
         alignment: Alignment.center,
         children: [
-          Align(
-            alignment: Alignment.centerLeft,
-            child: Padding(
-              padding: EdgeInsets.only(left: 20.w),
-              child: GestureDetector(
-                behavior: HitTestBehavior.opaque,
-                onTap: onBack,
-                child: Image.asset(
-                  AppAssets.loginBack,
-                  width: 23.w,
-                  height: 20.h,
-                ),
-              ),
-            ),
-          ),
+          // Align(
+          //   alignment: Alignment.centerLeft,
+          //   child: Padding(
+          //     padding: EdgeInsets.only(left: 20.w),
+          //     child: GestureDetector(
+          //       behavior: HitTestBehavior.opaque,
+          //       onTap: onBack,
+          //       child: Image.asset(
+          //         AppAssets.loginBack,
+          //         width: 23.w,
+          //         height: 20.h,
+          //       ),
+          //     ),
+          //   ),
+          // ),
           Text(
             'Identity verification',
             style: TextStyle(

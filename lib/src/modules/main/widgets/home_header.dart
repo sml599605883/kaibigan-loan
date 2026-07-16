@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 
 import '../../../assets/app_assets.dart';
+import '../../../navigation_helper.dart';
 import '../../../theme/app_colors.dart';
 
 class HomeHeader extends StatelessWidget {
@@ -21,7 +22,11 @@ class HomeHeader extends StatelessWidget {
             ),
           ),
         ),
-        Image.asset(AppAssets.homeServiceIcon, width: 35, height: 35),
+        GestureDetector(
+          behavior: HitTestBehavior.opaque,
+          onTap: NavigationHelper.toCustomerService<void>,
+          child: Image.asset(AppAssets.homeServiceIcon, width: 35, height: 35),
+        ),
       ],
     );
   }

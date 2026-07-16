@@ -2,7 +2,6 @@ import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 
 import '../../assets/app_assets.dart';
-import '../../app_routes.dart';
 import '../../core/json/json.dart';
 import '../../core/network/api_client.dart';
 import '../../core/network/api_exception.dart';
@@ -11,6 +10,7 @@ import '../../navigation_helper.dart';
 import '../../theme/app_colors.dart';
 import '../../utils/app_toast.dart';
 import '../../utils/screen_adapter.dart';
+import 'widgets/certification_retention_guard.dart';
 
 enum _IdentityTypeTab { recommended, other }
 
@@ -106,7 +106,12 @@ class _CertificationIdentityPageState extends State<CertificationIdentityPage> {
         child: Column(
           children: [
             SizedBox(height: 16.h),
-            _IdentityHeader(onBack: NavigationHelper.back),
+            _IdentityHeader(
+              onBack: CertificationRetentionGuard.backHandler(
+                type: '0',
+                productId: _productIdFromArguments(),
+              ),
+            ),
             SizedBox(height: 15.h),
             _IdentityTabs(
               selectedTab: _selectedTab,
@@ -342,8 +347,7 @@ class _IdentityTypeRow extends StatelessWidget {
             sceneType: '2',
             startTimeSeconds: scene2StartTimeSeconds,
           );
-          Get.toNamed<void>(
-            AppRoutes.certificationUpload,
+          NavigationHelper.toCertificationUpload<void>(
             arguments: {
               'geobotanists': productId,
               'cardType': type,

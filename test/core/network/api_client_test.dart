@@ -235,6 +235,18 @@ void main() {
         'fas': '[{"flashbulbs":"first"}]',
         'enfranchises': '777777',
       });
+
+      await client.retainPopup(bellyache: '4', seamounts: '1001');
+
+      expect(
+        adapter.lastRequest.path,
+        'https://api.example.test/plater/restless',
+      );
+      expect(adapter.lastBody, {
+        'bellyache': '4',
+        'seamounts': '1001',
+        'cornets': '777777',
+      });
     },
   );
 
@@ -337,6 +349,26 @@ void main() {
     await client.originalCardRetry(chattinesses: 'ORDER001');
     expect(adapter.lastRequest.path, 'https://api.example.test/plater/dodgy');
     expect(adapter.lastBody, {'chattinesses': 'ORDER001'});
+
+    await client.confirmLoan(
+      ecumenicalism: 2000,
+      cajoler: 7,
+      woodshedded: 1,
+      seamounts: 'product-42',
+      cheerlessly: 1,
+    );
+    expect(
+      adapter.lastRequest.path,
+      'https://api.example.test/plater/humpiness',
+    );
+    expect(adapter.lastBody, {
+      'ecumenicalism': 2000,
+      'cajoler': 7,
+      'woodshedded': 1,
+      'seamounts': 'product-42',
+      'cheerlessly': 1,
+      'impledging': '777777',
+    });
   });
 
   test('data report methods add obfuscated fields internally', () async {

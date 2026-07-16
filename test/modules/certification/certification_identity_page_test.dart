@@ -95,6 +95,12 @@ void main() {
       isA<int>().having((value) => value, 'positive', greaterThan(0)),
     );
     expect(find.text('Submit'), findsOneWidget);
+
+    Get.back<void>();
+    await tester.pumpAndSettle();
+
+    expect(Get.currentRoute, '/');
+    expect(find.byType(CertificationIdentityPage), findsNothing);
   });
 
   testWidgets(
@@ -182,7 +188,7 @@ Future<void> _pumpPage(
       getPages: [
         GetPage(name: '/', page: () => const SizedBox()),
         GetPage(
-          name: '/certification-identity',
+          name: AppRoutes.certificationIdentity,
           page: () => const CertificationIdentityPage(),
         ),
         GetPage(
@@ -193,7 +199,7 @@ Future<void> _pumpPage(
     ),
   );
   await tester.pumpAndSettle();
-  Get.toNamed<void>('/certification-identity', arguments: arguments);
+  Get.toNamed<void>(AppRoutes.certificationIdentity, arguments: arguments);
   await tester.pump();
 }
 

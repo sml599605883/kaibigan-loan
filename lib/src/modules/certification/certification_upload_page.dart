@@ -8,7 +8,6 @@ import 'package:image_picker/image_picker.dart';
 import 'package:path_provider/path_provider.dart';
 import 'package:permission_handler/permission_handler.dart';
 
-import '../../app_routes.dart';
 import '../../assets/app_assets.dart';
 import '../../core/network/api_client.dart';
 import '../../core/network/api_exception.dart';
@@ -335,8 +334,7 @@ class _CertificationUploadPageState extends State<CertificationUploadPage> {
         return;
       }
       await AppToast.dismissLoading();
-      Get.toNamed<void>(
-        AppRoutes.certificationIdentitySubmit,
+      NavigationHelper.toCertificationIdentitySubmit<void>(
         arguments: {
           'geobotanists': _productIdFromArguments(),
           'cardType': _cardTypeFromArguments(),

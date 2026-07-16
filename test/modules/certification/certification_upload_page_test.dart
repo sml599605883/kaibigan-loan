@@ -236,6 +236,12 @@ void main() {
     expect(find.byKey(const Key('identitySubmitPage')), findsOneWidget);
     expect(toastPresenter.loadingMessages, [null]);
     expect(toastPresenter.dismissCount, 1);
+
+    Get.back<void>();
+    await tester.pumpAndSettle();
+
+    expect(Get.currentRoute, '/');
+    expect(find.byType(CertificationUploadPage), findsNothing);
   });
 
   testWidgets('photo album selection compresses and uploads picked image', (

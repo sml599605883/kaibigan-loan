@@ -13,6 +13,7 @@ import 'package:kaibigan_loan/src/core/network/api_client.dart';
 import 'package:kaibigan_loan/src/core/network/api_config.dart';
 import 'package:kaibigan_loan/src/core/network/api_endpoints.dart';
 import 'package:kaibigan_loan/src/core/session/session_store.dart';
+import 'package:kaibigan_loan/src/modules/main/home_popup.dart';
 import 'package:kaibigan_loan/src/modules/main/main_controller.dart';
 import 'package:kaibigan_loan/src/navigation_helper.dart';
 import 'package:kaibigan_loan/src/utils/app_toast.dart';
@@ -93,6 +94,33 @@ void main() {
     expect(adapter.dialogRequestCount, 2);
   });
 
+  testWidgets('requests personal center dialog when Mine becomes visible', (
+    tester,
+  ) async {
+    await sessionStore.setLoggedIn(true);
+    await _pumpApp(tester);
+
+    await tester.tap(find.image(const AssetImage(AppAssets.profileNormal)));
+    await tester.pumpAndSettle();
+
+    expect(adapter.dialogScenes, [1, 2]);
+  });
+
+  testWidgets('requests personal center dialog when app resumes on Mine', (
+    tester,
+  ) async {
+    await sessionStore.setLoggedIn(true);
+    await _pumpApp(tester);
+    await tester.tap(find.image(const AssetImage(AppAssets.profileNormal)));
+    await tester.pumpAndSettle();
+
+    tester.binding.handleAppLifecycleStateChanged(AppLifecycleState.paused);
+    tester.binding.handleAppLifecycleStateChanged(AppLifecycleState.resumed);
+    await tester.pumpAndSettle();
+
+    expect(adapter.dialogScenes, [1, 2, 2]);
+  });
+
   testWidgets('redirects unauthenticated tab taps to login page', (
     tester,
   ) async {
@@ -119,6 +147,24 @@ void main() {
 
     expect(adapter.homeRequestCount, 2);
     expect(adapter.dialogRequestCount, 2);
+  });
+
+  testWidgets('shows documented marketing popup after home refresh', (
+    tester,
+  ) async {
+    adapter.dialogPayload = {
+      'commensurate': 3,
+      'misaligned': {
+        'mourningly': 'Promotion',
+        'tanists': 'https://cdn.example.test/popup.png',
+        'bloomeries': 'https://h5.example.test/promotion',
+      },
+    };
+
+    await _pumpApp(tester);
+
+    expect(adapter.dialogRequestCount, 1);
+    expect(find.byKey(HomePopup.marketingImageKey), findsOneWidget);
   });
 
   testWidgets('renders delivered banner and records banner tap', (
@@ -418,18 +464,24 @@ void main() {
           'commensurate': 'SubspecializedReawake',
           'anchovetta': [
             {
-              'geobotanists': 'product-1',
+              'cabdrivers': 'product-1',
               'omissible': 'Kaibigan Loan',
               'ghillies': '₱ 20,000',
               'mainlined': '180 Days',
-              'pulpit': '≤ 0.5% / Day',
+              'cultrate': 'Loan terms',
+              'whops': '≤ 0.5% / Day',
+              'rescinders': 'Interest Rate',
+              'logophiles': 'yellow',
             },
             {
-              'geobotanists': 'product-2',
+              'cabdrivers': 'product-2',
               'omissible': 'Partner Loan',
               'ghillies': '₱ 30,000',
               'mainlined': '120 Days',
-              'pulpit': '≤ 0.4% / Day',
+              'cultrate': 'Loan terms',
+              'whops': '≤ 0.4% / Day',
+              'rescinders': 'Interest Rate',
+              'logophiles': 'red',
             },
           ],
         },
@@ -446,6 +498,8 @@ void main() {
     expect(find.text('₱ 30,000'), findsOne);
     expect(find.text('180 Days'), findsOne);
     expect(find.text('≤ 0.4% / Day'), findsOne);
+    expect(find.text('Loan terms'), findsNWidgets(2));
+    expect(find.text('Interest Rate'), findsNWidgets(2));
   });
 
   testWidgets('applies recommendation product on card tap', (tester) async {
@@ -455,11 +509,12 @@ void main() {
           'commensurate': 'PRODUCT_LIST',
           'anchovetta': [
             {
-              'geobotanists': 'product-1',
+              'cabdrivers': 'product-1',
               'omissible': 'Kaibigan Loan',
               'ghillies': '₱ 20,000',
               'mainlined': '180 Days',
-              'pulpit': '≤ 0.5% / Day',
+              'whops': '≤ 0.5% / Day',
+              'logophiles': 'yellow',
             },
           ],
         },
@@ -481,6 +536,46 @@ void main() {
       'geobotanists': 'product-1',
       'scolloped': 'Kaibigan Loan',
     });
+  });
+
+  testWidgets('disables recommendation product when button color is grey', (
+    tester,
+  ) async {
+    adapter.homePayload = {
+      'religiosities': [
+        {
+          'commensurate': 'PRODUCT_LIST',
+          'anchovetta': [
+            {
+              'cabdrivers': 'product-1',
+              'omissible': 'Kaibigan Loan',
+              'ghillies': '₱ 50,000',
+              'mainlined': '121 day',
+              'cultrate': 'Loan terms',
+              'whops': '≤ 0.05%/day',
+              'rescinders': 'Interest Rate',
+              'restless': 'Daily Quota Full',
+              'logophiles': 'grey',
+            },
+          ],
+        },
+      ],
+    };
+
+    await _pumpApp(tester);
+
+    expect(find.text('≤ 0.05%/day'), findsOneWidget);
+    expect(find.text('Loan terms'), findsOneWidget);
+    expect(find.text('Daily Quota Full'), findsOneWidget);
+
+    await tester.tap(
+      find.byKey(const ValueKey('home_recommendation_product-1')),
+    );
+    await tester.pumpAndSettle();
+
+    expect(adapter.productApplyRequestCount, 0);
+    expect(adapter.productDetailRequestCount, 0);
+    expect(Get.currentRoute, AppRoutes.main);
   });
 
   testWidgets('applies top hero product on loan card tap', (tester) async {
@@ -710,6 +805,8 @@ class _RecordingAdapter implements HttpClientAdapter {
   String? lastBannerId;
   String? lastProductApplyId;
   Map<String, dynamic> homePayload = <String, dynamic>{};
+  Map<String, dynamic> dialogPayload = <String, dynamic>{};
+  final dialogScenes = <int>[];
 
   @override
   void close({bool force = false}) {}
@@ -725,6 +822,18 @@ class _RecordingAdapter implements HttpClientAdapter {
     }
     if (options.path == 'https://api.example.test${ApiEndpoints.dialog}') {
       dialogRequestCount++;
+      dialogScenes.add(options.queryParameters['loungy'] as int);
+      return ResponseBody.fromString(
+        jsonEncode({
+          'griding': 0,
+          'organizational': 'success',
+          'fas': dialogPayload,
+        }),
+        200,
+        headers: {
+          Headers.contentTypeHeader: [Headers.jsonContentType],
+        },
+      );
     }
     if (options.path ==
         'https://api.example.test${ApiEndpoints.bannerClickRecord}') {

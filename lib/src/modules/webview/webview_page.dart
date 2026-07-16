@@ -12,6 +12,7 @@ import '../../navigation_helper.dart';
 import '../../theme/app_colors.dart';
 import '../../utils/app_toast.dart';
 import '../account/account_list_models.dart';
+import '../widgets/retention_popup.dart';
 import 'webview_bridge_constants.dart';
 import 'webview_bridge_dispatcher.dart';
 import 'webview_bridge_models.dart';
@@ -22,6 +23,39 @@ bool isInlineWebViewScheme(String scheme) => switch (scheme.toLowerCase()) {
 };
 
 bool shouldCloseWebView({required bool canGoBack}) => !canGoBack;
+
+String jalapsRetentionProductId(String rawUrl) {
+  final normalizedUrl = rawUrl.trim();
+  if (!normalizedUrl.toLowerCase().contains('jalaps')) {
+    return '';
+  }
+  return Uri.tryParse(normalizedUrl)?.queryParameters['seamounts']?.trim() ??
+      '';
+}
+
+Future<bool> showJalapsBackRetention({
+  required String rawUrl,
+  required VoidCallback onExit,
+  RetentionPopupPresenter? presenter,
+}) {
+  final productId = jalapsRetentionProductId(rawUrl);
+  if (productId.isEmpty) {
+    return Future<bool>.value(false);
+  }
+  return (presenter ?? _showRetentionPopup)(
+    type: '5',
+    productId: productId,
+    onExit: onExit,
+  );
+}
+
+Future<bool> _showRetentionPopup({
+  required String type,
+  required String productId,
+  required VoidCallback onExit,
+}) {
+  return RetentionPopup.show(type: type, productId: productId, onExit: onExit);
+}
 
 bool canUseActiveWebViewController({
   required bool mounted,
@@ -190,32 +224,57 @@ class _WebViewPageState extends State<WebViewPage> with WidgetsBindingObserver {
 
   Future<void> _handleBackPressed() async {
     final controller = _controller;
-    if (controller == null) {
+    var canGoBack = false;
+    var currentUrl = widget.initialUrl.trim();
+    if (controller != null) {
+      if (!canUseActiveWebViewController(
+        mounted: mounted,
+        activeController: _controller,
+        controller: controller,
+      )) {
+        return;
+      }
+      canGoBack = await controller.canGoBack();
+      if (!canUseActiveWebViewController(
+        mounted: mounted,
+        activeController: _controller,
+        controller: controller,
+      )) {
+        return;
+      }
+      currentUrl = (await controller.getUrl())?.toString().trim() ?? currentUrl;
+      if (!canUseActiveWebViewController(
+        mounted: mounted,
+        activeController: _controller,
+        controller: controller,
+      )) {
+        return;
+      }
+    }
+
+    Future<void> defaultBack() async {
+      if (!shouldCloseWebView(canGoBack: canGoBack) && controller != null) {
+        if (canUseActiveWebViewController(
+          mounted: mounted,
+          activeController: _controller,
+          controller: controller,
+        )) {
+          await controller.goBack();
+        }
+        return;
+      }
       if (mounted) {
         Get.back<void>();
       }
-      return;
     }
-    if (!canUseActiveWebViewController(
-      mounted: mounted,
-      activeController: _controller,
-      controller: controller,
-    )) {
-      return;
+
+    final shown = await showJalapsBackRetention(
+      rawUrl: currentUrl,
+      onExit: () => unawaited(defaultBack()),
+    );
+    if (!shown) {
+      await defaultBack();
     }
-    final canGoBack = await controller.canGoBack();
-    if (!canUseActiveWebViewController(
-      mounted: mounted,
-      activeController: _controller,
-      controller: controller,
-    )) {
-      return;
-    }
-    if (shouldCloseWebView(canGoBack: canGoBack)) {
-      Get.back<void>();
-      return;
-    }
-    await controller.goBack();
   }
 
   Future<NavigationActionPolicy> _handleNavigation(
