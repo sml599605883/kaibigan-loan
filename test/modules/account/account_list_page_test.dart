@@ -65,7 +65,7 @@ void main() {
     );
   });
 
-  testWidgets('lays out account cards with the Lanhu visual hierarchy', (
+  testWidgets('lays out Bank and E-wallet cards from the Kaibigan design', (
     tester,
   ) async {
     apiClient.accountStates = _accounts();
@@ -79,19 +79,32 @@ void main() {
     );
     await tester.pumpAndSettle();
 
-    final card = find.byKey(const Key('accountListItem-bind-1'));
-    final header = find.byKey(const Key('accountCardHeader-bind-1'));
-    final logo = find.byKey(const Key('accountCardLogo-bind-1'));
-    final receiptPanel = find.byKey(
+    final bankCard = find.byKey(const Key('accountListItem-bind-1'));
+    final walletCard = find.byKey(const Key('accountListItem-bind-2'));
+    final bankHeader = find.byKey(const Key('accountCardHeader-bind-1'));
+    final bankLogo = find.byKey(const Key('accountCardLogo-bind-1'));
+    final bankReceiptPanel = find.byKey(
       const Key('accountCardReceiptPanel-bind-1'),
     );
 
-    expect(tester.getSize(card), const Size(335, 145));
-    expect(tester.getSize(header), const Size(335, 60));
-    expect(tester.getSize(logo), const Size(30, 30));
-    expect(tester.getSize(receiptPanel).width, 305);
+    expect(tester.getSize(bankCard), const Size(335, 152));
+    expect(tester.getSize(walletCard), const Size(335, 119));
+    expect(tester.getSize(bankHeader), const Size(315, 30));
+    expect(tester.getSize(bankLogo), const Size(30, 30));
+    expect(tester.getSize(bankReceiptPanel).width, 315);
     expect(
-      find.descendant(of: card, matching: find.text('Receipt Account')),
+      find.descendant(of: bankCard, matching: find.text('Receipt Account')),
+      findsOneWidget,
+    );
+    expect(
+      find.descendant(of: walletCard, matching: find.text('Receipt Account')),
+      findsOneWidget,
+    );
+    expect(
+      find.text(
+        'The bank is under maintenance. Loans may be delayed.\n'
+        'Please wait or choose another option',
+      ),
       findsOneWidget,
     );
     expect(_selectionImageFor(tester, 'bind-1').width, 20);
@@ -309,24 +322,28 @@ Json _accounts() => Json(<String, dynamic>{
   'religiosities': <Map<String, dynamic>>[
     <String, dynamic>{
       'overdoer': 'E-wallet',
-      'dendron': '0917 000 0000',
+      'dendron': '',
       'anchovetta': <Map<String, dynamic>>[
         <String, dynamic>{
           'smokehouse': 'bind-2',
           'vocalically': '',
           'postaccident': 'GCash',
+          'flamen': '0917 000 0000',
+          'bondmen': 1,
           'uptime': 0,
         },
       ],
     },
     <String, dynamic>{
       'overdoer': 'Bank',
-      'dendron': '**** 1234',
+      'dendron': '',
       'anchovetta': <Map<String, dynamic>>[
         <String, dynamic>{
           'smokehouse': 'bind-1',
           'vocalically': '',
           'postaccident': 'BDO',
+          'flamen': '**** 1234',
+          'bondmen': 0,
           'uptime': 1,
         },
       ],

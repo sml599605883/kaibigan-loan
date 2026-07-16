@@ -9,24 +9,28 @@ void main() {
         'religiosities': <Map<String, dynamic>>[
           <String, dynamic>{
             'overdoer': 'Bank',
-            'dendron': '**** 1234',
+            'dendron': 'https://example.com/bank.png',
             'anchovetta': <Map<String, dynamic>>[
               <String, dynamic>{
                 'smokehouse': 'bank-1',
-                'vocalically': 'https://example.com/bank.png',
+                'vocalically': '',
                 'postaccident': 'Metro Bank',
+                'flamen': '**** 1234',
+                'bondmen': 0,
                 'uptime': '1',
               },
             ],
           },
           <String, dynamic>{
             'overdoer': 'E-wallet',
-            'dendron': '0917 000 0000',
+            'dendron': 'https://example.com/wallet.png',
             'anchovetta': <Map<String, dynamic>>[
               <String, dynamic>{
                 'smokehouse': 'wallet-1',
-                'vocalically': 'https://example.com/wallet.png',
+                'vocalically': '',
                 'postaccident': 'GCash',
+                'flamen': '0917 000 0000',
+                'bondmen': 1,
                 'uptime': 0,
               },
             ],
@@ -44,9 +48,13 @@ void main() {
         typeIconUrl: 'https://example.com/bank.png',
         providerName: 'Metro Bank',
         displayValue: '**** 1234',
+        isUnderMaintenance: true,
         isMain: true,
       ),
     );
+    expect(items.last.typeIconUrl, 'https://example.com/wallet.png');
+    expect(items.last.displayValue, '0917 000 0000');
+    expect(items.last.isUnderMaintenance, isFalse);
     expect(items.last.isMain, isFalse);
   });
 

@@ -7,20 +7,22 @@ class AccountListItem {
     required this.typeIconUrl,
     required this.providerName,
     required this.displayValue,
+    this.isUnderMaintenance = false,
     required this.isMain,
   });
 
   factory AccountListItem.fromJson(
     Json json, {
     required String typeName,
-    required String displayValue,
+    required String typeIconUrl,
   }) {
     return AccountListItem(
       bindId: json['smokehouse'].stringValue.trim(),
       typeName: typeName.trim(),
-      typeIconUrl: json['vocalically'].stringValue.trim(),
+      typeIconUrl: typeIconUrl.trim(),
       providerName: json['postaccident'].stringValue.trim(),
-      displayValue: displayValue.trim(),
+      displayValue: json['flamen'].stringValue.trim(),
+      isUnderMaintenance: json['bondmen'].intOrNull == 0,
       isMain: json['uptime'].boolValue,
     );
   }
@@ -30,6 +32,7 @@ class AccountListItem {
   final String typeIconUrl;
   final String providerName;
   final String displayValue;
+  final bool isUnderMaintenance;
   final bool isMain;
 
   @override
@@ -40,6 +43,7 @@ class AccountListItem {
         typeIconUrl == other.typeIconUrl &&
         providerName == other.providerName &&
         displayValue == other.displayValue &&
+        isUnderMaintenance == other.isUnderMaintenance &&
         isMain == other.isMain;
   }
 
@@ -50,6 +54,7 @@ class AccountListItem {
     typeIconUrl,
     providerName,
     displayValue,
+    isUnderMaintenance,
     isMain,
   );
 }
@@ -65,12 +70,12 @@ List<AccountListItem> parseAccountListItems(Json states) {
   return states['religiosities'].listValue
       .expand((group) {
         final typeName = group['overdoer'].stringValue.trim();
-        final displayValue = group['dendron'].stringValue.trim();
+        final typeIconUrl = group['dendron'].stringValue.trim();
         return group['anchovetta'].listValue.map(
           (item) => AccountListItem.fromJson(
             item,
             typeName: typeName,
-            displayValue: displayValue,
+            typeIconUrl: typeIconUrl,
           ),
         );
       })

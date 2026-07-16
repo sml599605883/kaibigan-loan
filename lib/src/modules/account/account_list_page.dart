@@ -266,6 +266,8 @@ class _AccountListCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final isBankUnderMaintenance =
+        item.typeName.trim().toLowerCase() == 'bank' && item.isUnderMaintenance;
     return Semantics(
       selected: selected,
       button: true,
@@ -278,51 +280,55 @@ class _AccountListCard extends StatelessWidget {
           key: Key('accountListItem-${item.bindId}'),
           borderRadius: BorderRadius.circular(20.r),
           onTap: onTap,
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.stretch,
-            children: [
-              Container(
-                key: Key('accountCardHeader-${item.bindId}'),
-                height: 60.h,
-                color: AppColors.accountCardHeader,
-                padding: EdgeInsets.symmetric(horizontal: 15.w),
-                child: Row(
-                  children: [
-                    SizedBox(
-                      key: Key('accountCardLogo-${item.bindId}'),
-                      width: 30.w,
-                      height: 30.h,
-                      child: _TypeIcon(url: item.typeIconUrl),
-                    ),
-                    SizedBox(width: 16.w),
-                    Expanded(
-                      child: Text(
-                        item.providerName,
-                        maxLines: 1,
-                        overflow: TextOverflow.ellipsis,
-                        style: TextStyle(
-                          color: AppColors.accountCardText,
-                          fontSize: 14.sp,
-                          fontWeight: FontWeight.w700,
-                          height: 20 / 14,
+          child: Padding(
+            padding: EdgeInsets.fromLTRB(
+              10.w,
+              8.h,
+              10.w,
+              isBankUnderMaintenance ? 8.h : 10.h,
+            ),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                SizedBox(
+                  key: Key('accountCardHeader-${item.bindId}'),
+                  height: 30.h,
+                  child: Row(
+                    children: [
+                      SizedBox(
+                        key: Key('accountCardLogo-${item.bindId}'),
+                        width: 30.w,
+                        height: 30.h,
+                        child: _TypeIcon(url: item.typeIconUrl),
+                      ),
+                      SizedBox(width: 16.w),
+                      Expanded(
+                        child: Text(
+                          item.providerName,
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                          style: TextStyle(
+                            color: AppColors.accountCardText,
+                            fontSize: 14.sp,
+                            fontWeight: FontWeight.w700,
+                            height: 20 / 14,
+                          ),
                         ),
                       ),
-                    ),
-                    Image.asset(
-                      selected
-                          ? AppAssets.accountOptionSelected
-                          : AppAssets.accountOptionUnselected,
-                      width: 20.w,
-                      height: 20.h,
-                    ),
-                  ],
+                      Image.asset(
+                        selected
+                            ? AppAssets.accountOptionSelected
+                            : AppAssets.accountOptionUnselected,
+                        width: 20.w,
+                        height: 20.h,
+                      ),
+                    ],
+                  ),
                 ),
-              ),
-              Padding(
-                padding: EdgeInsets.fromLTRB(15.w, 10.h, 15.w, 11.h),
-                child: Container(
+                SizedBox(height: 7.h),
+                Container(
                   key: Key('accountCardReceiptPanel-${item.bindId}'),
-                  padding: EdgeInsets.fromLTRB(15.w, 10.h, 15.w, 9.h),
+                  padding: EdgeInsets.fromLTRB(9.w, 10.h, 9.w, 9.h),
                   decoration: BoxDecoration(
                     color: AppColors.accountCardPanel,
                     borderRadius: BorderRadius.circular(10.r),
@@ -353,8 +359,25 @@ class _AccountListCard extends StatelessWidget {
                     ],
                   ),
                 ),
-              ),
-            ],
+                if (isBankUnderMaintenance) ...[
+                  SizedBox(height: 7.h),
+                  SizedBox(
+                    height: 28.h,
+                    child: Text(
+                      'The bank is under maintenance. Loans may be delayed.\n'
+                      'Please wait or choose another option',
+                      maxLines: 2,
+                      textAlign: TextAlign.center,
+                      style: TextStyle(
+                        color: AppColors.accountCardWarningText,
+                        fontSize: 12.sp,
+                        height: 14 / 12,
+                      ),
+                    ),
+                  ),
+                ],
+              ],
+            ),
           ),
         ),
       ),

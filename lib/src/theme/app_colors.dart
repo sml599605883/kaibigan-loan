@@ -123,12 +123,12 @@ abstract final class AppColors {
   static const webViewProgress = Color(0xFF48BCFF);
   static const accountPageBackground = Color(0xFFFFFFFF);
   static const accountHeaderText = Color(0xFF10364D);
-  static const accountCardBackground = Color(0xFFFFFFFF);
-  static const accountCardHeader = Color(0xFFAECBF9);
-  static const accountCardPanel = Color(0xFFF0F0F0);
+  static const accountCardBackground = Color(0xFF48BCFF);
+  static const accountCardPanel = Color(0xFFFFF275);
   static const accountCardText = Color(0xFF000000);
-  static const accountCardLabelText = Color(0xFF999999);
+  static const accountCardLabelText = Color(0xFF000000);
   static const accountCardValueText = Color(0xFF000000);
+  static const accountCardWarningText = Color(0xFFFFE6B4);
   static const accountConfirmEnabled = Color(0xFF48BCFF);
   static const accountConfirmDisabled = Color(0xFFB5B5B5);
   static const accountConfirmText = Color(0xFFFFFFFF);
