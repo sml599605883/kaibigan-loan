@@ -33,7 +33,6 @@ abstract final class ApiEndpoints {
   static const trustdecisionReport = '/plater/ghillies';
   static const orderRedirect = '/plater/geometrically';
   static const orderList = '/plater/mainlined';
-  static const confirmLoan = '/plater/humpiness';
   static const uploadLocation = '/plater/outmarching';
   static const googleMarket = '/plater/pulpit';
   static const buriedPoint = '/plater/rescinders';

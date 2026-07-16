@@ -55,13 +55,6 @@ class NavigationHelper {
     'productId',
     'cohabiter',
   };
-  static const Set<String> _temporaryConfirmLoanProductIdAliases = {
-    'seamounts',
-    'geobotanists',
-    'productId',
-    'cohabiter',
-    'cabdrivers',
-  };
   static const Set<String> _certificationFlowPrunedRouteNames = {
     AppRoutes.certificationIdentity,
     AppRoutes.certificationUpload,
@@ -379,7 +372,6 @@ class NavigationHelper {
   static Future<void> navigateRawTarget(
     String rawTarget, {
     Object? arguments,
-    String? productId,
   }) async {
     final target = rawTarget.trim();
     if (target.isEmpty) {
@@ -416,11 +408,6 @@ class NavigationHelper {
 
     final webUri = _resolveWebUri(target);
     if (webUri != null) {
-      await _temporarilyConfirmLoanForJalaps(
-        webUri,
-        arguments: arguments,
-        productId: productId,
-      );
       toWebView<void>(url: webUri.toString());
     }
   }
@@ -635,11 +622,7 @@ class NavigationHelper {
     final applyStates = response.states;
     final rawTarget = applyStates['bloomeries'].stringValue.trim();
     if (rawTarget.isNotEmpty) {
-      await navigateRawTarget(
-        rawTarget,
-        arguments: applyStates.rawMapValue,
-        productId: productId,
-      );
+      await navigateRawTarget(rawTarget, arguments: applyStates.rawMapValue);
       return;
     }
     if (applyStates['threats'].intValue != 200) {
@@ -732,11 +715,7 @@ class NavigationHelper {
         );
         final redirectTarget = redirect.states['bloomeries'].stringValue.trim();
         if (redirectTarget.isNotEmpty) {
-          await navigateRawTarget(
-            redirectTarget,
-            arguments: rawDetail,
-            productId: productId,
-          );
+          await navigateRawTarget(redirectTarget, arguments: rawDetail);
           return;
         }
       }
@@ -762,80 +741,6 @@ class NavigationHelper {
             uri.queryParameters['cohabiter'] ??
             '')
         .trim();
-  }
-
-  // TODO(TEMP_WEB_CONFIRM_LOAN): Remove this client-side replacement after
-  // the Jalaps confirmation page implements the confirm-loan request.
-  static Future<void> _temporarilyConfirmLoanForJalaps(
-    Uri uri, {
-    Object? arguments,
-    String? productId,
-  }) async {
-    if (!uri.toString().toLowerCase().contains('jalaps')) {
-      return;
-    }
-    final resolvedProductId = _firstNonEmpty(
-      productId,
-      _firstNonEmpty(
-        _productIdFromArguments(arguments),
-        _temporaryConfirmLoanProductIdFromMap(uri.queryParameters),
-      ),
-    );
-    if (resolvedProductId.isEmpty) {
-      logger('[TEMP_WEB_CONFIRM_LOAN] skipped: product id is empty, url=$uri');
-      return;
-    }
-    try {
-      final response = await ApiClient.instance.confirmLoan(
-        ecumenicalism: 2000,
-        cajoler: 7,
-        woodshedded: 1,
-        seamounts: resolvedProductId,
-        cheerlessly: 1,
-      );
-      logger(
-        '[TEMP_WEB_CONFIRM_LOAN] temporary confirm loan succeeded: '
-        'code=${response.code}, message=${response.message}, '
-        'states=${response.states.value}',
-      );
-    } catch (error, stackTrace) {
-      logger(
-        '[TEMP_WEB_CONFIRM_LOAN] temporary confirm loan failed: '
-        '$error\n$stackTrace',
-      );
-    }
-  }
-
-  static String _productIdFromArguments(Object? arguments) {
-    if (arguments is! Map) {
-      return '';
-    }
-    final direct = _temporaryConfirmLoanProductIdFromMap(arguments);
-    if (direct.isNotEmpty) {
-      return direct;
-    }
-    for (final key in const ['payload', 'sensitized']) {
-      final nested = arguments[key];
-      if (nested is Map) {
-        final nestedProductId = _temporaryConfirmLoanProductIdFromMap(nested);
-        if (nestedProductId.isNotEmpty) {
-          return nestedProductId;
-        }
-      }
-    }
-    return '';
-  }
-
-  static String _temporaryConfirmLoanProductIdFromMap(
-    Map<dynamic, dynamic> arguments,
-  ) {
-    for (final alias in _temporaryConfirmLoanProductIdAliases) {
-      final value = arguments[alias]?.toString().trim() ?? '';
-      if (value.isNotEmpty) {
-        return value;
-      }
-    }
-    return '';
   }
 
   static bool _hasExplicitProductId(Map<dynamic, dynamic> arguments) {

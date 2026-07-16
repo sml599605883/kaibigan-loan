@@ -407,11 +407,9 @@ void main() {
     });
   });
 
-  testWidgets('Jalaps web target confirms loan with the real product id', (
+  testWidgets('Jalaps web target opens directly without native confirm loan', (
     tester,
   ) async {
-    final logs = <String>[];
-    NavigationHelper.logger = logs.add;
     await _pumpRoutes(tester);
 
     await NavigationHelper.navigateRawTarget(
@@ -420,37 +418,11 @@ void main() {
     );
     await tester.pumpAndSettle();
 
-    expect(apiClient.confirmLoanRequests, [
-      {
-        'ecumenicalism': 2000,
-        'cajoler': 7,
-        'woodshedded': 1,
-        'seamounts': 'product-42',
-        'cheerlessly': 1,
-      },
-    ]);
-    expect(logs.single, contains('temporary confirm loan succeeded'));
-  });
-
-  testWidgets('Jalaps web target still opens WebView after confirm failure', (
-    tester,
-  ) async {
-    final logs = <String>[];
-    NavigationHelper.logger = logs.add;
-    apiClient.confirmLoanError = StateError('temporary confirm failed');
-    await _pumpRoutes(tester);
-
-    await NavigationHelper.navigateRawTarget(
-      'https://h5.example.test/jalaps/confirm?seamounts=product-43',
-    );
-    await tester.pumpAndSettle();
-
     expect(Get.currentRoute, AppRoutes.webView);
     expect(Get.arguments, <String, dynamic>{
-      'url': 'https://h5.example.test/jalaps/confirm?seamounts=product-43',
+      'url': 'https://h5.example.test/Jalaps/confirm',
       'title': null,
     });
-    expect(logs.single, contains('temporary confirm loan failed'));
   });
 
   testWidgets('product detail public step opens identity verification', (
@@ -1235,14 +1207,12 @@ class _FakeApiClient extends ApiClient {
   final productApplySuccumbs = <String>[];
   final productDetailIds = <String>[];
   final orderRedirectRequests = <Map<String, String>>[];
-  final confirmLoanRequests = <Map<String, Object>>[];
   void Function()? onProductApply;
   Map<String, dynamic> applyStates = <String, dynamic>{};
   Map<String, dynamic>? productDetailStates;
   Map<String, dynamic> orderRedirectStates = <String, dynamic>{};
   Completer<ApiResponse>? pendingOrderRedirectResponse;
   Object? productDetailError;
-  Object? confirmLoanError;
 
   @override
   Future<ApiResponse> productApply({
@@ -1293,32 +1263,6 @@ class _FakeApiClient extends ApiClient {
       code: 0,
       message: 'success',
       states: Json(orderRedirectStates),
-    );
-  }
-
-  @override
-  Future<ApiResponse> confirmLoan({
-    required int ecumenicalism,
-    required int cajoler,
-    required int woodshedded,
-    required String seamounts,
-    required int cheerlessly,
-  }) async {
-    confirmLoanRequests.add({
-      'ecumenicalism': ecumenicalism,
-      'cajoler': cajoler,
-      'woodshedded': woodshedded,
-      'seamounts': seamounts,
-      'cheerlessly': cheerlessly,
-    });
-    final error = confirmLoanError;
-    if (error != null) {
-      throw error;
-    }
-    return ApiResponse(
-      code: 0,
-      message: 'success',
-      states: Json({'rawer': 'https://h5.example.test/loan-details'}),
     );
   }
 }

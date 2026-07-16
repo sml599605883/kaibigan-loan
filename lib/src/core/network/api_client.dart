@@ -447,26 +447,6 @@ class ApiClient {
     );
   }
 
-  Future<ApiResponse> confirmLoan({
-    required int ecumenicalism,
-    required int cajoler,
-    required int woodshedded,
-    required String seamounts,
-    required int cheerlessly,
-  }) {
-    return post(
-      ApiEndpoints.confirmLoan,
-      data: {
-        'ecumenicalism': ecumenicalism,
-        'cajoler': cajoler,
-        'woodshedded': woodshedded,
-        'seamounts': seamounts,
-        'cheerlessly': cheerlessly,
-        'impledging': _randomDigits(6),
-      },
-    );
-  }
-
   Future<ApiResponse> uploadLocation({
     required String phrasemongers,
     required String callee,

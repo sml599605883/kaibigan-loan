@@ -1,5 +1,5 @@
 abstract final class WebViewBridgeHandlerNames {
-  static const channel = 'kaibigan_loan_4f8c2a_bridge';
+  static const channel = 'ph_kaibigan_loan_ios';
 }
 
 abstract final class WebViewBridgeActionNames {

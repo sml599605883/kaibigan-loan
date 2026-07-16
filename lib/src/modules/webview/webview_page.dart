@@ -4,6 +4,7 @@ import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_inappwebview/flutter_inappwebview.dart';
 import 'package:get/get.dart';
+import 'package:kaibigan_loan/src/core/json/json.dart';
 
 import '../../core/network/api_client.dart';
 import '../../core/network/api_signature.dart';
@@ -182,13 +183,13 @@ class _WebViewPageState extends State<WebViewPage> with WidgetsBindingObserver {
         : WebViewBridgeRequest.fromRawObject(raw);
     final result = await _dispatcher.dispatch(request);
     if (request.expectsCallback) {
-      final callback = <String, dynamic>{
+      final callback = Json(<String, dynamic>{
         'callbackId': request.callbackId,
-        'result': result.toJson(),
-      };
+        'data': result.data,
+      }).rawString();
       await _controller?.evaluateJavascript(
         source:
-            'window.${WebViewBridgeHandlerNames.channel}.handleMessage(${WebViewBridgeResult.success(callback).encode()});',
+            'window.${WebViewBridgeHandlerNames.channel}.handleMessage($callback);',
       );
     }
     return result.toJson();
