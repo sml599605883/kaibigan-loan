@@ -112,6 +112,24 @@ class _CertificationBindCardPageState extends State<CertificationBindCardPage> {
     return '';
   }
 
+  String get _orderNo {
+    final arguments = Get.arguments;
+    if (arguments is Map) {
+      final orderNo = arguments['dodgy'];
+      if (orderNo is String && orderNo.trim().isNotEmpty) {
+        return orderNo.trim();
+      }
+    }
+    return Get.isRegistered<SessionStore>()
+        ? SessionStore.instance.productDetailCache()?.orderNo.trim() ?? ''
+        : '';
+  }
+
+  bool get _isAccountChange {
+    final arguments = Get.arguments;
+    return arguments is Map && arguments['isAccountChange'] == true;
+  }
+
   void _initializeFormState(BindCardInfo info) {
     _disposeFormState();
     for (final group in info.groups) {
@@ -466,7 +484,7 @@ class _CertificationBindCardPageState extends State<CertificationBindCardPage> {
       }
       response.ensureSuccess();
       ownsLoading = false;
-      await _completeNormalSuccess(productId);
+      await _completeNormalSuccess(productId, response);
     } catch (error) {
       if (mounted) {
         await AppToast.error(ApiErrorMessage.resolve(error));
@@ -512,9 +530,7 @@ class _CertificationBindCardPageState extends State<CertificationBindCardPage> {
   }) async {
     var ownsLoading = true;
     try {
-      final orderNo = Get.isRegistered<SessionStore>()
-          ? SessionStore.instance.productDetailCache()?.orderNo.trim() ?? ''
-          : '';
+      final orderNo = _orderNo;
       if (orderNo.isEmpty) {
         await AppToast.error(
           'Missing order information for liveness verification',
@@ -585,7 +601,7 @@ class _CertificationBindCardPageState extends State<CertificationBindCardPage> {
       }
       response.ensureSuccess();
       ownsLoading = false;
-      await _completeNormalSuccess(productId);
+      await _completeNormalSuccess(productId, response);
     } catch (error) {
       if (mounted) {
         await AppToast.error(ApiErrorMessage.resolve(error));
@@ -598,7 +614,37 @@ class _CertificationBindCardPageState extends State<CertificationBindCardPage> {
     }
   }
 
-  Future<void> _completeNormalSuccess(String productId) async {
+  Future<void> _completeNormalSuccess(
+    String productId,
+    ApiResponse bindResponse,
+  ) async {
+    if (_isAccountChange) {
+      final bindId = bindResponse.states['smokehouse'].stringValue.trim();
+      if (bindId.isEmpty) {
+        throw ApiBusinessException('Missing bind card id');
+      }
+      final orderNo = _orderNo;
+      if (orderNo.isEmpty) {
+        throw ApiBusinessException('Missing order information');
+      }
+      final changeResponse = await _apiClient.changeOrderAccount(
+        dodgy: orderNo,
+        smokehouse: bindId,
+      );
+      final redirectUrl = changeResponse
+          .ensureSuccess()
+          .states['preinserting']
+          .stringValue
+          .trim();
+      if (redirectUrl.isEmpty) {
+        throw ApiBusinessException('Missing account change result url');
+      }
+      await AppToast.dismissLoading();
+      if (mounted) {
+        NavigationHelper.back(result: redirectUrl);
+      }
+      return;
+    }
     await AppToast.dismissLoading();
     if (!mounted) {
       return;

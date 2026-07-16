@@ -7,10 +7,17 @@ import 'package:kaibigan_loan/src/core/network/api_client.dart';
 import 'package:kaibigan_loan/src/core/network/api_config.dart';
 import 'package:kaibigan_loan/src/core/network/api_response.dart';
 import 'package:kaibigan_loan/src/modules/widgets/retention_popup.dart';
+import 'package:kaibigan_loan/src/utils/app_toast.dart';
 
 void main() {
-  setUp(() => Get.testMode = true);
-  tearDown(Get.reset);
+  setUp(() {
+    Get.testMode = true;
+    AppToast.presenter = _FakeToastPresenter();
+  });
+  tearDown(() {
+    AppToast.presenter = const EasyLoadingToastPresenter();
+    Get.reset();
+  });
 
   testWidgets('shows server retention popup and wires both actions', (
     tester,
@@ -95,6 +102,17 @@ void main() {
     expect(shown, isFalse);
     expect(find.byType(RetentionPopupContent), findsNothing);
   });
+}
+
+class _FakeToastPresenter implements ToastPresenter {
+  @override
+  Future<void> dismissLoading() async {}
+
+  @override
+  Future<void> show(String message, {required bool isError}) async {}
+
+  @override
+  Future<void> showLoading(String? message) async {}
 }
 
 class _FakeApiClient extends ApiClient {

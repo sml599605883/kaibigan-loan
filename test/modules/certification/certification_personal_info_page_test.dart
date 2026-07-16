@@ -106,7 +106,7 @@ void main() {
     ]);
     expect(toastPresenter.loadingMessages, [null, null]);
     expect(toastPresenter.dismissCount, 2);
-    expect(toastPresenter.messages, ['saved', 'next step']);
+    expect(toastPresenter.messages, ['next step']);
     expect(apiClient.productDetailIds, ['product-2']);
   });
 
@@ -217,7 +217,7 @@ void main() {
       {'geobotanists': 'product-work', 'freshly': 'OpenAI PH', 'profit': '3'},
     ]);
     expect(apiClient.productDetailIds, ['product-work']);
-    expect(toastPresenter.messages, ['saved work', 'work next step']);
+    expect(toastPresenter.messages, ['work next step']);
   });
 
   testWidgets(

@@ -701,6 +701,85 @@ void main() {
     expect(toastPresenter.dismissCount, 2);
   });
 
+  testWidgets('account change binds and assigns the new payment method', (
+    tester,
+  ) async {
+    apiClient.states = _submissionStates();
+    apiClient.saveResponse = ApiResponse(
+      code: 0,
+      message: 'saved',
+      states: Json({'smokehouse': 'bind-new'}),
+    );
+    apiClient.changeOrderAccountStates = {
+      'preinserting': 'https://example.test/account-changed',
+    };
+    Future<Object?>? routeResult;
+    await _pumpPage(
+      tester,
+      apiClient: apiClient,
+      arguments: <String, dynamic>{
+        'geobotanists': 'product-bind',
+        'dodgy': 'ORDER001',
+        'isAccountChange': true,
+      },
+      onRouteOpened: (route) => routeResult = route,
+    );
+    await tester.pumpAndSettle();
+
+    await _fillSubmissionForm(tester);
+    await tester.tap(find.byKey(const Key('bindCardSubmit')));
+    await tester.pumpAndSettle();
+
+    expect(apiClient.changeOrderAccountRequests, [
+      {'dodgy': 'ORDER001', 'smokehouse': 'bind-new'},
+    ]);
+    expect(await routeResult, 'https://example.test/account-changed');
+    expect(apiClient.productDetailIds, isEmpty);
+  });
+
+  testWidgets('account change liveness uses the route order number', (
+    tester,
+  ) async {
+    apiClient.states = _submissionStates();
+    apiClient.saveResponses.addAll([
+      ApiResponse(code: 20000, message: 'verify', states: Json(null)),
+      ApiResponse(
+        code: 0,
+        message: 'saved',
+        states: Json({'smokehouse': 'bind-live'}),
+      ),
+    ]);
+    apiClient.faceTokenStates = _validFaceTokenStates();
+    apiClient.changeOrderAccountStates = {
+      'preinserting': 'https://example.test/live-account-changed',
+    };
+    Future<Object?>? routeResult;
+    await _pumpPage(
+      tester,
+      apiClient: apiClient,
+      arguments: <String, dynamic>{
+        'geobotanists': 'product-bind',
+        'dodgy': 'ORDER-ROUTE',
+        'isAccountChange': true,
+      },
+      showTrustDecisionLiveness: (_) async => _livenessSuccess(),
+      onRouteOpened: (route) => routeResult = route,
+    );
+    await tester.pumpAndSettle();
+
+    await _fillSubmissionForm(tester);
+    await tester.tap(find.byKey(const Key('bindCardSubmit')));
+    await tester.pumpAndSettle();
+
+    expect(apiClient.faceTokenRequests, [
+      const _FaceTokenRequest(dodgy: 'ORDER-ROUTE', commensurate: '1'),
+    ]);
+    expect(apiClient.changeOrderAccountRequests, [
+      {'dodgy': 'ORDER-ROUTE', 'smokehouse': 'bind-live'},
+    ]);
+    expect(await routeResult, 'https://example.test/live-account-changed');
+  });
+
   testWidgets('dismisses owned loading when disposed during save', (
     tester,
   ) async {
@@ -1166,6 +1245,7 @@ Future<void> _pumpPage(
   BindCardLivenessLauncher? showTrustDecisionLiveness,
   Size size = const Size(375, 812),
   TextScaler textScaler = TextScaler.noScaling,
+  void Function(Future<Object?>? route)? onRouteOpened,
 }) async {
   tester.view.physicalSize = size;
   tester.view.devicePixelRatio = 1;
@@ -1192,7 +1272,8 @@ Future<void> _pumpPage(
     ),
   );
   await tester.pumpAndSettle();
-  Get.toNamed<void>(routeName, arguments: arguments);
+  final route = Get.toNamed<Object?>(routeName, arguments: arguments);
+  onRouteOpened?.call(route);
   await tester.pump();
 }
 
@@ -1578,9 +1659,11 @@ class _FakeApiClient extends ApiClient {
   final productDetailIds = <String>[];
   final saveRequests = <Map<String, String>>[];
   final faceTokenRequests = <_FaceTokenRequest>[];
+  final changeOrderAccountRequests = <Map<String, String>>[];
   final saveResponses = <ApiResponse>[];
   Map<String, dynamic> states = <String, dynamic>{};
   Map<String, dynamic> productDetailStates = <String, dynamic>{};
+  Map<String, dynamic> changeOrderAccountStates = <String, dynamic>{};
   Object? error;
   Object? saveError;
   Completer<ApiResponse>? pendingResponse;
@@ -1651,6 +1734,19 @@ class _FakeApiClient extends ApiClient {
     }
     return saveResponse ??
         ApiResponse(code: 0, message: 'saved', states: Json(null));
+  }
+
+  @override
+  Future<ApiResponse> changeOrderAccount({
+    required String dodgy,
+    required String smokehouse,
+  }) async {
+    changeOrderAccountRequests.add({'dodgy': dodgy, 'smokehouse': smokehouse});
+    return ApiResponse(
+      code: 0,
+      message: 'changed',
+      states: Json(changeOrderAccountStates),
+    );
   }
 
   @override

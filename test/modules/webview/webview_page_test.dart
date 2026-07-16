@@ -1,5 +1,6 @@
 import 'package:flutter_test/flutter_test.dart';
 import 'package:kaibigan_loan/src/modules/webview/webview_page.dart';
+import 'package:kaibigan_loan/src/core/json/json.dart';
 
 void main() {
   test('does not use a stale WebView controller after page disposal', () {
@@ -81,5 +82,71 @@ void main() {
       {'type': '5', 'productId': 'product-6'},
     ]);
     expect(exitCount, 1);
+  });
+
+  test(
+    'account change opens existing account list when accounts exist',
+    () async {
+      var openedList = false;
+      var openedBind = false;
+
+      final result = await openWebViewAccountChange(
+        productId: 'product-1',
+        orderNo: 'ORDER001',
+        hasAccounts: (_) async => true,
+        openAccountList: ({required productId, required orderNo}) async {
+          openedList = true;
+          return 'https://example.test/account-changed';
+        },
+        openBindCard: ({required productId, required orderNo}) async {
+          openedBind = true;
+          return null;
+        },
+      );
+
+      expect(result, 'https://example.test/account-changed');
+      expect(openedList, isTrue);
+      expect(openedBind, isFalse);
+    },
+  );
+
+  test('account change opens bind card when no account exists', () async {
+    var openedList = false;
+    var openedBind = false;
+
+    final result = await openWebViewAccountChange(
+      productId: 'product-2',
+      orderNo: 'ORDER002',
+      hasAccounts: (_) async => false,
+      openAccountList: ({required productId, required orderNo}) async {
+        openedList = true;
+        return null;
+      },
+      openBindCard: ({required productId, required orderNo}) async {
+        openedBind = true;
+        return 'https://example.test/new-account';
+      },
+    );
+
+    expect(result, 'https://example.test/new-account');
+    expect(openedList, isFalse);
+    expect(openedBind, isTrue);
+  });
+
+  test('account availability follows the raw returned list', () {
+    expect(
+      hasWebViewAccountRows(
+        Json({
+          'religiosities': [
+            {'smokehouse': ''},
+          ],
+        }),
+      ),
+      isTrue,
+    );
+    expect(
+      hasWebViewAccountRows(Json({'religiosities': <dynamic>[]})),
+      isFalse,
+    );
   });
 }

@@ -65,14 +65,52 @@ void main() {
     );
   });
 
-  testWidgets('submits selected GCash account and returns it', (tester) async {
+  testWidgets('lays out account cards with the Lanhu visual hierarchy', (
+    tester,
+  ) async {
     apiClient.accountStates = _accounts();
+
     await _pumpPage(
       tester,
       arguments: <String, String>{
         'geobotanists': 'product-1',
         'dodgy': 'ORDER001',
       },
+    );
+    await tester.pumpAndSettle();
+
+    final card = find.byKey(const Key('accountListItem-bind-1'));
+    final header = find.byKey(const Key('accountCardHeader-bind-1'));
+    final logo = find.byKey(const Key('accountCardLogo-bind-1'));
+    final receiptPanel = find.byKey(
+      const Key('accountCardReceiptPanel-bind-1'),
+    );
+
+    expect(tester.getSize(card), const Size(335, 145));
+    expect(tester.getSize(header), const Size(335, 60));
+    expect(tester.getSize(logo), const Size(30, 30));
+    expect(tester.getSize(receiptPanel).width, 305);
+    expect(
+      find.descendant(of: card, matching: find.text('Receipt Account')),
+      findsOneWidget,
+    );
+    expect(_selectionImageFor(tester, 'bind-1').width, 20);
+    expect(tester.widget<Text>(find.text('BDO')).style?.fontSize, 14);
+    final accountStyle = tester.widget<Text>(find.text('**** 1234')).style;
+    expect(accountStyle?.fontSize, 20);
+    expect(accountStyle?.fontWeight, FontWeight.w700);
+  });
+
+  testWidgets('submits selected GCash account and returns it', (tester) async {
+    apiClient.accountStates = _accounts();
+    Future<Object?>? routeResult;
+    await _pumpPage(
+      tester,
+      arguments: <String, String>{
+        'geobotanists': 'product-1',
+        'dodgy': 'ORDER001',
+      },
+      onRouteOpened: (route) => routeResult = route,
     );
     await tester.pumpAndSettle();
 
@@ -83,7 +121,33 @@ void main() {
     expect(apiClient.changeRequests, <Map<String, String>>[
       <String, String>{'dodgy': 'ORDER001', 'smokehouse': 'bind-2'},
     ]);
+    expect(await routeResult, 'https://example.test/account-changed');
     expect(Get.currentRoute, AppRoutes.main);
+  });
+
+  testWidgets('add payment method opens bind card in account change mode', (
+    tester,
+  ) async {
+    apiClient.accountStates = _accounts();
+    await _pumpPage(
+      tester,
+      arguments: <String, String>{
+        'geobotanists': 'product-1',
+        'dodgy': 'ORDER001',
+      },
+    );
+    await tester.pumpAndSettle();
+
+    final addPaymentMethod = find.byKey(const Key('accountAddPaymentMethod'));
+    tester.widget<InkWell>(addPaymentMethod).onTap!.call();
+    await tester.pumpAndSettle();
+
+    expect(Get.currentRoute, AppRoutes.certificationBindCard);
+    expect(Get.arguments, <String, dynamic>{
+      'geobotanists': 'product-1',
+      'dodgy': 'ORDER001',
+      'isAccountChange': true,
+    });
   });
 
   testWidgets('shows load error and retries the request', (tester) async {
@@ -210,6 +274,7 @@ void main() {
 Future<void> _pumpPage(
   WidgetTester tester, {
   required Object? arguments,
+  void Function(Future<Object?>? route)? onRouteOpened,
 }) async {
   tester.view.physicalSize = const Size(375, 812);
   tester.view.devicePixelRatio = 1;
@@ -225,35 +290,55 @@ Future<void> _pumpPage(
           name: AppRoutes.accountList,
           page: () => const AccountListPage(),
         ),
+        GetPage(
+          name: AppRoutes.certificationBindCard,
+          page: () => const SizedBox(key: Key('bindCardPageStub')),
+        ),
       ],
     ),
   );
   await tester.pumpAndSettle();
-  Get.toNamed<void>(AppRoutes.accountList, arguments: arguments);
+  final route = Get.toNamed<Object?>(
+    AppRoutes.accountList,
+    arguments: arguments,
+  );
+  onRouteOpened?.call(route);
 }
 
 Json _accounts() => Json(<String, dynamic>{
   'religiosities': <Map<String, dynamic>>[
     <String, dynamic>{
-      'smokehouse': 'bind-2',
       'overdoer': 'E-wallet',
-      'dendron': '',
-      'postaccident': 'GCash',
-      'benefits': '0917 000 0000',
-      'uptime': 0,
+      'dendron': '0917 000 0000',
+      'anchovetta': <Map<String, dynamic>>[
+        <String, dynamic>{
+          'smokehouse': 'bind-2',
+          'vocalically': '',
+          'postaccident': 'GCash',
+          'uptime': 0,
+        },
+      ],
     },
     <String, dynamic>{
-      'smokehouse': 'bind-1',
       'overdoer': 'Bank',
-      'dendron': '',
-      'postaccident': 'BDO',
-      'benefits': '**** 1234',
-      'uptime': 1,
+      'dendron': '**** 1234',
+      'anchovetta': <Map<String, dynamic>>[
+        <String, dynamic>{
+          'smokehouse': 'bind-1',
+          'vocalically': '',
+          'postaccident': 'BDO',
+          'uptime': 1,
+        },
+      ],
     },
   ],
 });
 
 String _selectionAssetFor(WidgetTester tester, String bindId) {
+  return (_selectionImageFor(tester, bindId).image as AssetImage).assetName;
+}
+
+Image _selectionImageFor(WidgetTester tester, String bindId) {
   final images = tester.widgetList<Image>(
     find.descendant(
       of: find.byKey(Key('accountListItem-$bindId')),
@@ -263,7 +348,7 @@ String _selectionAssetFor(WidgetTester tester, String bindId) {
   final selectionImage = images.singleWhere(
     (image) => image.image is AssetImage,
   );
-  return (selectionImage.image as AssetImage).assetName;
+  return selectionImage;
 }
 
 class _FakeApiClient extends ApiClient {
@@ -294,7 +379,11 @@ class _FakeApiClient extends ApiClient {
     });
     if (changeCompleter != null) return changeCompleter!.future;
     if (changeError != null) throw changeError!;
-    return ApiResponse(code: 0, message: '', states: Json(null));
+    return ApiResponse(
+      code: 0,
+      message: '',
+      states: Json({'preinserting': 'https://example.test/account-changed'}),
+    );
   }
 }
 

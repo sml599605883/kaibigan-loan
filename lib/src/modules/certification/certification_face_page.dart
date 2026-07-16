@@ -204,7 +204,7 @@ class _CertificationFacePageState extends State<CertificationFacePage> {
     }
     await AppToast.showLoading();
     final filePath = await widget.faceImageFilePathBuilder(imageBase64);
-    final response = await ApiClient.instance.uploadImage(
+    await ApiClient.instance.uploadImage(
       commensurate: '10',
       gams: '1',
       filePath: filePath,
@@ -217,9 +217,6 @@ class _CertificationFacePageState extends State<CertificationFacePage> {
       return;
     }
     await AppToast.dismissLoading();
-    if (response.message.trim().isNotEmpty) {
-      await AppToast.show(response.message);
-    }
     final productId = _productIdFromArguments();
     if (productId.isNotEmpty) {
       RiskReportScene.report(

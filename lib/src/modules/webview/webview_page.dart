@@ -12,7 +12,6 @@ import '../../core/report/report_manager.dart';
 import '../../navigation_helper.dart';
 import '../../theme/app_colors.dart';
 import '../../utils/app_toast.dart';
-import '../account/account_list_models.dart';
 import '../widgets/retention_popup.dart';
 import 'webview_bridge_constants.dart';
 import 'webview_bridge_dispatcher.dart';
@@ -56,6 +55,31 @@ Future<bool> _showRetentionPopup({
   required VoidCallback onExit,
 }) {
   return RetentionPopup.show(type: type, productId: productId, onExit: onExit);
+}
+
+typedef WebViewAccountAvailability = Future<bool> Function(String productId);
+typedef WebViewAccountRouteOpener =
+    Future<Object?>? Function({
+      required String productId,
+      required String orderNo,
+    });
+
+bool hasWebViewAccountRows(Json states) {
+  return states['religiosities'].listValue.isNotEmpty;
+}
+
+Future<String?> openWebViewAccountChange({
+  required String productId,
+  required String orderNo,
+  required WebViewAccountAvailability hasAccounts,
+  required WebViewAccountRouteOpener openAccountList,
+  required WebViewAccountRouteOpener openBindCard,
+}) async {
+  final route = await hasAccounts(productId)
+      ? openAccountList(productId: productId, orderNo: orderNo)
+      : openBindCard(productId: productId, orderNo: orderNo);
+  final result = await route;
+  return result?.toString().trim();
 }
 
 bool canUseActiveWebViewController({
@@ -123,18 +147,35 @@ class _WebViewPageState extends State<WebViewPage> with WidgetsBindingObserver {
         final response = await ApiClient.instance.originalCardRetry(
           chattinesses: orderNo,
         );
-        return response.states['bloomeries'].stringValue.trim();
+        return response.ensureSuccess().states['bloomeries'].stringValue.trim();
       },
-      changeAccount: ({required productId, required orderNo}) async {
-        final route = NavigationHelper.toAccountList<AccountListItem>(
+      changeAccount: ({required productId, required orderNo}) {
+        return openWebViewAccountChange(
           productId: productId,
           orderNo: orderNo,
+          hasAccounts: (productId) async {
+            final response = await ApiClient.instance.userAccountList(
+              geobotanists: productId,
+            );
+            return hasWebViewAccountRows(response.ensureSuccess().states);
+          },
+          openAccountList: ({required productId, required orderNo}) {
+            return NavigationHelper.toAccountList<Object?>(
+              productId: productId,
+              orderNo: orderNo,
+            );
+          },
+          openBindCard: ({required productId, required orderNo}) {
+            return NavigationHelper.toCertificationBindCard<Object?>(
+              productId: productId,
+              orderNo: orderNo,
+              isAccountChange: true,
+            );
+          },
         );
-        if (route == null) {
-          return false;
-        }
-        return (await route) != null;
       },
+      showLoading: () => AppToast.showLoading(),
+      dismissLoading: AppToast.dismissLoading,
       showError: AppToast.error,
     );
   }

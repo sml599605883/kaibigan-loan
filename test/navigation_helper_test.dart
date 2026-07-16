@@ -319,6 +319,53 @@ void main() {
     expect(Get.arguments, <String, String>{'geobotanists': 'product-bank'});
   });
 
+  testWidgets('pushes bind card in account change mode with order number', (
+    tester,
+  ) async {
+    await _pumpRoutes(tester);
+
+    NavigationHelper.toCertificationBindCard<void>(
+      productId: ' product-bank ',
+      orderNo: ' ORDER001 ',
+      isAccountChange: true,
+    );
+    await tester.pumpAndSettle();
+
+    expect(Get.currentRoute, AppRoutes.certificationBindCard);
+    expect(Get.arguments, <String, dynamic>{
+      'geobotanists': 'product-bank',
+      'dodgy': 'ORDER001',
+      'isAccountChange': true,
+    });
+  });
+
+  testWidgets('account change bind card preserves account list and WebView', (
+    tester,
+  ) async {
+    await _pumpRoutes(tester);
+    NavigationHelper.toWebView<void>(url: 'https://example.test/account');
+    await tester.pumpAndSettle();
+    NavigationHelper.toAccountList<void>(
+      productId: 'product-bank',
+      orderNo: 'ORDER001',
+    );
+    await tester.pumpAndSettle();
+
+    NavigationHelper.toCertificationBindCard<void>(
+      productId: 'product-bank',
+      orderNo: 'ORDER001',
+      isAccountChange: true,
+    );
+    await tester.pumpAndSettle();
+    NavigationHelper.back<void>();
+    await tester.pumpAndSettle();
+
+    expect(Get.currentRoute, AppRoutes.accountList);
+    NavigationHelper.back<void>();
+    await tester.pumpAndSettle();
+    expect(Get.currentRoute, AppRoutes.webView);
+  });
+
   testWidgets('does not push duplicate login route', (tester) async {
     await _pumpRoutes(tester);
 

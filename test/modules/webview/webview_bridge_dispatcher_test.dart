@@ -117,12 +117,14 @@ void main() {
     () async {
       String? selectedProductId;
       String? selectedOrderNo;
+      String? openedUrl;
       final dispatcher = WebViewBridgeDispatcher(
         changeAccount: ({required productId, required orderNo}) async {
           selectedProductId = productId;
           selectedOrderNo = orderNo;
-          return true;
+          return 'https://example.test/changed-account';
         },
+        reloadOrOpenInWebView: (url) async => openedUrl = url,
       );
 
       final result = await dispatcher.dispatch(
@@ -138,6 +140,7 @@ void main() {
       expect(result.code, 0);
       expect(selectedProductId, 'product-1');
       expect(selectedOrderNo, 'ORDER001');
+      expect(openedUrl, 'https://example.test/changed-account');
     },
   );
 
@@ -146,6 +149,8 @@ void main() {
     String? riskOrderNo;
     String? retriedOrderNo;
     String? loadedUrl;
+    var loadingCount = 0;
+    var dismissCount = 0;
     final dispatcher = WebViewBridgeDispatcher(
       reportRisk:
           ({
@@ -161,6 +166,8 @@ void main() {
         return 'https://example.test/retry';
       },
       reloadOrOpenInWebView: (url) async => loadedUrl = url,
+      showLoading: () async => loadingCount++,
+      dismissLoading: () async => dismissCount++,
     );
 
     final riskResult = await dispatcher.dispatch(
@@ -181,6 +188,29 @@ void main() {
     expect(retryResult.code, 0);
     expect(retriedOrderNo, 'ORDER003');
     expect(loadedUrl, 'https://example.test/retry');
+    expect(loadingCount, 1);
+    expect(dismissCount, 1);
+  });
+
+  test('retry dismisses loading and reports request failure', () async {
+    var dismissCount = 0;
+    String? shownError;
+    final dispatcher = WebViewBridgeDispatcher(
+      retryOrder: (_) async => throw StateError('retry failed'),
+      showLoading: () async {},
+      dismissLoading: () async => dismissCount++,
+      showError: (message) async => shownError = message,
+    );
+
+    final result = await dispatcher.dispatch(
+      _request(WebViewBridgeActionNames.retryOrder, const <String, dynamic>{
+        'chattinesses': 'ORDER004',
+      }),
+    );
+
+    expect(result.code, -1);
+    expect(dismissCount, 1);
+    expect(shownError, contains('retry failed'));
   });
 
   test('rejects unsupported actions', () async {

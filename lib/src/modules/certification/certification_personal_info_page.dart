@@ -392,16 +392,13 @@ class _CertificationPersonalInfoPageState
     setState(() => _isSubmitting = true);
     await AppToast.showLoading();
     try {
-      final response = widget._kind == _CertificationInfoKind.work
+      widget._kind == _CertificationInfoKind.work
           ? await ApiClient.instance.saveJobInfo(data: payload)
           : await ApiClient.instance.savePersonalInfo(data: payload);
       if (!mounted) {
         return;
       }
       await AppToast.dismissLoading();
-      if (response.message.trim().isNotEmpty) {
-        await AppToast.show(response.message);
-      }
       final productId = _productIdFromArguments();
       if (productId.isNotEmpty) {
         RiskReportScene.report(

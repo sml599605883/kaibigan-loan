@@ -304,7 +304,7 @@ class _CertificationContactInfoPageState
     setState(() => _isSubmitting = true);
     await AppToast.showLoading();
     try {
-      final response = await ApiClient.instance.saveContactInfo(
+      await ApiClient.instance.saveContactInfo(
         geobotanists: productId,
         fas: Json(contacts).rawString(),
       );
@@ -312,9 +312,6 @@ class _CertificationContactInfoPageState
         return;
       }
       await AppToast.dismissLoading();
-      if (response.message.trim().isNotEmpty) {
-        await AppToast.show(response.message);
-      }
       RiskReportScene.report(
         productId: productId,
         sceneType: '7',

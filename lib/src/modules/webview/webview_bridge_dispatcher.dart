@@ -13,8 +13,12 @@ typedef WebViewSignedParamsBuilder =
     Future<Map<String, dynamic>> Function(String path);
 typedef WebViewRetryOrder = Future<String> Function(String orderNo);
 typedef WebViewChangeAccount =
-    Future<bool> Function({required String productId, required String orderNo});
+    Future<String?> Function({
+      required String productId,
+      required String orderNo,
+    });
 typedef WebViewErrorPresenter = Future<void> Function(String message);
+typedef WebViewAsyncAction = Future<void> Function();
 
 class WebViewBridgeDispatcher {
   const WebViewBridgeDispatcher({
@@ -29,6 +33,8 @@ class WebViewBridgeDispatcher {
     this.buildSignedParams,
     this.retryOrder,
     this.changeAccount,
+    this.showLoading,
+    this.dismissLoading,
     this.showError,
   });
 
@@ -43,17 +49,19 @@ class WebViewBridgeDispatcher {
   final WebViewSignedParamsBuilder? buildSignedParams;
   final WebViewRetryOrder? retryOrder;
   final WebViewChangeAccount? changeAccount;
+  final WebViewAsyncAction? showLoading;
+  final WebViewAsyncAction? dismissLoading;
   final WebViewErrorPresenter? showError;
 
   Future<WebViewBridgeResult> dispatch(WebViewBridgeRequest request) async {
     try {
       switch (request.action) {
         case WebViewBridgeActionNames.uploadRiskLoan:
-          return _reportRisk(request);
+          return await _reportRisk(request);
         case WebViewBridgeActionNames.openExternalBrowser:
-          return _openExternalBrowser(request);
+          return await _openExternalBrowser(request);
         case WebViewBridgeActionNames.openScheme:
-          return _openScheme(request);
+          return await _openScheme(request);
         case WebViewBridgeActionNames.closePage:
           await closePage?.call();
           return WebViewBridgeResult.success();
@@ -64,11 +72,11 @@ class WebViewBridgeDispatcher {
           await requestAppReview?.call();
           return WebViewBridgeResult.success();
         case WebViewBridgeActionNames.requestCommonParams:
-          return _requestCommonParams(request);
+          return await _requestCommonParams(request);
         case WebViewBridgeActionNames.retryOrder:
-          return _retryOrder(request);
+          return await _retryOrder(request);
         case WebViewBridgeActionNames.changeAccount:
-          return _changeAccount(request);
+          return await _changeAccount(request);
         default:
           return WebViewBridgeResult.failure(
             'Unsupported action: ${request.action}',
@@ -156,35 +164,39 @@ class WebViewBridgeDispatcher {
     if (orderNo.isEmpty) {
       return WebViewBridgeResult.failure('Missing orderNo');
     }
-    final url = await retryOrder?.call(orderNo) ?? '';
-    if (url.trim().isEmpty) {
-      return WebViewBridgeResult.failure('Missing retry result url');
+    await showLoading?.call();
+    try {
+      final url = await retryOrder?.call(orderNo) ?? '';
+      if (url.trim().isEmpty) {
+        return WebViewBridgeResult.failure('Missing retry result url');
+      }
+      await reloadOrOpenInWebView?.call(url.trim());
+      return WebViewBridgeResult.success();
+    } finally {
+      await dismissLoading?.call();
     }
-    await reloadOrOpenInWebView?.call(url.trim());
-    return WebViewBridgeResult.success();
   }
 
   Future<WebViewBridgeResult> _changeAccount(
     WebViewBridgeRequest request,
   ) async {
-    final productId = _readValue(request, const <String>[
-      'seamounts',
-      'productId',
-    ]);
-    final orderNo = _readValue(request, const <String>[
-      'chattinesses',
-      'orderNo',
-    ]);
+    final productId = request.data['seamounts']?.toString().trim() ?? '';
+    final orderNo = request.data['chattinesses']?.toString().trim() ?? '';
     if (productId.isEmpty || orderNo.isEmpty) {
       return WebViewBridgeResult.failure('Missing account information');
     }
-    final changed = await changeAccount?.call(
+    final redirectUrl = await changeAccount?.call(
       productId: productId,
       orderNo: orderNo,
     );
-    return changed == true
-        ? WebViewBridgeResult.success()
-        : WebViewBridgeResult.failure('Account change was canceled');
+    if (redirectUrl == null) {
+      return WebViewBridgeResult.failure('Account change was canceled');
+    }
+    if (redirectUrl.trim().isEmpty) {
+      return WebViewBridgeResult.failure('Missing account change result url');
+    }
+    await reloadOrOpenInWebView?.call(redirectUrl.trim());
+    return WebViewBridgeResult.success();
   }
 
   String _readValue(WebViewBridgeRequest request, List<String> keys) {

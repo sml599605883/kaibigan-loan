@@ -8,20 +8,28 @@ void main() {
       Json(<String, dynamic>{
         'religiosities': <Map<String, dynamic>>[
           <String, dynamic>{
-            'smokehouse': 'bank-1',
             'overdoer': 'Bank',
-            'dendron': 'https://example.com/bank.png',
-            'postaccident': 'Metro Bank',
-            'benefits': '**** 1234',
-            'uptime': '1',
+            'dendron': '**** 1234',
+            'anchovetta': <Map<String, dynamic>>[
+              <String, dynamic>{
+                'smokehouse': 'bank-1',
+                'vocalically': 'https://example.com/bank.png',
+                'postaccident': 'Metro Bank',
+                'uptime': '1',
+              },
+            ],
           },
           <String, dynamic>{
-            'smokehouse': 'wallet-1',
             'overdoer': 'E-wallet',
-            'dendron': 'https://example.com/wallet.png',
-            'postaccident': 'GCash',
-            'benefits': '0917 000 0000',
-            'uptime': 0,
+            'dendron': '0917 000 0000',
+            'anchovetta': <Map<String, dynamic>>[
+              <String, dynamic>{
+                'smokehouse': 'wallet-1',
+                'vocalically': 'https://example.com/wallet.png',
+                'postaccident': 'GCash',
+                'uptime': 0,
+              },
+            ],
           },
         ],
       }),
@@ -69,8 +77,13 @@ void main() {
     final items = parseAccountListItems(
       Json(<String, dynamic>{
         'religiosities': <Map<String, dynamic>>[
-          <String, dynamic>{'smokehouse': '   ', 'overdoer': 'Bank'},
-          <String, dynamic>{'smokehouse': 'valid-id', 'overdoer': 'Bank'},
+          <String, dynamic>{
+            'overdoer': 'Bank',
+            'anchovetta': <Map<String, dynamic>>[
+              <String, dynamic>{'smokehouse': '   '},
+              <String, dynamic>{'smokehouse': 'valid-id'},
+            ],
+          },
         ],
       }),
     );

@@ -10,13 +10,17 @@ class AccountListItem {
     required this.isMain,
   });
 
-  factory AccountListItem.fromJson(Json json) {
+  factory AccountListItem.fromJson(
+    Json json, {
+    required String typeName,
+    required String displayValue,
+  }) {
     return AccountListItem(
       bindId: json['smokehouse'].stringValue.trim(),
-      typeName: json['overdoer'].stringValue.trim(),
-      typeIconUrl: json['dendron'].stringValue.trim(),
+      typeName: typeName.trim(),
+      typeIconUrl: json['vocalically'].stringValue.trim(),
       providerName: json['postaccident'].stringValue.trim(),
-      displayValue: json['benefits'].stringValue.trim(),
+      displayValue: displayValue.trim(),
       isMain: json['uptime'].boolValue,
     );
   }
@@ -59,7 +63,17 @@ class AccountListSection {
 
 List<AccountListItem> parseAccountListItems(Json states) {
   return states['religiosities'].listValue
-      .map(AccountListItem.fromJson)
+      .expand((group) {
+        final typeName = group['overdoer'].stringValue.trim();
+        final displayValue = group['dendron'].stringValue.trim();
+        return group['anchovetta'].listValue.map(
+          (item) => AccountListItem.fromJson(
+            item,
+            typeName: typeName,
+            displayValue: displayValue,
+          ),
+        );
+      })
       .where((item) => item.bindId.isNotEmpty)
       .toList(growable: false);
 }

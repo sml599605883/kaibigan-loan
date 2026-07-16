@@ -551,13 +551,26 @@ class NavigationHelper {
 
   static Future<T?>? toCertificationBindCard<T extends Object?>({
     String? productId,
+    String? orderNo,
+    bool isAccountChange = false,
   }) {
-    final arguments = productId == null || productId.trim().isEmpty
-        ? null
-        : <String, String>{'geobotanists': productId.trim()};
+    final normalizedProductId = productId?.trim() ?? '';
+    final normalizedOrderNo = orderNo?.trim() ?? '';
+    final arguments = <String, dynamic>{
+      if (normalizedProductId.isNotEmpty) 'geobotanists': normalizedProductId,
+      if (normalizedOrderNo.isNotEmpty) 'dodgy': normalizedOrderNo,
+      if (isAccountChange) 'isAccountChange': true,
+    };
+    final routeArguments = arguments.isEmpty ? null : arguments;
+    if (isAccountChange) {
+      return Get.toNamed<T>(
+        AppRoutes.certificationBindCard,
+        arguments: routeArguments,
+      );
+    }
     return _toNamedAfterPruningCertificationFlow<T>(
       AppRoutes.certificationBindCard,
-      arguments: arguments,
+      arguments: routeArguments,
     );
   }
 

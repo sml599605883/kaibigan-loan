@@ -146,7 +146,7 @@ void main() {
     ]);
     expect(toastPresenter.loadingMessages, [null, null, null]);
     expect(toastPresenter.dismissCount, 3);
-    expect(toastPresenter.messages, ['Upload success']);
+    expect(toastPresenter.messages, isEmpty);
     expect(apiClient.productDetailIds, ['ORDER001']);
   });
 

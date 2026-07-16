@@ -5,6 +5,7 @@ import 'package:get/get.dart';
 
 import '../../core/network/api_client.dart';
 import '../../theme/app_colors.dart';
+import '../../utils/app_toast.dart';
 import '../../utils/screen_adapter.dart';
 
 typedef RetentionPopupPresenter =
@@ -32,6 +33,8 @@ class RetentionPopup {
       return false;
     }
 
+    var ownsLoading = true;
+    await AppToast.showLoading();
     try {
       final response = await (apiClient ?? ApiClient.instance).retainPopup(
         bellyache: normalizedType,
@@ -39,6 +42,8 @@ class RetentionPopup {
       );
       final dialog = response.states['misaligned'];
       final imageUrl = dialog['bloomeries'].stringValue.trim();
+      await AppToast.dismissLoading();
+      ownsLoading = false;
       if (imageUrl.isEmpty) {
         return false;
       }
@@ -56,6 +61,9 @@ class RetentionPopup {
       );
       return true;
     } catch (error) {
+      if (ownsLoading) {
+        await AppToast.dismissLoading();
+      }
       debugPrint('Retention popup request failed: $error');
       return false;
     }
@@ -107,7 +115,7 @@ class RetentionPopupContent extends StatelessWidget {
                     child: _RetentionPopupButton(
                       key: RetentionPopup.exitButtonKey,
                       label: exitText,
-                      backgroundColor: AppColors.certificationPageBackground,
+                      backgroundColor: AppColors.settingDeactivateBorder,
                       textColor: AppColors.certificationTitleText,
                       onTap: () {
                         Get.back<void>();

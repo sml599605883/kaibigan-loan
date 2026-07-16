@@ -11,6 +11,7 @@ import '../../navigation_helper.dart';
 import '../../theme/app_colors.dart';
 import '../../utils/app_toast.dart';
 import '../../utils/screen_adapter.dart';
+import 'widgets/certification_birthday_picker.dart';
 import 'widgets/certification_prompt_banner.dart';
 
 class CertificationIdentitySubmitPage extends StatefulWidget {
@@ -27,6 +28,7 @@ class _CertificationIdentitySubmitPageState
       'A clear ID photo is the key to lightning-fast approval. Please upload ID front.';
 
   bool _isSubmitting = false;
+  bool _isSelectingBirthday = false;
   late final TextEditingController _nameController;
   late final TextEditingController _idNoController;
   late final TextEditingController _birthdayController;
@@ -89,7 +91,7 @@ class _CertificationIdentitySubmitPageState
                       label: 'Date of Birth',
                       controller: _birthdayController,
                       readOnly: true,
-                      onTap: _logBirthdayPickerTap,
+                      onTap: _selectBirthday,
                     ),
                   ],
                 ),
@@ -184,8 +186,29 @@ class _CertificationIdentitySubmitPageState
     return RiskReportScene.nowSeconds();
   }
 
-  void _logBirthdayPickerTap() {
-    debugPrint('identity birthday date picker tapped');
+  Future<void> _selectBirthday() async {
+    if (_isSelectingBirthday) {
+      return;
+    }
+    _isSelectingBirthday = true;
+    try {
+      final maximumDate = DateUtils.dateOnly(DateTime.now());
+      final initialDate = parseCertificationBirthday(
+        _birthdayController.text,
+        maximumDate: maximumDate,
+      );
+      final selected = await showCertificationBirthdayPicker(
+        context: context,
+        initialDate: initialDate,
+        maximumDate: maximumDate,
+      );
+      if (!mounted || selected == null) {
+        return;
+      }
+      _birthdayController.text = formatCertificationBirthday(selected);
+    } finally {
+      _isSelectingBirthday = false;
+    }
   }
 
   Future<void> _submit() async {
@@ -195,7 +218,7 @@ class _CertificationIdentitySubmitPageState
     setState(() => _isSubmitting = true);
     await AppToast.showLoading();
     try {
-      final response = await ApiClient.instance.saveBasicInfo(
+      await ApiClient.instance.saveBasicInfo(
         asthmas: _birthdayController.text.trim(),
         overmanaged: _idNoController.text.trim(),
         unwits: _nameController.text.trim(),
@@ -206,9 +229,6 @@ class _CertificationIdentitySubmitPageState
         return;
       }
       await AppToast.dismissLoading();
-      if (response.message.trim().isNotEmpty) {
-        await AppToast.show(response.message);
-      }
       final productId = _productIdFromArguments();
       if (productId.isNotEmpty) {
         RiskReportScene.report(

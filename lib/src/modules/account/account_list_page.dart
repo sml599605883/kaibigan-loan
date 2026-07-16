@@ -100,12 +100,16 @@ class _AccountListPageState extends State<AccountListPage> {
         dodgy: _orderNo,
         smokehouse: selected.bindId,
       );
-      response.ensureSuccess();
-      await AppToast.dismissLoading();
-      if (response.message.trim().isNotEmpty) {
-        await AppToast.show(response.message);
+      final redirectUrl = response
+          .ensureSuccess()
+          .states['preinserting']
+          .stringValue
+          .trim();
+      if (redirectUrl.isEmpty) {
+        throw ApiBusinessException('Missing account change result url');
       }
-      if (mounted) NavigationHelper.back(result: selected);
+      await AppToast.dismissLoading();
+      if (mounted) NavigationHelper.back(result: redirectUrl);
     } catch (error) {
       if (!mounted) {
         await AppToast.dismissLoading();
@@ -113,6 +117,21 @@ class _AccountListPageState extends State<AccountListPage> {
       }
       setState(() => _isSubmitting = false);
       await AppToast.error(ApiErrorMessage.resolve(error));
+    }
+  }
+
+  Future<void> _addPaymentMethod() async {
+    final route = NavigationHelper.toCertificationBindCard<Object?>(
+      productId: _productId,
+      orderNo: _orderNo,
+      isAccountChange: true,
+    );
+    if (route == null) {
+      return;
+    }
+    final redirectUrl = (await route)?.toString().trim() ?? '';
+    if (mounted && redirectUrl.isNotEmpty) {
+      NavigationHelper.back(result: redirectUrl);
     }
   }
 
@@ -150,10 +169,20 @@ class _AccountListPageState extends State<AccountListPage> {
       );
     }
     if (_sections.isEmpty) {
-      return const Center(
-        child: Text(
-          'No payment methods available',
-          style: TextStyle(color: AppColors.accountStateText),
+      return Center(
+        child: Padding(
+          padding: EdgeInsets.symmetric(horizontal: 20.w),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              const Text(
+                'No payment methods available',
+                style: TextStyle(color: AppColors.accountStateText),
+              ),
+              SizedBox(height: 16.h),
+              _buildAddPaymentMethod(),
+            ],
+          ),
         ),
       );
     }
@@ -174,16 +203,20 @@ class _AccountListPageState extends State<AccountListPage> {
               SizedBox(height: 12.h),
             ],
           ],
-          ExcludeSemantics(
-            child: AbsorbPointer(
-              child: Image.asset(
-                AppAssets.accountAddPaymentMethods,
-                width: double.infinity,
-                fit: BoxFit.fitWidth,
-              ),
-            ),
-          ),
+          _buildAddPaymentMethod(),
         ],
+      ),
+    );
+  }
+
+  Widget _buildAddPaymentMethod() {
+    return InkWell(
+      key: const Key('accountAddPaymentMethod'),
+      onTap: _addPaymentMethod,
+      child: Image.asset(
+        AppAssets.accountAddPaymentMethods,
+        width: double.infinity,
+        fit: BoxFit.fitWidth,
       ),
     );
   }
@@ -239,60 +272,89 @@ class _AccountListCard extends StatelessWidget {
       label: '${item.providerName} ${item.displayValue}'.trim(),
       child: Material(
         color: AppColors.accountCardBackground,
-        borderRadius: BorderRadius.circular(12.r),
+        borderRadius: BorderRadius.circular(20.r),
+        clipBehavior: Clip.antiAlias,
         child: InkWell(
           key: Key('accountListItem-${item.bindId}'),
-          borderRadius: BorderRadius.circular(12.r),
+          borderRadius: BorderRadius.circular(20.r),
           onTap: onTap,
-          child: Padding(
-            padding: EdgeInsets.all(12.w),
-            child: Row(
-              children: [
-                _TypeIcon(url: item.typeIconUrl),
-                SizedBox(width: 10.w),
-                Expanded(
-                  child: Container(
-                    padding: EdgeInsets.symmetric(
-                      horizontal: 12.w,
-                      vertical: 10.h,
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              Container(
+                key: Key('accountCardHeader-${item.bindId}'),
+                height: 60.h,
+                color: AppColors.accountCardHeader,
+                padding: EdgeInsets.symmetric(horizontal: 15.w),
+                child: Row(
+                  children: [
+                    SizedBox(
+                      key: Key('accountCardLogo-${item.bindId}'),
+                      width: 30.w,
+                      height: 30.h,
+                      child: _TypeIcon(url: item.typeIconUrl),
                     ),
-                    decoration: BoxDecoration(
-                      color: AppColors.accountCardPanel,
-                      borderRadius: BorderRadius.circular(8.r),
-                    ),
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Text(
-                          item.providerName,
-                          style: TextStyle(
-                            color: AppColors.accountCardText,
-                            fontSize: 16.sp,
-                            fontWeight: FontWeight.w700,
-                          ),
+                    SizedBox(width: 16.w),
+                    Expanded(
+                      child: Text(
+                        item.providerName,
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                        style: TextStyle(
+                          color: AppColors.accountCardText,
+                          fontSize: 14.sp,
+                          fontWeight: FontWeight.w700,
+                          height: 20 / 14,
                         ),
-                        SizedBox(height: 4.h),
-                        Text(
-                          item.displayValue,
-                          style: TextStyle(
-                            color: AppColors.accountCardValueText,
-                            fontSize: 14.sp,
-                          ),
-                        ),
-                      ],
+                      ),
                     ),
+                    Image.asset(
+                      selected
+                          ? AppAssets.accountOptionSelected
+                          : AppAssets.accountOptionUnselected,
+                      width: 20.w,
+                      height: 20.h,
+                    ),
+                  ],
+                ),
+              ),
+              Padding(
+                padding: EdgeInsets.fromLTRB(15.w, 10.h, 15.w, 11.h),
+                child: Container(
+                  key: Key('accountCardReceiptPanel-${item.bindId}'),
+                  padding: EdgeInsets.fromLTRB(15.w, 10.h, 15.w, 9.h),
+                  decoration: BoxDecoration(
+                    color: AppColors.accountCardPanel,
+                    borderRadius: BorderRadius.circular(10.r),
+                  ),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        'Receipt Account',
+                        style: TextStyle(
+                          color: AppColors.accountCardLabelText,
+                          fontSize: 12.sp,
+                          height: 14 / 12,
+                        ),
+                      ),
+                      SizedBox(height: 7.h),
+                      Text(
+                        item.displayValue,
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                        style: TextStyle(
+                          color: AppColors.accountCardValueText,
+                          fontSize: 20.sp,
+                          fontWeight: FontWeight.w700,
+                          height: 24 / 20,
+                        ),
+                      ),
+                    ],
                   ),
                 ),
-                SizedBox(width: 10.w),
-                Image.asset(
-                  selected
-                      ? AppAssets.accountOptionSelected
-                      : AppAssets.accountOptionUnselected,
-                  width: 24.w,
-                  height: 24.h,
-                ),
-              ],
-            ),
+              ),
+            ],
           ),
         ),
       ),
@@ -307,12 +369,14 @@ class _TypeIcon extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    if (url.isEmpty) return const SizedBox(width: 28, height: 28);
-    return Image.network(
-      url,
-      width: 28.w,
-      height: 28.h,
-      errorBuilder: (_, _, _) => const SizedBox(width: 28, height: 28),
+    if (url.isEmpty) return const SizedBox.expand();
+    return ClipRRect(
+      borderRadius: BorderRadius.circular(8.r),
+      child: Image.network(
+        url,
+        fit: BoxFit.cover,
+        errorBuilder: (_, _, _) => const SizedBox.expand(),
+      ),
     );
   }
 }

@@ -114,41 +114,123 @@ void main() {
     ]);
     expect(toastPresenter.loadingMessages, [null, null]);
     expect(toastPresenter.dismissCount, 2);
-    expect(toastPresenter.messages, ['saved']);
+    expect(toastPresenter.messages, isEmpty);
     expect(apiClient.productDetailIds, ['product-2']);
     expect(Get.currentRoute, AppRoutes.certificationFace);
     expect(Get.arguments, {'geobotanists': 'product-2'});
   });
 
-  testWidgets('birthday field logs date picker placeholder when tapped', (
+  testWidgets('birthday field opens birthday picker wheels when tapped', (
     tester,
   ) async {
-    final logs = <String>[];
-    final originalDebugPrint = debugPrint;
-    debugPrint = (String? message, {int? wrapWidth}) {
-      logs.add(message ?? '');
-    };
-
-    try {
-      await _pumpPage(
-        tester,
-        arguments: {
-          'cardType': 'PRC',
-          'recognizedInfo': {
-            'unwits': 'BANBU',
-            'overmanaged': '387740 980198 7862',
-            'asthmas': '23-02-1996',
-          },
+    await _pumpPage(
+      tester,
+      arguments: {
+        'cardType': 'PRC',
+        'recognizedInfo': {
+          'unwits': 'BANBU',
+          'overmanaged': '387740 980198 7862',
+          'asthmas': '23-02-1996',
         },
-      );
+      },
+    );
 
-      await tester.tap(find.byKey(const Key('identityBirthdayInput')));
-      await tester.pumpAndSettle();
+    await tester.tap(find.byKey(const Key('identityBirthdayInput')));
+    await tester.pumpAndSettle();
 
-      expect(logs, contains('identity birthday date picker tapped'));
-    } finally {
-      debugPrint = originalDebugPrint;
-    }
+    expect(find.byKey(const Key('birthdayDayWheel')), findsOneWidget);
+    expect(find.byKey(const Key('birthdayMonthWheel')), findsOneWidget);
+    expect(find.byKey(const Key('birthdayYearWheel')), findsOneWidget);
+  });
+
+  testWidgets('rapid birthday taps open only one picker', (tester) async {
+    await _pumpPage(
+      tester,
+      arguments: {
+        'cardType': 'PRC',
+        'recognizedInfo': {'asthmas': '23-02-1996'},
+      },
+    );
+
+    final birthdayInput = tester.widget<TextField>(
+      find.descendant(
+        of: find.byKey(const Key('identityBirthdayInput')),
+        matching: find.byType(TextField),
+      ),
+    );
+    birthdayInput.onTap!();
+    birthdayInput.onTap!();
+    await tester.pumpAndSettle();
+
+    expect(
+      find.byKey(const Key('certificationBirthdayPicker')),
+      findsOneWidget,
+    );
+
+    await tester.tap(find.text('Cancel'));
+    await tester.pumpAndSettle();
+
+    expect(find.byKey(const Key('certificationBirthdayPicker')), findsNothing);
+  });
+
+  testWidgets('birthday Cancel keeps the existing value', (tester) async {
+    await _pumpPage(
+      tester,
+      arguments: {
+        'cardType': 'PRC',
+        'recognizedInfo': {'asthmas': '23-02-1996'},
+      },
+    );
+
+    await tester.tap(find.byKey(const Key('identityBirthdayInput')));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Cancel'));
+    await tester.pumpAndSettle();
+
+    expect(_birthdayText(tester), '23-02-1996');
+  });
+
+  testWidgets('birthday Done keeps and normalizes the existing value', (
+    tester,
+  ) async {
+    await _pumpPage(
+      tester,
+      arguments: {
+        'cardType': 'PRC',
+        'recognizedInfo': {'asthmas': '23/11/1993'},
+      },
+    );
+
+    await tester.tap(find.byKey(const Key('identityBirthdayInput')));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Done'));
+    await tester.pumpAndSettle();
+
+    expect(_birthdayText(tester), '23-11-1993');
+  });
+
+  testWidgets('empty birthday Done fills today in dd-MM-yyyy format', (
+    tester,
+  ) async {
+    await _pumpPage(
+      tester,
+      arguments: {
+        'cardType': 'PRC',
+        'recognizedInfo': {'asthmas': ''},
+      },
+    );
+
+    final beforeOpen = DateTime.now();
+    await tester.tap(find.byKey(const Key('identityBirthdayInput')));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Done'));
+    await tester.pumpAndSettle();
+    final afterDone = DateTime.now();
+
+    expect(
+      _birthdayText(tester),
+      isIn({_formatDate(beforeOpen), _formatDate(afterDone)}),
+    );
   });
 
   testWidgets('shows API error when save basic info fails', (tester) async {
@@ -172,6 +254,20 @@ void main() {
     expect(toastPresenter.dismissCount, 1);
     expect(toastPresenter.errors, ['save failed']);
   });
+}
+
+String _birthdayText(WidgetTester tester) {
+  final birthdayField = find.descendant(
+    of: find.byKey(const Key('identityBirthdayInput')),
+    matching: find.byType(TextField),
+  );
+  return tester.widget<TextField>(birthdayField).controller!.text;
+}
+
+String _formatDate(DateTime date) {
+  final day = date.day.toString().padLeft(2, '0');
+  final month = date.month.toString().padLeft(2, '0');
+  return '$day-$month-${date.year}';
 }
 
 Future<void> _pumpPage(WidgetTester tester, {required Object arguments}) async {
