@@ -641,7 +641,9 @@ class _CertificationBindCardPageState extends State<CertificationBindCardPage> {
       }
       await AppToast.dismissLoading();
       if (mounted) {
-        NavigationHelper.back(result: redirectUrl);
+        NavigationHelper.replaceAccountChangeFlowWithWebView<void>(
+          url: redirectUrl,
+        );
       }
       return;
     }

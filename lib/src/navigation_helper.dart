@@ -434,6 +434,33 @@ class NavigationHelper {
     );
   }
 
+  static Future<T?>? replaceAccountChangeFlowWithWebView<T extends Object?>({
+    required String url,
+    String? title,
+  }) {
+    final uri = _resolveWebUri(url);
+    if (uri == null) {
+      return null;
+    }
+    var oldWebViewsToRemove = 1;
+    return Get.offNamedUntil<T>(
+      AppRoutes.webView,
+      (route) {
+        final name = route.settings.name;
+        if (name == AppRoutes.accountList ||
+            name == AppRoutes.certificationBindCard) {
+          return false;
+        }
+        if (name == AppRoutes.webView && oldWebViewsToRemove > 0) {
+          oldWebViewsToRemove--;
+          return false;
+        }
+        return true;
+      },
+      arguments: <String, dynamic>{'url': uri.toString(), 'title': title},
+    );
+  }
+
   static Future<T?>? toCustomerService<T extends Object?>() {
     final webBaseUrl = Get.find<ApiClient>().config.webBaseUrl;
     return toWebView<T>(

@@ -4,6 +4,7 @@ import 'package:dio/dio.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:get/get.dart';
+import 'package:kaibigan_loan/src/app_routes.dart';
 import 'package:kaibigan_loan/src/assets/app_assets.dart';
 import 'package:kaibigan_loan/src/core/client/client_bridge.dart';
 import 'package:kaibigan_loan/src/core/json/json.dart';
@@ -713,7 +714,6 @@ void main() {
     apiClient.changeOrderAccountStates = {
       'preinserting': 'https://example.test/account-changed',
     };
-    Future<Object?>? routeResult;
     await _pumpPage(
       tester,
       apiClient: apiClient,
@@ -722,7 +722,6 @@ void main() {
         'dodgy': 'ORDER001',
         'isAccountChange': true,
       },
-      onRouteOpened: (route) => routeResult = route,
     );
     await tester.pumpAndSettle();
 
@@ -733,7 +732,11 @@ void main() {
     expect(apiClient.changeOrderAccountRequests, [
       {'dodgy': 'ORDER001', 'smokehouse': 'bind-new'},
     ]);
-    expect(await routeResult, 'https://example.test/account-changed');
+    expect(Get.currentRoute, AppRoutes.webView);
+    expect(Get.arguments, <String, dynamic>{
+      'url': 'https://example.test/account-changed',
+      'title': null,
+    });
     expect(apiClient.productDetailIds, isEmpty);
   });
 
@@ -753,7 +756,6 @@ void main() {
     apiClient.changeOrderAccountStates = {
       'preinserting': 'https://example.test/live-account-changed',
     };
-    Future<Object?>? routeResult;
     await _pumpPage(
       tester,
       apiClient: apiClient,
@@ -763,7 +765,6 @@ void main() {
         'isAccountChange': true,
       },
       showTrustDecisionLiveness: (_) async => _livenessSuccess(),
-      onRouteOpened: (route) => routeResult = route,
     );
     await tester.pumpAndSettle();
 
@@ -777,7 +778,11 @@ void main() {
     expect(apiClient.changeOrderAccountRequests, [
       {'dodgy': 'ORDER-ROUTE', 'smokehouse': 'bind-live'},
     ]);
-    expect(await routeResult, 'https://example.test/live-account-changed');
+    expect(Get.currentRoute, AppRoutes.webView);
+    expect(Get.arguments, <String, dynamic>{
+      'url': 'https://example.test/live-account-changed',
+      'title': null,
+    });
   });
 
   testWidgets('dismisses owned loading when disposed during save', (
@@ -1245,13 +1250,12 @@ Future<void> _pumpPage(
   BindCardLivenessLauncher? showTrustDecisionLiveness,
   Size size = const Size(375, 812),
   TextScaler textScaler = TextScaler.noScaling,
-  void Function(Future<Object?>? route)? onRouteOpened,
 }) async {
   tester.view.physicalSize = size;
   tester.view.devicePixelRatio = 1;
   addTearDown(tester.view.resetPhysicalSize);
   addTearDown(tester.view.resetDevicePixelRatio);
-  const routeName = '/bind-card-test';
+  const routeName = AppRoutes.certificationBindCard;
   await tester.pumpWidget(
     GetMaterialApp(
       builder: (context, child) => MediaQuery(
@@ -1268,12 +1272,15 @@ Future<void> _pumpPage(
             showTrustDecisionLiveness: showTrustDecisionLiveness,
           ),
         ),
+        GetPage(
+          name: AppRoutes.webView,
+          page: () => const SizedBox(key: Key('webViewPageStub')),
+        ),
       ],
     ),
   );
   await tester.pumpAndSettle();
-  final route = Get.toNamed<Object?>(routeName, arguments: arguments);
-  onRouteOpened?.call(route);
+  Get.toNamed<Object?>(routeName, arguments: arguments);
   await tester.pump();
 }
 

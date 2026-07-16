@@ -109,7 +109,11 @@ class _AccountListPageState extends State<AccountListPage> {
         throw ApiBusinessException('Missing account change result url');
       }
       await AppToast.dismissLoading();
-      if (mounted) NavigationHelper.back(result: redirectUrl);
+      if (mounted) {
+        NavigationHelper.replaceAccountChangeFlowWithWebView<void>(
+          url: redirectUrl,
+        );
+      }
     } catch (error) {
       if (!mounted) {
         await AppToast.dismissLoading();
@@ -129,10 +133,7 @@ class _AccountListPageState extends State<AccountListPage> {
     if (route == null) {
       return;
     }
-    final redirectUrl = (await route)?.toString().trim() ?? '';
-    if (mounted && redirectUrl.isNotEmpty) {
-      NavigationHelper.back(result: redirectUrl);
-    }
+    await route;
   }
 
   @override
@@ -295,13 +296,15 @@ class _AccountListCard extends StatelessWidget {
                   height: 30.h,
                   child: Row(
                     children: [
-                      SizedBox(
-                        key: Key('accountCardLogo-${item.bindId}'),
-                        width: 30.w,
-                        height: 30.h,
-                        child: _TypeIcon(url: item.typeIconUrl),
-                      ),
-                      SizedBox(width: 16.w),
+                      if (item.typeIconUrl.isNotEmpty) ...[
+                        SizedBox(
+                          key: Key('accountCardLogo-${item.bindId}'),
+                          width: 30.w,
+                          height: 30.h,
+                          child: _TypeIcon(url: item.typeIconUrl),
+                        ),
+                        SizedBox(width: 16.w),
+                      ],
                       Expanded(
                         child: Text(
                           item.providerName,

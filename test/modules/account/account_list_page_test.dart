@@ -12,6 +12,7 @@ import 'package:kaibigan_loan/src/core/network/api_config.dart';
 import 'package:kaibigan_loan/src/core/network/api_exception.dart';
 import 'package:kaibigan_loan/src/core/network/api_response.dart';
 import 'package:kaibigan_loan/src/modules/account/account_list_page.dart';
+import 'package:kaibigan_loan/src/navigation_helper.dart';
 import 'package:kaibigan_loan/src/utils/app_toast.dart';
 
 void main() {
@@ -90,7 +91,7 @@ void main() {
     expect(tester.getSize(bankCard), const Size(335, 152));
     expect(tester.getSize(walletCard), const Size(335, 119));
     expect(tester.getSize(bankHeader), const Size(315, 30));
-    expect(tester.getSize(bankLogo), const Size(30, 30));
+    expect(bankLogo, findsNothing);
     expect(tester.getSize(bankReceiptPanel).width, 315);
     expect(
       find.descendant(of: bankCard, matching: find.text('Receipt Account')),
@@ -114,16 +115,16 @@ void main() {
     expect(accountStyle?.fontWeight, FontWeight.w700);
   });
 
-  testWidgets('submits selected GCash account and returns it', (tester) async {
+  testWidgets('submits selected GCash account and opens a new WebView', (
+    tester,
+  ) async {
     apiClient.accountStates = _accounts();
-    Future<Object?>? routeResult;
     await _pumpPage(
       tester,
       arguments: <String, String>{
         'geobotanists': 'product-1',
         'dodgy': 'ORDER001',
       },
-      onRouteOpened: (route) => routeResult = route,
     );
     await tester.pumpAndSettle();
 
@@ -134,7 +135,13 @@ void main() {
     expect(apiClient.changeRequests, <Map<String, String>>[
       <String, String>{'dodgy': 'ORDER001', 'smokehouse': 'bind-2'},
     ]);
-    expect(await routeResult, 'https://example.test/account-changed');
+    expect(Get.currentRoute, AppRoutes.webView);
+    expect(Get.arguments, <String, dynamic>{
+      'url': 'https://example.test/account-changed',
+      'title': null,
+    });
+    NavigationHelper.back<void>();
+    await tester.pumpAndSettle();
     expect(Get.currentRoute, AppRoutes.main);
   });
 
@@ -287,7 +294,6 @@ void main() {
 Future<void> _pumpPage(
   WidgetTester tester, {
   required Object? arguments,
-  void Function(Future<Object?>? route)? onRouteOpened,
 }) async {
   tester.view.physicalSize = const Size(375, 812);
   tester.view.devicePixelRatio = 1;
@@ -307,15 +313,15 @@ Future<void> _pumpPage(
           name: AppRoutes.certificationBindCard,
           page: () => const SizedBox(key: Key('bindCardPageStub')),
         ),
+        GetPage(
+          name: AppRoutes.webView,
+          page: () => const SizedBox(key: Key('webViewPageStub')),
+        ),
       ],
     ),
   );
   await tester.pumpAndSettle();
-  final route = Get.toNamed<Object?>(
-    AppRoutes.accountList,
-    arguments: arguments,
-  );
-  onRouteOpened?.call(route);
+  Get.toNamed<Object?>(AppRoutes.accountList, arguments: arguments);
 }
 
 Json _accounts() => Json(<String, dynamic>{

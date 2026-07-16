@@ -366,6 +366,74 @@ void main() {
     expect(Get.currentRoute, AppRoutes.webView);
   });
 
+  testWidgets('account change replaces its flow and old WebView', (
+    tester,
+  ) async {
+    await _pumpRoutes(tester);
+    NavigationHelper.toWebView<void>(url: 'https://example.test/old-account');
+    await tester.pumpAndSettle();
+    NavigationHelper.toAccountList<void>(
+      productId: 'product-1',
+      orderNo: 'ORDER001',
+    );
+    await tester.pumpAndSettle();
+    NavigationHelper.toCertificationBindCard<void>(
+      productId: 'product-1',
+      orderNo: 'ORDER001',
+      isAccountChange: true,
+    );
+    await tester.pumpAndSettle();
+
+    NavigationHelper.replaceAccountChangeFlowWithWebView<void>(
+      url: 'https://example.test/changed-account',
+    );
+    await tester.pumpAndSettle();
+
+    expect(Get.currentRoute, AppRoutes.webView);
+    expect(Get.arguments, <String, dynamic>{
+      'url': 'https://example.test/changed-account',
+      'title': null,
+    });
+
+    NavigationHelper.back<void>();
+    await tester.pumpAndSettle();
+    expect(Get.currentRoute, AppRoutes.main);
+  });
+
+  testWidgets('account change preserves an older WebView below its source', (
+    tester,
+  ) async {
+    await _pumpRoutes(tester);
+    NavigationHelper.toWebView<void>(url: 'https://example.test/older');
+    await tester.pumpAndSettle();
+    NavigationHelper.toSetting<void>();
+    await tester.pumpAndSettle();
+    NavigationHelper.toWebView<void>(url: 'https://example.test/old-account');
+    await tester.pumpAndSettle();
+    NavigationHelper.toAccountList<void>(
+      productId: 'product-1',
+      orderNo: 'ORDER001',
+    );
+    await tester.pumpAndSettle();
+
+    NavigationHelper.replaceAccountChangeFlowWithWebView<void>(
+      url: 'https://example.test/changed-account',
+    );
+    await tester.pumpAndSettle();
+
+    NavigationHelper.back<void>();
+    await tester.pumpAndSettle();
+    expect(Get.currentRoute, AppRoutes.setting);
+
+    NavigationHelper.back<void>();
+    await tester.pumpAndSettle();
+    expect(Get.currentRoute, AppRoutes.webView);
+    expect(Get.arguments, <String, dynamic>{
+      'url': 'https://example.test/older',
+      'title': null,
+    });
+  });
+
   testWidgets('does not push duplicate login route', (tester) async {
     await _pumpRoutes(tester);
 
