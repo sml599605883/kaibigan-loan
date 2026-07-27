@@ -1,6 +1,7 @@
 import 'dart:io';
 import 'dart:ui' as ui;
 
+import 'package:flutter/cupertino.dart';
 import 'package:flutter_image_compress/flutter_image_compress.dart';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
@@ -355,24 +356,25 @@ class _CertificationUploadPageState extends State<CertificationUploadPage> {
   }
 
   Future<void> _showCameraPermissionDialog() async {
-    await showDialog<void>(
+    await showCupertinoDialog<void>(
       context: context,
       builder: (dialogContext) {
-        return AlertDialog(
+        return CupertinoAlertDialog(
           title: const Text('Camera permission required'),
           content: const Text(
             'Please enable camera access in Settings to continue.',
           ),
           actions: [
-            TextButton(
+            CupertinoDialogAction(
               onPressed: () => Navigator.of(dialogContext).pop(),
               child: const Text('Cancel'),
             ),
-            TextButton(
+            CupertinoDialogAction(
               onPressed: () async {
                 Navigator.of(dialogContext).pop();
                 await widget.openAppSettingsPage();
               },
+              isDefaultAction: true,
               child: const Text('Settings'),
             ),
           ],

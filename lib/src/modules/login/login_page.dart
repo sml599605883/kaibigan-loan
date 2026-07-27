@@ -5,6 +5,7 @@ import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:kaibigan_loan/src/core/network/api_exception.dart';
+import 'package:kaibigan_loan/src/navigation_helper.dart';
 import 'package:kaibigan_loan/src/utils/app_toast.dart';
 
 import '../../assets/app_assets.dart';
@@ -205,7 +206,11 @@ class _LoginPageState extends State<LoginPage> {
   }
 
   void _openPrivacyPolicy() {
-    log('Privacy Policy tapped');
+    final webBaseUrl = Get.find<ApiClient>().config.webBaseUrl;
+    NavigationHelper.toWebView<void>(
+      url: '${webBaseUrl.replaceFirst(RegExp(r'/+$'), '')}/#/Pastitsios',
+    );
+    // log('Privacy Policy tapped');
   }
 
   void _goBack() {

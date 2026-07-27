@@ -1,6 +1,7 @@
 import 'dart:async';
 
 import 'package:dio/dio.dart';
+import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:get/get.dart';
@@ -22,6 +23,7 @@ import 'package:kaibigan_loan/src/core/session/session_store.dart';
 import 'package:kaibigan_loan/src/modules/certification/certification_bind_card_page.dart';
 import 'package:kaibigan_loan/src/theme/app_colors.dart';
 import 'package:kaibigan_loan/src/utils/app_toast.dart';
+import 'package:permission_handler/permission_handler.dart';
 
 void main() {
   late _FakeApiClient apiClient;
@@ -903,6 +905,47 @@ void main() {
     expect(toastPresenter.dismissCount, 3);
   });
 
+  testWidgets('camera denial opens settings before bind card liveness', (
+    tester,
+  ) async {
+    apiClient.states = _submissionStates();
+    apiClient.saveResponses.add(
+      ApiResponse(code: 20000, message: 'verify', states: Json(null)),
+    );
+    await SessionStore.instance.saveProductDetailCache(_productDetailCache());
+    var openedSettings = false;
+    var livenessStarted = false;
+    await _pumpPage(
+      tester,
+      apiClient: apiClient,
+      arguments: _arguments(),
+      requestCameraPermission: () async => PermissionStatus.denied,
+      openAppSettingsPage: () async {
+        openedSettings = true;
+        return true;
+      },
+      showTrustDecisionLiveness: (_) async {
+        livenessStarted = true;
+        return _livenessSuccess();
+      },
+    );
+    await tester.pumpAndSettle();
+
+    await _fillSubmissionForm(tester);
+    await tester.tap(find.byKey(const Key('bindCardSubmit')));
+    await tester.pumpAndSettle();
+
+    expect(apiClient.faceTokenRequests, isEmpty);
+    expect(livenessStarted, isFalse);
+    expect(find.byType(CupertinoAlertDialog), findsOneWidget);
+    expect(find.text('Camera permission required'), findsOneWidget);
+
+    await tester.tap(find.text('Settings'));
+    await tester.pumpAndSettle();
+
+    expect(openedSettings, isTrue);
+  });
+
   testWidgets('missing order skips liveness verification', (tester) async {
     apiClient.states = _submissionStates();
     apiClient.saveResponses.add(
@@ -1247,6 +1290,8 @@ Future<void> _pumpPage(
   WidgetTester tester, {
   required _FakeApiClient apiClient,
   required Object? arguments,
+  BindCardCameraPermissionRequester? requestCameraPermission,
+  BindCardAppSettingsOpener? openAppSettingsPage,
   BindCardLivenessLauncher? showTrustDecisionLiveness,
   Size size = const Size(375, 812),
   TextScaler textScaler = TextScaler.noScaling,
@@ -1269,6 +1314,9 @@ Future<void> _pumpPage(
           name: routeName,
           page: () => CertificationBindCardPage(
             apiClient: apiClient,
+            requestCameraPermission:
+                requestCameraPermission ?? () async => PermissionStatus.granted,
+            openAppSettingsPage: openAppSettingsPage,
             showTrustDecisionLiveness: showTrustDecisionLiveness,
           ),
         ),

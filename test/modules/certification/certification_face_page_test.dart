@@ -1,5 +1,5 @@
 import 'package:dio/dio.dart';
-import 'package:flutter/material.dart';
+import 'package:flutter/cupertino.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:get/get.dart';
 import 'package:kaibigan_loan/src/app_routes.dart';
@@ -15,6 +15,7 @@ import 'package:kaibigan_loan/src/core/session/session_store.dart';
 import 'package:kaibigan_loan/src/modules/certification/certification_face_page.dart';
 import 'package:kaibigan_loan/src/modules/certification/widgets/certification_prompt_banner.dart';
 import 'package:kaibigan_loan/src/utils/app_toast.dart';
+import 'package:permission_handler/permission_handler.dart';
 
 void main() {
   late SessionStore sessionStore;
@@ -190,11 +191,44 @@ void main() {
     expect(toastPresenter.dismissCount, 1);
     expect(toastPresenter.errors, ['face failed']);
   });
+
+  testWidgets('camera denial opens settings without requesting face token', (
+    tester,
+  ) async {
+    var openedSettings = false;
+    await _pumpFacePage(
+      tester,
+      arguments: {'geobotanists': 'product-face-denied'},
+      requestCameraPermission: () async => PermissionStatus.denied,
+      openAppSettingsPage: () async {
+        openedSettings = true;
+        return true;
+      },
+    );
+
+    await tester.tap(find.text('Submit'));
+    await tester.pumpAndSettle();
+
+    expect(apiClient.tokenRequests, isEmpty);
+    expect(find.byType(CupertinoAlertDialog), findsOneWidget);
+    expect(find.text('Camera permission required'), findsOneWidget);
+    expect(
+      find.text('Please enable camera access in Settings to continue.'),
+      findsOneWidget,
+    );
+
+    await tester.tap(find.text('Settings'));
+    await tester.pumpAndSettle();
+
+    expect(openedSettings, isTrue);
+  });
 }
 
 Future<void> _pumpFacePage(
   WidgetTester tester, {
   required Object arguments,
+  CameraPermissionRequester? requestCameraPermission,
+  AppSettingsOpener? openAppSettingsPage,
   TrustDecisionLivenessLauncher? showTrustDecisionLiveness,
   FaceImageFilePathBuilder? faceImageFilePathBuilder,
 }) async {
@@ -211,6 +245,9 @@ Future<void> _pumpFacePage(
         GetPage(
           name: AppRoutes.certificationFace,
           page: () => CertificationFacePage(
+            requestCameraPermission:
+                requestCameraPermission ?? () async => PermissionStatus.granted,
+            openAppSettingsPage: openAppSettingsPage,
             showTrustDecisionLiveness: showTrustDecisionLiveness,
             faceImageFilePathBuilder: faceImageFilePathBuilder,
           ),

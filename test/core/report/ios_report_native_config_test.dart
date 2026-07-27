@@ -5,6 +5,7 @@ import 'package:flutter_test/flutter_test.dart';
 void main() {
   final root = Directory.current.path;
   final infoPlist = File('$root/ios/Runner/Info.plist');
+  final podfile = File('$root/ios/Podfile');
   final registrar = File('$root/ios/Runner/ClientBridgeRegistrar.swift');
 
   test('Info.plist declares iOS report permission usage descriptions', () {
@@ -12,6 +13,13 @@ void main() {
 
     expect(content, contains('NSUserTrackingUsageDescription'));
     expect(content, contains('NSLocationWhenInUseUsageDescription'));
+  });
+
+  test('Podfile compiles permission handler features used by the app', () {
+    final content = podfile.readAsStringSync();
+
+    expect(content, contains('PERMISSION_CAMERA=1'));
+    expect(content, contains('PERMISSION_LOCATION_WHENINUSE=1'));
   });
 
   test('iOS registrar exposes report method and event channels', () {

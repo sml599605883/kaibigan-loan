@@ -1,5 +1,7 @@
+import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
+import 'package:permission_handler/permission_handler.dart';
 
 import '../../assets/app_assets.dart';
 import '../../core/client/client_bridge.dart';
@@ -19,17 +21,26 @@ import 'widgets/certification_prompt_banner.dart';
 
 typedef BindCardLivenessLauncher =
     Future<TrustDecisionLivenessResult> Function(String license);
+typedef BindCardCameraPermissionRequester = Future<PermissionStatus> Function();
+typedef BindCardAppSettingsOpener = Future<bool> Function();
 
 class CertificationBindCardPage extends StatefulWidget {
   const CertificationBindCardPage({
     super.key,
     ApiClient? apiClient,
+    BindCardCameraPermissionRequester? requestCameraPermission,
+    BindCardAppSettingsOpener? openAppSettingsPage,
     BindCardLivenessLauncher? showTrustDecisionLiveness,
   }) : _apiClient = apiClient,
+       requestCameraPermission =
+           requestCameraPermission ?? _defaultRequestCameraPermission,
+       openAppSettingsPage = openAppSettingsPage ?? openAppSettings,
        showTrustDecisionLiveness =
            showTrustDecisionLiveness ?? _defaultShowTrustDecisionLiveness;
 
   final ApiClient? _apiClient;
+  final BindCardCameraPermissionRequester requestCameraPermission;
+  final BindCardAppSettingsOpener openAppSettingsPage;
   final BindCardLivenessLauncher showTrustDecisionLiveness;
 
   @override
@@ -530,6 +541,16 @@ class _CertificationBindCardPageState extends State<CertificationBindCardPage> {
   }) async {
     var ownsLoading = true;
     try {
+      final permissionStatus = await widget.requestCameraPermission();
+      if (!mounted) {
+        return;
+      }
+      if (!permissionStatus.isGranted) {
+        await AppToast.dismissLoading();
+        ownsLoading = false;
+        await _showCameraPermissionDialog();
+        return;
+      }
       final orderNo = _orderNo;
       if (orderNo.isEmpty) {
         await AppToast.error(
@@ -614,6 +635,34 @@ class _CertificationBindCardPageState extends State<CertificationBindCardPage> {
     }
   }
 
+  Future<void> _showCameraPermissionDialog() async {
+    await showCupertinoDialog<void>(
+      context: context,
+      builder: (dialogContext) {
+        return CupertinoAlertDialog(
+          title: const Text('Camera permission required'),
+          content: const Text(
+            'Please enable camera access in Settings to continue.',
+          ),
+          actions: [
+            CupertinoDialogAction(
+              onPressed: () => Navigator.of(dialogContext).pop(),
+              child: const Text('Cancel'),
+            ),
+            CupertinoDialogAction(
+              onPressed: () async {
+                Navigator.of(dialogContext).pop();
+                await widget.openAppSettingsPage();
+              },
+              isDefaultAction: true,
+              child: const Text('Settings'),
+            ),
+          ],
+        );
+      },
+    );
+  }
+
   Future<void> _completeNormalSuccess(
     String productId,
     ApiResponse bindResponse,
@@ -688,4 +737,8 @@ Future<TrustDecisionLivenessResult> _defaultShowTrustDecisionLiveness(
   String license,
 ) {
   return ClientBridge().showTrustDecisionLiveness(license);
+}
+
+Future<PermissionStatus> _defaultRequestCameraPermission() {
+  return Permission.camera.request();
 }

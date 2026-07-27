@@ -1,5 +1,5 @@
 import 'package:dio/dio.dart';
-import 'package:flutter/material.dart';
+import 'package:flutter/cupertino.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:get/get.dart';
 import 'package:kaibigan_loan/src/app_routes.dart';
@@ -274,6 +274,36 @@ void main() {
     expect(apiClient.uploads.single.heirship, 'SSS');
     expect(apiClient.uploads.single.filePath, '/tmp/compressed-gallery-id.jpg');
   });
+
+  testWidgets('camera denial uses an iOS permission dialog', (tester) async {
+    final imagePicker = _FakeImagePicker(cameraDenied: true);
+    var openedSettings = false;
+    await _pumpUploadPage(
+      tester,
+      imagePicker: imagePicker,
+      imageCompressor: _FakeImageCompressor(compressedPath: ''),
+      arguments: {'geobotanists': 'product-1', 'cardType': 'PRC'},
+      openAppSettingsPage: () async {
+        openedSettings = true;
+        return true;
+      },
+    );
+
+    await tester.tap(find.text('Submit'));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Photograph'));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Done'));
+    await tester.pumpAndSettle();
+
+    expect(find.byType(CupertinoAlertDialog), findsOneWidget);
+    expect(find.text('Camera permission required'), findsOneWidget);
+
+    await tester.tap(find.text('Settings'));
+    await tester.pumpAndSettle();
+
+    expect(openedSettings, isTrue);
+  });
 }
 
 Future<void> _pumpUploadPage(
@@ -281,6 +311,7 @@ Future<void> _pumpUploadPage(
   required CertificationUploadImagePicker imagePicker,
   required CertificationUploadImageCompressor imageCompressor,
   required Object arguments,
+  Future<bool> Function()? openAppSettingsPage,
 }) async {
   tester.view.physicalSize = const Size(375, 812);
   tester.view.devicePixelRatio = 1;
@@ -297,6 +328,7 @@ Future<void> _pumpUploadPage(
           page: () => CertificationUploadPage(
             imagePicker: imagePicker,
             imageCompressor: imageCompressor,
+            openAppSettingsPage: openAppSettingsPage ?? () async => false,
           ),
         ),
         GetPage(
@@ -312,15 +344,23 @@ Future<void> _pumpUploadPage(
 }
 
 class _FakeImagePicker implements CertificationUploadImagePicker {
-  _FakeImagePicker({this.cameraPath, this.galleryPath});
+  _FakeImagePicker({
+    this.cameraPath,
+    this.galleryPath,
+    this.cameraDenied = false,
+  });
 
   final String? cameraPath;
   final String? galleryPath;
+  final bool cameraDenied;
   final calls = <String>[];
 
   @override
   Future<String?> pickFromCamera() async {
     calls.add('camera');
+    if (cameraDenied) {
+      throw const CertificationUploadCameraPermissionException();
+    }
     return cameraPath;
   }
 

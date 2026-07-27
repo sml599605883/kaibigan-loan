@@ -1,8 +1,10 @@
 import 'dart:convert';
 import 'dart:io';
 
+import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
+import 'package:permission_handler/permission_handler.dart';
 
 import '../../assets/app_assets.dart';
 import '../../core/client/client_bridge.dart';
@@ -20,17 +22,26 @@ import 'widgets/certification_retention_guard.dart';
 typedef TrustDecisionLivenessLauncher =
     Future<TrustDecisionLivenessResult> Function(String license);
 typedef FaceImageFilePathBuilder = Future<String> Function(String imageBase64);
+typedef CameraPermissionRequester = Future<PermissionStatus> Function();
+typedef AppSettingsOpener = Future<bool> Function();
 
 class CertificationFacePage extends StatefulWidget {
   const CertificationFacePage({
     super.key,
+    CameraPermissionRequester? requestCameraPermission,
+    AppSettingsOpener? openAppSettingsPage,
     TrustDecisionLivenessLauncher? showTrustDecisionLiveness,
     FaceImageFilePathBuilder? faceImageFilePathBuilder,
-  }) : showTrustDecisionLiveness =
+  }) : requestCameraPermission =
+           requestCameraPermission ?? _defaultRequestCameraPermission,
+       openAppSettingsPage = openAppSettingsPage ?? openAppSettings,
+       showTrustDecisionLiveness =
            showTrustDecisionLiveness ?? _defaultShowTrustDecisionLiveness,
        faceImageFilePathBuilder =
            faceImageFilePathBuilder ?? _defaultFaceImageFilePathBuilder;
 
+  final CameraPermissionRequester requestCameraPermission;
+  final AppSettingsOpener openAppSettingsPage;
   final TrustDecisionLivenessLauncher showTrustDecisionLiveness;
   final FaceImageFilePathBuilder faceImageFilePathBuilder;
 
@@ -137,6 +148,15 @@ class _CertificationFacePageState extends State<CertificationFacePage> {
     setState(() => _isSubmitting = true);
     await AppToast.showLoading();
     try {
+      final permissionStatus = await widget.requestCameraPermission();
+      if (!mounted) {
+        return;
+      }
+      if (!permissionStatus.isGranted) {
+        await AppToast.dismissLoading();
+        await _showCameraPermissionDialog();
+        return;
+      }
       final response = await ApiClient.instance.getFaceToken(
         dodgy: _productIdFromArguments(),
         commensurate: '11',
@@ -184,6 +204,34 @@ class _CertificationFacePageState extends State<CertificationFacePage> {
         setState(() => _isSubmitting = false);
       }
     }
+  }
+
+  Future<void> _showCameraPermissionDialog() async {
+    await showCupertinoDialog<void>(
+      context: context,
+      builder: (dialogContext) {
+        return CupertinoAlertDialog(
+          title: const Text('Camera permission required'),
+          content: const Text(
+            'Please enable camera access in Settings to continue.',
+          ),
+          actions: [
+            CupertinoDialogAction(
+              onPressed: () => Navigator.of(dialogContext).pop(),
+              child: const Text('Cancel'),
+            ),
+            CupertinoDialogAction(
+              onPressed: () async {
+                Navigator.of(dialogContext).pop();
+                await widget.openAppSettingsPage();
+              },
+              isDefaultAction: true,
+              child: const Text('Settings'),
+            ),
+          ],
+        );
+      },
+    );
   }
 
   String _productIdFromArguments() {
@@ -257,6 +305,10 @@ Future<TrustDecisionLivenessResult> _defaultShowTrustDecisionLiveness(
   String license,
 ) {
   return ClientBridge().showTrustDecisionLiveness(license);
+}
+
+Future<PermissionStatus> _defaultRequestCameraPermission() {
+  return Permission.camera.request();
 }
 
 Future<String> _defaultFaceImageFilePathBuilder(String imageBase64) async {
