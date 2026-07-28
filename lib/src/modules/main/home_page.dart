@@ -32,19 +32,47 @@ class HomePage extends StatelessWidget {
                 : controller.topLoanCardItems.first;
             return LoanCard(
               onApply: controller.applyTopHeroProduct,
+              productName: topCard?.productName ?? '',
+              productLogo: topCard?.productLogo ?? '',
               amountRange: topCard?.amountRange ?? '',
+              amountRangeDescription: topCard?.amountRangeDescription ?? '',
               termInfo: topCard?.termInfo ?? '',
+              termInfoDescription: topCard?.termInfoDescription ?? '',
               loanRate: topCard?.loanRate ?? '',
+              loanRateDescription: topCard?.loanRateDescription ?? '',
+              loanTermOptions:
+                  topCard?.loanTermOptions ?? const <HomeLoanTermOption>[],
               buttonText: topCard?.buttonText ?? '',
             );
           }),
           SizedBox(height: 20.h),
           const PromoBanner(),
-          SizedBox(height: 32.h),
+          Obx(
+            () => controller.banners.isEmpty
+                ? const SizedBox.shrink()
+                : SizedBox(
+                    key: const ValueKey('home_promo_bottom_gap'),
+                    height: 20.h,
+                  ),
+          ),
           const OrderStatusSection(),
-          SizedBox(height: 32.h),
+          Obx(
+            () => controller.orderStatusItems.isEmpty
+                ? const SizedBox.shrink()
+                : SizedBox(
+                    key: const ValueKey('home_order_status_bottom_gap'),
+                    height: 20.h,
+                  ),
+          ),
           const RecommendationSection(),
-          SizedBox(height: 12.h),
+          Obx(
+            () => controller.recommendationItems.isEmpty
+                ? const SizedBox.shrink()
+                : SizedBox(
+                    key: const ValueKey('home_recommendation_bottom_gap'),
+                    height: 12.h,
+                  ),
+          ),
           const LoanProcessSection(),
         ],
       ),

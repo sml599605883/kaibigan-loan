@@ -3,7 +3,9 @@ import AppTrackingTransparency
 import CFNetwork
 import CoreLocation
 import CoreTelephony
+import DeviceKit
 import Flutter
+import Network
 import NetworkExtension
 import Security
 import SystemConfiguration.CaptiveNetwork
@@ -18,6 +20,8 @@ final class ClientBridgeRegistrar: NSObject, FlutterStreamHandler, CLLocationMan
   private let trustDecisionPartnerCode = "boqin_ph"
   private let trustDecisionPartnerKey = "1dc25522f2adc77f5347816c0f7fa31b"
   private let pushTokenKey = "report.apple_push_token"
+  private let networkMonitor = NWPathMonitor()
+  private let networkMonitorQueue = DispatchQueue(label: "kaibigan_loan.network_monitor")
   private lazy var trustDecisionManager = TDMobRiskManager.sharedManager()
   private lazy var locationManager = CLLocationManager()
   private let geocoder = CLGeocoder()
@@ -29,22 +33,21 @@ final class ClientBridgeRegistrar: NSObject, FlutterStreamHandler, CLLocationMan
     super.init()
     locationManager.delegate = self
     UIDevice.current.isBatteryMonitoringEnabled = true
+    networkMonitor.start(queue: networkMonitorQueue)
   }
 
-  func register(with controller: FlutterViewController?) {
-    guard let controller else {
-      return
-    }
-
+  func register(with messenger: FlutterBinaryMessenger) {
     let channel = FlutterMethodChannel(
       name: "kaibigan_loan/client_bridge",
-      binaryMessenger: controller.binaryMessenger
+      binaryMessenger: messenger
     )
 
     channel.setMethodCallHandler { call, result in
       switch call.method {
       case "isNativeBridgeAvailable":
         result(true)
+      case "isNetworkAvailable":
+        result(self.networkMonitor.currentPath.status == .satisfied)
       case "getPlatformInfo":
         let info = Bundle.main.infoDictionary
         result([
@@ -69,7 +72,7 @@ final class ClientBridgeRegistrar: NSObject, FlutterStreamHandler, CLLocationMan
 
     let reportChannel = FlutterMethodChannel(
       name: "kaibigan_loan/report_method",
-      binaryMessenger: controller.binaryMessenger
+      binaryMessenger: messenger
     )
     reportChannel.setMethodCallHandler { call, result in
       switch call.method {
@@ -94,7 +97,7 @@ final class ClientBridgeRegistrar: NSObject, FlutterStreamHandler, CLLocationMan
 
     let reportEventChannel = FlutterEventChannel(
       name: "kaibigan_loan/report_event",
-      binaryMessenger: controller.binaryMessenger
+      binaryMessenger: messenger
     )
     reportEventChannel.setStreamHandler(self)
   }
@@ -148,8 +151,7 @@ final class ClientBridgeRegistrar: NSObject, FlutterStreamHandler, CLLocationMan
     let status = locationAuthorizationStatus()
     switch status {
     case .notDetermined:
-      pendingLocationResult = result
-      locationManager.requestWhenInUseAuthorization()
+      result(locationPayload(location: nil, status: locationStatusString(status)))
     case .authorizedAlways, .authorizedWhenInUse:
       pendingLocationResult = result
       locationManager.requestLocation()
@@ -374,16 +376,17 @@ final class ClientBridgeRegistrar: NSObject, FlutterStreamHandler, CLLocationMan
       "carrier": currentCarrierName(),
       "networkType": currentNetworkType(),
       "timeZoneName": gmtTimeZone(),
+      "board": "QC_Reference_Phone",
       "cpuCoreCount": ProcessInfo.processInfo.processorCount,
-      "brand": "Apple",
+      "brand": "iPhone",
       "deviceName": UIDevice.current.name,
-      "model": deviceModelName(),
+      "model": Device.current.description,
       "systemVersion": UIDevice.current.systemVersion,
       "appVersion": info?["CFBundleShortVersionString"] as? String ?? "",
       "packageName": Bundle.main.bundleIdentifier ?? "",
-      "screenHeight": Int(screen.height * UIScreen.main.scale),
-      "screenWidth": Int(screen.width * UIScreen.main.scale),
-      "screenSize": "\(Int(screen.width * UIScreen.main.scale))x\(Int(screen.height * UIScreen.main.scale))",
+      "screenHeight": Int(screen.height),
+      "screenWidth": Int(screen.width),
+      "screenSize": "\(Int(screen.width))x\(Int(screen.height))",
       "innerIp": wifiIPv4Address(),
       "currentWifiName": currentWifiName,
       "currentWifiBssid": currentWifiBssid,
@@ -603,10 +606,14 @@ final class ClientBridgeRegistrar: NSObject, FlutterStreamHandler, CLLocationMan
     guard let placemark else {
       return ""
     }
-    let parts = [placemark.name, placemark.subLocality, placemark.locality, placemark.subAdministrativeArea, placemark.administrativeArea, placemark.country]
+    let streetNumber = [placemark.thoroughfare, placemark.subThoroughfare]
       .compactMap { $0?.trimmingCharacters(in: .whitespacesAndNewlines) }
       .filter { !$0.isEmpty }
-    return uniqueAddressParts(parts).joined(separator: ", ")
+      .joined(separator: " ")
+    let parts = [placemark.country, placemark.administrativeArea, placemark.locality, placemark.subAdministrativeArea, placemark.subLocality, streetNumber]
+      .compactMap { $0?.trimmingCharacters(in: .whitespacesAndNewlines) }
+      .filter { !$0.isEmpty }
+    return uniqueAddressParts(parts).joined(separator: " ")
   }
 
   private func uniqueAddressParts(_ parts: [String]) -> [String] {

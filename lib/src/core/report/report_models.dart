@@ -90,6 +90,7 @@ class NativeDeviceSnapshot {
     this.carrier = '',
     this.networkType = '',
     this.timeZoneName = '',
+    this.board = '',
     this.cpuCoreCount = 0,
     this.brand = '',
     this.deviceName = '',
@@ -129,6 +130,7 @@ class NativeDeviceSnapshot {
       carrier: _stringValue(map['carrier']),
       networkType: _stringValue(map['networkType']),
       timeZoneName: _stringValue(map['timeZoneName']),
+      board: _stringValue(map['board']),
       cpuCoreCount: _intValue(map['cpuCoreCount']),
       brand: _stringValue(map['brand']),
       deviceName: _stringValue(map['deviceName']),
@@ -167,6 +169,7 @@ class NativeDeviceSnapshot {
   final String carrier;
   final String networkType;
   final String timeZoneName;
+  final String board;
   final int cpuCoreCount;
   final String brand;
   final String deviceName;
@@ -204,6 +207,7 @@ class NativeDeviceSnapshot {
     String? carrier,
     String? networkType,
     String? timeZoneName,
+    String? board,
     int? cpuCoreCount,
     String? brand,
     String? deviceName,
@@ -241,6 +245,7 @@ class NativeDeviceSnapshot {
       carrier: carrier ?? this.carrier,
       networkType: networkType ?? this.networkType,
       timeZoneName: timeZoneName ?? this.timeZoneName,
+      board: board ?? this.board,
       cpuCoreCount: cpuCoreCount ?? this.cpuCoreCount,
       brand: brand ?? this.brand,
       deviceName: deviceName ?? this.deviceName,

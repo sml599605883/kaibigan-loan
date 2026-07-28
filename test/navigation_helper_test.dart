@@ -1029,6 +1029,27 @@ void main() {
     ]);
   });
 
+  testWidgets('location permission request dismisses loading first', (
+    tester,
+  ) async {
+    final events = <String>[];
+    NavigationHelper.nativeLocationLoader = () async => null;
+    NavigationHelper.locationServiceStatusProvider = () async =>
+        ServiceStatus.enabled;
+    NavigationHelper.locationPermissionStatusProvider = () async =>
+        PermissionStatus.denied;
+    NavigationHelper.locationPermissionRequester = () async {
+      events.add('request');
+      return PermissionStatus.granted;
+    };
+    AppToast.presenter = _EventToastPresenter(events);
+
+    final canContinue = await NavigationHelper.defaultLocationAccessChecker();
+
+    expect(canContinue, isTrue);
+    expect(events, ['dismiss', 'request']);
+  });
+
   testWidgets(
     'location access shows permission settings prompt when permanently denied',
     (tester) async {
@@ -1437,5 +1458,24 @@ class _FakeToastPresenter implements ToastPresenter {
   Future<void> dismissLoading() async {
     dismissLoadingCount++;
     calls.add('dismiss');
+  }
+}
+
+class _EventToastPresenter implements ToastPresenter {
+  _EventToastPresenter(this.events);
+
+  final List<String> events;
+
+  @override
+  Future<void> show(String message, {required bool isError}) async {}
+
+  @override
+  Future<void> showLoading(String? message) async {
+    events.add('loading');
+  }
+
+  @override
+  Future<void> dismissLoading() async {
+    events.add('dismiss');
   }
 }

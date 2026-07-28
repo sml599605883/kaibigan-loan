@@ -7,14 +7,14 @@ import UIKit
     _ application: UIApplication,
     didFinishLaunchingWithOptions launchOptions: [UIApplication.LaunchOptionsKey: Any]?
   ) -> Bool {
-    ClientBridgeRegistrar.shared.register(
-      with: window?.rootViewController as? FlutterViewController
-    )
     return super.application(application, didFinishLaunchingWithOptions: launchOptions)
   }
 
   func didInitializeImplicitFlutterEngine(_ engineBridge: FlutterImplicitEngineBridge) {
     GeneratedPluginRegistrant.register(with: engineBridge.pluginRegistry)
+    ClientBridgeRegistrar.shared.register(
+      with: engineBridge.applicationRegistrar.messenger()
+    )
   }
 
   override func application(

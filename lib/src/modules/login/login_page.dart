@@ -157,6 +157,10 @@ class _LoginPageState extends State<LoginPage> {
     if (_loggingIn) {
       return;
     }
+    if (!_agreementAccepted) {
+      await AppToast.show('Please agree to the Privacy Policy');
+      return;
+    }
     final phone = _phoneController.text.trim();
     final code = _codeController.text.trim();
     if (phone.isEmpty || code.length != 6) {

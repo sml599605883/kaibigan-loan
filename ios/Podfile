@@ -31,6 +31,7 @@ target 'Runner' do
 
   pod 'TrustDecisionPro', '5.2.5.1'
   pod 'TrustDecisionLiveness', '3.1.2'
+  pod 'DeviceKit', '5.7.0'
 
   flutter_install_all_ios_pods File.dirname(File.realpath(__FILE__))
   target 'RunnerTests' do

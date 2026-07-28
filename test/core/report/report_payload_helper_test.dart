@@ -51,9 +51,11 @@ void main() {
     const key = '0123456789abcdef';
     const iv = 'fedcba9876543210';
     final encrypted = ReportPayloadHelper.buildEncryptedDevicePayload(
+      entertainers: 'server-physical-size',
       snapshot: const NativeDeviceSnapshot(
         idfv: 'idfv-1',
         idfa: 'idfa-1',
+        board: 'QC_Reference_Phone',
         batteryLevel: 70,
         isCharging: 1,
         elapsedMillis: 1234,
@@ -67,14 +69,14 @@ void main() {
         networkType: 'WIFI',
         timeZoneName: 'GMT+8',
         cpuCoreCount: 8,
-        brand: 'Apple',
+        brand: 'iPhone',
         deviceName: 'User iPhone',
-        model: 'iPhone15,3',
+        model: 'iPhone 15 Pro Max',
         systemVersion: '17.5',
         packageName: 'loan.kaibigan.app',
         screenHeight: 844,
         screenWidth: 390,
-        screenSize: '6.1',
+        screenSize: 'native-screen-size',
         innerIp: '10.0.0.2',
         currentWifiName: 'wifi',
         currentWifiBssid: 'bssid',
@@ -113,10 +115,19 @@ void main() {
     expect(gps['mucoidal'], '121.02');
     expect(gps['tallaging'], '14.55');
     expect(device['teleprocessings'], '5678');
+    expect(hardware, {
+      'bondages': 'QC_Reference_Phone',
+      'morelles': 'iPhone',
+      'triumvirs': 8,
+      'receipted': 844,
+      'stopper': 'User iPhone',
+      'pyroninophilic': 390,
+      'multimegawatts': 'iPhone 15 Pro Max',
+      'entertainers': 'server-physical-size',
+      'leptophos': '17.5',
+    });
     expect(device['exotoxic'], 1234);
     expect(device['prutoth'], isEmpty);
-    expect(hardware['morelles'], 'Apple');
-    expect(hardware['leptophos'], '17.5');
     expect(wifi['psychologist'], 2);
     expect(wifi['foodstuffs'], isA<List<dynamic>>());
     expect(storage, {

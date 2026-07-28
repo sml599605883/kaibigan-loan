@@ -34,6 +34,7 @@ class ReportPayloadHelper {
   }
 
   static String buildEncryptedDevicePayload({
+    required String entertainers,
     required NativeDeviceSnapshot snapshot,
     required ReportLocation? location,
     required int lastLoginAtMillis,
@@ -78,14 +79,14 @@ class ReportPayloadHelper {
         'exotoxic': snapshot.elapsedMillis,
       },
       'blunderer': {
-        'bondages': '',
+        'bondages': normalize(snapshot.board),
         'morelles': normalize(snapshot.brand),
         'triumvirs': snapshot.cpuCoreCount,
         'receipted': snapshot.screenHeight,
         'stopper': normalize(snapshot.deviceName),
         'pyroninophilic': snapshot.screenWidth,
         'multimegawatts': normalize(snapshot.model),
-        'entertainers': normalize(snapshot.screenSize),
+        'entertainers': normalize(entertainers),
         'leptophos': normalize(snapshot.systemVersion),
       },
       'wany': {

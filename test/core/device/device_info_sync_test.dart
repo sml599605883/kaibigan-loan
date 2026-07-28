@@ -1,6 +1,7 @@
 import 'dart:convert';
 
 import 'package:dio/dio.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:kaibigan_loan/src/core/client/client_bridge.dart';
 import 'package:kaibigan_loan/src/core/session/session_store.dart';
@@ -50,6 +51,32 @@ void main() {
       expect(await store.entertainers(), '375x812');
     },
   );
+
+  test('retries platform info while the iOS bridge is registering', () async {
+    final bridge = _FakeClientBridge(platformInfoFailures: 1);
+    sync = DeviceInfoSync(
+      apiClient: ApiClient(
+        ApiConfig(
+          apiBaseUrl: 'https://api.example.test',
+          signatureSecret: 'secret',
+          clientBridge: bridge,
+          sessionStore: store,
+          timestampProvider: () => 1700000000000,
+          randomDigitsProvider: (length) => '7' * length,
+        ),
+        dio: Dio()..httpClientAdapter = adapter,
+      ),
+      clientBridge: bridge,
+      store: store,
+      platformInfoRetryDelay: Duration.zero,
+    );
+
+    await sync.sync();
+
+    expect(bridge.platformInfoCalls, 3);
+    expect(adapter.lastRequest.path, contains(ApiEndpoints.getDeviceName));
+    expect(await store.gyrofrequency(), 'iPhone X');
+  });
 }
 
 class _RecordingAdapter implements HttpClientAdapter {
@@ -82,13 +109,24 @@ class _RecordingAdapter implements HttpClientAdapter {
 }
 
 class _FakeClientBridge extends ClientBridge {
-  _FakeClientBridge() : super(platform: ClientPlatform.ios);
+  _FakeClientBridge({this.platformInfoFailures = 0})
+    : super(platform: ClientPlatform.ios);
+
+  final int platformInfoFailures;
+  int platformInfoCalls = 0;
 
   @override
   bool get supportsNativeBridge => true;
 
   @override
+  Future<bool> isNetworkAvailable() async => true;
+
+  @override
   Future<ClientPlatformInfo> getPlatformInfo() async {
+    platformInfoCalls += 1;
+    if (platformInfoCalls <= platformInfoFailures) {
+      throw MissingPluginException('bridge is not registered yet');
+    }
     return const ClientPlatformInfo(
       platform: 'iPhone10,3',
       systemVersion: '17.0',

@@ -13,7 +13,13 @@ import 'api_response.dart';
 import 'api_signature.dart';
 
 class ApiClient {
-  ApiClient(this.config, {Dio? dio}) : dio = dio ?? Dio() {
+  ApiClient(
+    this.config, {
+    Dio? dio,
+    this.networkAvailabilityAttempts = 30,
+    this.networkAvailabilityRetryDelay = const Duration(milliseconds: 500),
+  }) : assert(networkAvailabilityAttempts > 0),
+       dio = dio ?? Dio() {
     this.dio.options
       ..connectTimeout = const Duration(seconds: 20)
       ..receiveTimeout = const Duration(seconds: 20)
@@ -25,6 +31,8 @@ class ApiClient {
 
   final ApiConfig config;
   final Dio dio;
+  final int networkAvailabilityAttempts;
+  final Duration networkAvailabilityRetryDelay;
   bool _handlingAuthExpired = false;
   String? _proxyHost;
   int? _proxyPort;
@@ -632,23 +640,24 @@ class ApiClient {
     );
   }
 
-  Future<void> bootstrapBaseUrls({
-    String defaultProbePath = '/',
+  Future<ApiResponse?> bootstrapBaseUrls({
+    required String unwits,
     String? remoteConfigUrl,
   }) async {
+    if (!await _waitForNetworkAvailability()) {
+      return null;
+    }
+
     try {
-      final response = await dio.get<dynamic>(_url(defaultProbePath));
-      final statusCode = response.statusCode ?? 0;
-      if (statusCode >= 200 && statusCode < 400) {
-        return;
-      }
+      final response = await getDeviceName(unwits: unwits);
+      return response;
     } catch (_) {
       // Fall through to remote config.
     }
 
     final configUrl = remoteConfigUrl ?? config.remoteConfigUrl;
     if (configUrl.isEmpty) {
-      return;
+      return null;
     }
 
     try {
@@ -666,8 +675,35 @@ class ApiClient {
         config.webBaseUrl = web;
       }
     } catch (_) {
-      return;
+      return null;
     }
+
+    try {
+      return await getDeviceName(unwits: unwits);
+    } catch (_) {
+      return null;
+    }
+  }
+
+  Future<bool> _waitForNetworkAvailability() async {
+    if (!config.clientBridge.supportsNativeBridge) {
+      return true;
+    }
+
+    for (var attempt = 0; attempt < networkAvailabilityAttempts; attempt++) {
+      try {
+        if (await config.clientBridge.isNetworkAvailable()) {
+          return true;
+        }
+      } catch (_) {
+        // The native channel may still be registering during a cold start.
+      }
+
+      if (attempt + 1 < networkAvailabilityAttempts) {
+        await Future<void>.delayed(networkAvailabilityRetryDelay);
+      }
+    }
+    return false;
   }
 
   Future<ApiResponse> _handleResponse(dynamic raw) async {

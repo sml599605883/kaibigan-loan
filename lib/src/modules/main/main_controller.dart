@@ -175,16 +175,28 @@ class HomeElementType {
 class HomeTopLoanCardItem {
   const HomeTopLoanCardItem({
     required this.productId,
+    required this.productName,
+    required this.productLogo,
     required this.amountRange,
+    required this.amountRangeDescription,
     required this.termInfo,
+    required this.termInfoDescription,
     required this.loanRate,
+    required this.loanRateDescription,
+    required this.loanTermOptions,
     required this.buttonText,
   });
 
   final String productId;
+  final String productName;
+  final String productLogo;
   final String amountRange;
+  final String amountRangeDescription;
   final String termInfo;
+  final String termInfoDescription;
   final String loanRate;
+  final String loanRateDescription;
+  final List<HomeLoanTermOption> loanTermOptions;
   final String buttonText;
 
   static List<HomeTopLoanCardItem> fromHome(Json states) {
@@ -201,11 +213,39 @@ class HomeTopLoanCardItem {
   factory HomeTopLoanCardItem.fromJson(Json json) {
     return HomeTopLoanCardItem(
       productId: json['cabdrivers'].stringValue,
+      productName: json['omissible'].stringValue,
+      productLogo: json['biontic'].stringValue,
       amountRange: json['ghillies'].stringValue,
+      amountRangeDescription: json['geometrically'].stringValue,
       termInfo: json['mainlined'].stringValue,
+      termInfoDescription: json['outmarching'].stringValue,
       loanRate: json['pulpit'].stringValue,
+      loanRateDescription: json['rescinders'].stringValue,
+      loanTermOptions: HomeLoanTermOption.fromList(json['hotdogs'].listValue),
       buttonText: json['restless'].stringValue,
     );
+  }
+}
+
+class HomeLoanTermOption {
+  const HomeLoanTermOption({required this.value, required this.label});
+
+  final String value;
+  final String label;
+
+  factory HomeLoanTermOption.fromJson(Json json) {
+    return HomeLoanTermOption(
+      value: json['mononucleotides'].stringValue,
+      label: json['strumming'].stringValue,
+    );
+  }
+
+  static List<HomeLoanTermOption> fromList(List<Json> items) {
+    final options = items.map(HomeLoanTermOption.fromJson).toList();
+    if (options.length <= 2) {
+      return options;
+    }
+    return [options.first, options.last];
   }
 }
 

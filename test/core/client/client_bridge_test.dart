@@ -34,6 +34,20 @@ void main() {
     expect(calls.single.method, 'isNativeBridgeAvailable');
   });
 
+  test('calls iOS method channel for network availability', () async {
+    final calls = <MethodCall>[];
+    TestDefaultBinaryMessengerBinding.instance.defaultBinaryMessenger
+        .setMockMethodCallHandler(channel, (call) async {
+          calls.add(call);
+          return true;
+        });
+
+    final bridge = ClientBridge(platform: ClientPlatform.ios);
+
+    expect(await bridge.isNetworkAvailable(), isTrue);
+    expect(calls.single.method, 'isNetworkAvailable');
+  });
+
   test('normalizes iOS platform info response', () async {
     TestDefaultBinaryMessengerBinding.instance.defaultBinaryMessenger
         .setMockMethodCallHandler(channel, (call) async {

@@ -141,6 +141,22 @@ void main() {
     expect(_homeStubInitCount, 1);
   });
 
+  testWidgets('shows agreement toast before automatic login', (tester) async {
+    await _pumpLogin(tester);
+
+    await tester.tap(find.byKey(const Key('loginAgreementToggle')));
+    await tester.enterText(
+      find.byKey(const Key('loginPhoneField')),
+      '09171234567',
+    );
+    await tester.enterText(find.byKey(const Key('loginCodeField')), '123456');
+    await tester.pump();
+
+    expect(toastPresenter.messages, ['Please agree to the Privacy Policy']);
+    expect(apiClient.loginRequestCount, 0);
+    expect(toastPresenter.showLoadingCount, 0);
+  });
+
   testWidgets('clears code and refocuses when automatic login fails', (
     tester,
   ) async {

@@ -25,6 +25,7 @@ class ReportManager {
     DateTime Function()? now,
     ApiCrypto? crypto,
     ReportDeviceCollector? deviceCollector,
+    Future<String> Function()? devicePhysicalSizeProvider,
     ReportAttributionInitializer? attributionInitializer,
   }) : _cache = cache,
        _nativeBridge = nativeBridge,
@@ -36,6 +37,8 @@ class ReportManager {
        _now = now ?? DateTime.now,
        _crypto = crypto,
        _deviceCollector = deviceCollector,
+       _devicePhysicalSizeProvider =
+           devicePhysicalSizeProvider ?? (() async => ''),
        _attributionInitializer = attributionInitializer;
 
   factory ReportManager.defaultInstance({
@@ -53,6 +56,7 @@ class ReportManager {
       deviceCollector: ReportDeviceCollector(
         nativeSnapshotProvider: bridge.getDeviceSnapshot,
       ),
+      devicePhysicalSizeProvider: store.entertainers,
       attributionInitializer: AdjustReportAttributionInitializer(),
       crypto: ApiCrypto(
         key: client.config.encryptKey,
@@ -80,6 +84,7 @@ class ReportManager {
   final DateTime Function() _now;
   final ApiCrypto? _crypto;
   final ReportDeviceCollector? _deviceCollector;
+  final Future<String> Function() _devicePhysicalSizeProvider;
   final ReportAttributionInitializer? _attributionInitializer;
 
   bool _started = false;
@@ -127,7 +132,6 @@ class ReportManager {
     _resumeHandling = true;
     try {
       await _requestResumeTrackingPermission();
-      unawaited(reportGoogleMarket());
     } finally {
       _resumeHandling = false;
     }
@@ -219,6 +223,7 @@ class ReportManager {
       final snapshot = await _collectDeviceSnapshot();
       final location = await _resolveLocationWithCacheFallback();
       final encrypted = ReportPayloadHelper.buildEncryptedDevicePayload(
+        entertainers: await _devicePhysicalSizeProvider(),
         snapshot: snapshot,
         location: location,
         lastLoginAtMillis: await _cache.getLoginAt(),

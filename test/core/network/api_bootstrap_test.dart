@@ -37,6 +37,9 @@ void main() {
               'deviceId': 'idfv',
             };
           }
+          if (call.method == 'isNetworkAvailable') {
+            return true;
+          }
           expect(call.method, 'getProxySettings');
           return <String, Object?>{'enabled': false, 'host': '', 'port': 0};
         });
@@ -81,6 +84,9 @@ void main() {
               'buildNumber': '1',
               'deviceId': 'idfv',
             };
+          }
+          if (call.method == 'isNetworkAvailable') {
+            return true;
           }
           return completer.future;
         });

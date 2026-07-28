@@ -9,6 +9,7 @@ PODS:
   - AdjustSignature (3.67.0)
   - device_info_plus (0.0.1):
     - Flutter
+  - DeviceKit (5.7.0)
   - Flutter (1.0.0)
   - flutter_image_compress_common (1.0.0):
     - Flutter
@@ -69,6 +70,7 @@ PODS:
 DEPENDENCIES:
   - adjust_sdk (from `.symlinks/plugins/adjust_sdk/ios`)
   - device_info_plus (from `.symlinks/plugins/device_info_plus/ios`)
+  - DeviceKit (= 5.7.0)
   - Flutter (from `Flutter`)
   - flutter_image_compress_common (from `.symlinks/plugins/flutter_image_compress_common/ios`)
   - flutter_inappwebview_ios (from `.symlinks/plugins/flutter_inappwebview_ios/ios`)
@@ -85,6 +87,7 @@ SPEC REPOS:
   trunk:
     - Adjust
     - AdjustSignature
+    - DeviceKit
     - libwebp
     - Mantle
     - OrderedSet
@@ -122,6 +125,7 @@ SPEC CHECKSUMS:
   adjust_sdk: 7db3eab653b6b0fb1902f9b65d95aa1f0194f466
   AdjustSignature: 9498705a4ac67b719e31828be4d74fbb8656950c
   device_info_plus: bf2e3232933866d73fe290f2942f2156cdd10342
+  DeviceKit: d1a956e25b957efb60a87bfe70be4e00ef36846d
   Flutter: cabc95a1d2626b1b06e7179b784ebcf0c0cde467
   flutter_image_compress_common: ec1d45c362c9d30a3f6a0426c297f47c52007e3e
   flutter_inappwebview_ios: 6f63631e2c62a7c350263b13fa5427aedefe81d4
@@ -139,6 +143,6 @@ SPEC CHECKSUMS:
   TrustDecisionPro: 43c5ba6de6f53e1a4132442d82e116b5c91df9bf
   url_launcher_ios: bb13df5870e8c4234ca12609d04010a21be43dfa
 
-PODFILE CHECKSUM: 194fe48f74af1e5c78886f948c9eb7e7151744a0
+PODFILE CHECKSUM: 38368a6b9e726a322625b2c64fc77f09570d7862
 
 COCOAPODS: 1.16.2

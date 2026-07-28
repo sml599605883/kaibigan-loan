@@ -8,10 +8,17 @@ import '../profile/profile_page.dart';
 import 'home_page.dart';
 import 'main_controller.dart';
 
-class MainShellPage extends GetView<MainController> {
+class MainShellPage extends StatefulWidget {
   const MainShellPage({super.key});
 
-  static const _pages = <Widget>[HomePage(), OrdersPage(), ProfilePage()];
+  @override
+  State<MainShellPage> createState() => _MainShellPageState();
+}
+
+class _MainShellPageState extends State<MainShellPage> {
+  final _initializedTabs = <int>{0};
+
+  MainController get controller => Get.find<MainController>();
 
   @override
   Widget build(BuildContext context) {
@@ -19,12 +26,22 @@ class MainShellPage extends GetView<MainController> {
       backgroundColor: AppColors.appBackground,
       body: SafeArea(
         bottom: false,
-        child: Obx(
-          () => IndexedStack(
-            index: controller.selectedIndex.value,
-            children: _pages,
-          ),
-        ),
+        child: Obx(() {
+          final selectedIndex = controller.selectedIndex.value;
+          _initializedTabs.add(selectedIndex);
+          return IndexedStack(
+            index: selectedIndex,
+            children: [
+              const HomePage(),
+              _initializedTabs.contains(1)
+                  ? const OrdersPage()
+                  : const SizedBox.shrink(),
+              _initializedTabs.contains(2)
+                  ? const ProfilePage()
+                  : const SizedBox.shrink(),
+            ],
+          );
+        }),
       ),
       bottomNavigationBar: const _MainTabBar(),
     );

@@ -138,6 +138,17 @@ class ClientBridge {
     return result ?? false;
   }
 
+  Future<bool> isNetworkAvailable() async {
+    if (!supportsNativeBridge) {
+      throw UnsupportedError(
+        'Network availability is currently implemented for iOS.',
+      );
+    }
+
+    final result = await _channel.invokeMethod<bool>('isNetworkAvailable');
+    return result ?? false;
+  }
+
   Future<ClientPlatformInfo> getPlatformInfo() async {
     if (!supportsNativeBridge) {
       throw UnsupportedError('ClientBridge is currently implemented for iOS.');

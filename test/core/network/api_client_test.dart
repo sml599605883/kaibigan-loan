@@ -427,11 +427,106 @@ void main() {
     },
   );
 
+  test('bootstrap returns device info from the default API once', () async {
+    final response = await client.bootstrapBaseUrls(unwits: 'iPhone11,8');
+
+    expect(response?.isSuccess, isTrue);
+    expect(adapter.requests, hasLength(1));
+    expect(adapter.requests.single.method, 'POST');
+    expect(
+      adapter.requests.single.path,
+      'https://api.example.test/plater/threadier',
+    );
+    expect(adapter.bodies.single, {'unwits': 'iPhone11,8', 'stoups': '777777'});
+  });
+
+  test('bootstrap does not retry the default API without config URL', () async {
+    adapter.queue.add(
+      ResponseBody.fromString(
+        jsonEncode({
+          'griding': 1,
+          'organizational': 'temporary failure',
+          'fas': {},
+        }),
+        200,
+        headers: {
+          Headers.contentTypeHeader: [Headers.jsonContentType],
+        },
+      ),
+    );
+
+    final response = await client.bootstrapBaseUrls(unwits: 'iPhone11,8');
+
+    expect(response, isNull);
+    expect(adapter.requests, hasLength(1));
+    expect(adapter.requests.single.path, contains('/plater/threadier'));
+  });
+
+  test('bootstrap makes no request while network stays unavailable', () async {
+    final bridge = _FakeClientBridge(networkAvailability: [false, false]);
+    client = ApiClient(
+      ApiConfig(
+        apiBaseUrl: 'https://api.example.test',
+        clientBridge: bridge,
+        sessionStore: SessionStore.memory(),
+        timestampProvider: () => 1700000000000,
+        randomDigitsProvider: (length) => '7' * length,
+      ),
+      dio: Dio()..httpClientAdapter = adapter,
+      networkAvailabilityAttempts: 2,
+      networkAvailabilityRetryDelay: Duration.zero,
+    );
+
+    final response = await client.bootstrapBaseUrls(unwits: 'iPhone11,8');
+
+    expect(response, isNull);
+    expect(bridge.networkAvailabilityCalls, 2);
+    expect(adapter.requests, isEmpty);
+  });
+
   test(
-    'bootstrap parses base64 remote config when default probe fails',
+    'bootstrap requests device info after network becomes available',
+    () async {
+      final bridge = _FakeClientBridge(networkAvailability: [false, true]);
+      client = ApiClient(
+        ApiConfig(
+          apiBaseUrl: 'https://api.example.test',
+          clientBridge: bridge,
+          sessionStore: SessionStore.memory(),
+          timestampProvider: () => 1700000000000,
+          randomDigitsProvider: (length) => '7' * length,
+        ),
+        dio: Dio()..httpClientAdapter = adapter,
+        networkAvailabilityAttempts: 2,
+        networkAvailabilityRetryDelay: Duration.zero,
+      );
+
+      final response = await client.bootstrapBaseUrls(unwits: 'iPhone11,8');
+
+      expect(response?.isSuccess, isTrue);
+      expect(bridge.networkAvailabilityCalls, 2);
+      expect(adapter.requests, hasLength(1));
+      expect(adapter.requests.single.path, contains('/plater/threadier'));
+    },
+  );
+
+  test(
+    'bootstrap retries device info after loading base64 remote config',
     () async {
       adapter.queue
-        ..add(ResponseBody.fromString('', 500))
+        ..add(
+          ResponseBody.fromString(
+            jsonEncode({
+              'griding': 1,
+              'organizational': 'default API unavailable',
+              'fas': {},
+            }),
+            200,
+            headers: {
+              Headers.contentTypeHeader: [Headers.jsonContentType],
+            },
+          ),
+        )
         ..add(
           ResponseBody.fromString(
             base64Encode(
@@ -441,15 +536,39 @@ void main() {
             ),
             200,
           ),
+        )
+        ..add(
+          ResponseBody.fromString(
+            jsonEncode({
+              'griding': 0,
+              'organizational': 'success',
+              'fas': {'gyrofrequency': 'iPhone XR', 'entertainers': '414x896'},
+            }),
+            200,
+            headers: {
+              Headers.contentTypeHeader: [Headers.jsonContentType],
+            },
+          ),
         );
 
-      await client.bootstrapBaseUrls(
-        defaultProbePath: '/health',
+      final response = await client.bootstrapBaseUrls(
+        unwits: 'iPhone11,8',
         remoteConfigUrl: 'https://config.example.test/api.json',
       );
 
       expect(client.config.apiBaseUrl, 'https://remote-api.test');
       expect(client.config.webBaseUrl, 'https://h5.test');
+      expect(response?.states['gyrofrequency'].stringValue, 'iPhone XR');
+      expect(adapter.requests.map((request) => request.method), [
+        'POST',
+        'GET',
+        'POST',
+      ]);
+      expect(adapter.requests.map((request) => request.path), [
+        'https://api.example.test/plater/threadier',
+        'https://config.example.test/api.json',
+        'https://remote-api.test/plater/threadier',
+      ]);
     },
   );
 
@@ -549,6 +668,8 @@ class _RecordingAdapter implements HttpClientAdapter {
   RequestOptions lastRequest = RequestOptions();
   Object? lastBody;
   final queue = <ResponseBody>[];
+  final requests = <RequestOptions>[];
+  final bodies = <Object?>[];
 
   @override
   void close({bool force = false}) {}
@@ -561,6 +682,8 @@ class _RecordingAdapter implements HttpClientAdapter {
   ) async {
     lastRequest = options;
     lastBody = options.data;
+    requests.add(options);
+    bodies.add(options.data);
     if (queue.isNotEmpty) {
       return queue.removeAt(0);
     }
@@ -575,10 +698,24 @@ class _RecordingAdapter implements HttpClientAdapter {
 }
 
 class _FakeClientBridge extends ClientBridge {
-  _FakeClientBridge() : super(platform: ClientPlatform.ios);
+  _FakeClientBridge({List<bool> networkAvailability = const [true]})
+    : _networkAvailability = networkAvailability,
+      super(platform: ClientPlatform.ios);
+
+  final List<bool> _networkAvailability;
+  int networkAvailabilityCalls = 0;
 
   @override
   bool get supportsNativeBridge => true;
+
+  @override
+  Future<bool> isNetworkAvailable() async {
+    final index = networkAvailabilityCalls < _networkAvailability.length
+        ? networkAvailabilityCalls
+        : _networkAvailability.length - 1;
+    networkAvailabilityCalls += 1;
+    return _networkAvailability[index];
+  }
 
   @override
   Future<ClientPlatformInfo> getPlatformInfo() async {

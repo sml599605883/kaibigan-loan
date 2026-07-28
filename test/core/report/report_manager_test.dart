@@ -67,6 +67,16 @@ void main() {
     expect(attributionInitializer.tokens, ['adjust-token']);
   });
 
+  test('resume refreshes tracking permission without market report', () async {
+    bridge.snapshot = const NativeDeviceSnapshot(idfv: 'idfv', idfa: 'idfa');
+
+    await manager.onAppResumed();
+    await Future<void>.delayed(Duration.zero);
+
+    expect(bridge.trackingPermissionRequests, 1);
+    expect(network.googleMarketCalls, 0);
+  });
+
   test(
     'reports Google market for each invocation with the same device IDs',
     () async {
@@ -84,15 +94,13 @@ void main() {
     'device report uses collector-enriched snapshot before encryption',
     () async {
       cache.loginAt = 1700000000000;
-      final crypto = ApiCrypto(
-        key: '0123456789abcdef',
-        iv: 'fedcba9876543210',
-      );
+      final crypto = ApiCrypto(key: '0123456789abcdef', iv: 'fedcba9876543210');
       manager = ReportManager(
         cache: cache,
         nativeBridge: bridge,
         network: network,
         crypto: crypto,
+        devicePhysicalSizeProvider: () async => 'server-physical-size',
         deviceCollector: ReportDeviceCollector(
           nativeSnapshotProvider: () async {
             return const NativeDeviceSnapshot(idfv: 'idfv');
@@ -123,6 +131,10 @@ void main() {
       expect(decoded['chewers'].stringValue, 'loan.kaibigan.app');
       expect(decoded['chlorines'].stringValue, '17.5');
       expect(decoded['blunderer']['multimegawatts'].stringValue, 'iPhone15,3');
+      expect(
+        decoded['blunderer']['entertainers'].stringValue,
+        'server-physical-size',
+      );
     },
   );
 

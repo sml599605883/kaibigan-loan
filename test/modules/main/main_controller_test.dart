@@ -149,6 +149,20 @@ void main() {
     expect(adapter.dialogRequestCount, 2);
   });
 
+  testWidgets('hides gaps after empty dynamic home sections', (tester) async {
+    await _pumpApp(tester);
+
+    expect(find.byKey(const ValueKey('home_promo_bottom_gap')), findsNothing);
+    expect(
+      find.byKey(const ValueKey('home_order_status_bottom_gap')),
+      findsNothing,
+    );
+    expect(
+      find.byKey(const ValueKey('home_recommendation_bottom_gap')),
+      findsNothing,
+    );
+  });
+
   testWidgets('shows documented marketing popup after home refresh', (
     tester,
   ) async {
@@ -193,6 +207,7 @@ void main() {
     await _pumpApp(tester);
 
     expect(find.byKey(const ValueKey('home_promo_banner_0')), findsOneWidget);
+    expect(find.byKey(const ValueKey('home_promo_bottom_gap')), findsOneWidget);
 
     await tester.tap(find.byKey(const ValueKey('home_promo_banner_0')));
     await tester.pumpAndSettle();
@@ -250,6 +265,7 @@ void main() {
     await _pumpApp(tester);
 
     expect(find.byKey(const ValueKey('home_promo_banner_0')), findsNothing);
+    expect(find.byKey(const ValueKey('home_promo_bottom_gap')), findsNothing);
   });
 
   testWidgets(
@@ -351,6 +367,10 @@ void main() {
     await _pumpApp(tester);
 
     expect(find.byKey(const ValueKey('home_order_status_section')), findsOne);
+    expect(
+      find.byKey(const ValueKey('home_order_status_bottom_gap')),
+      findsOneWidget,
+    );
     expect(find.text('Order Status'), findsOne);
     expect(find.text('Kaibigan Loan'), findsOne);
     expect(find.text('₱ 20,000'), findsOne);
@@ -491,6 +511,10 @@ void main() {
     await _pumpApp(tester);
 
     expect(find.byKey(const ValueKey('home_recommendation_section')), findsOne);
+    expect(
+      find.byKey(const ValueKey('home_recommendation_bottom_gap')),
+      findsOneWidget,
+    );
     expect(find.text('Recommendation'), findsOne);
     expect(find.text('Kaibigan Loan'), findsOne);
     expect(find.text('Partner Loan'), findsOne);
@@ -681,6 +705,229 @@ void main() {
     await tester.pumpAndSettle();
 
     expect(adapter.lastProductApplyId, 'large-product');
+  });
+
+  testWidgets('top loan card shows delivered product name and logo', (
+    tester,
+  ) async {
+    adapter.homePayload = {
+      'religiosities': [
+        {
+          'commensurate': 'CatechisticOverlooking',
+          'anchovetta': [
+            {
+              'cabdrivers': 'hero-product',
+              'omissible': 'Kaibigan Loan',
+              'biontic': 'https://cdn.example.test/product-logo.png',
+            },
+          ],
+        },
+      ],
+    };
+
+    await _pumpApp(tester);
+
+    expect(find.text('Kaibigan Loan'), findsOneWidget);
+    expect(
+      find.byKey(const ValueKey('home_loan_product_logo')),
+      findsOneWidget,
+    );
+  });
+
+  testWidgets('top loan card hides empty product logo but keeps name', (
+    tester,
+  ) async {
+    adapter.homePayload = {
+      'religiosities': [
+        {
+          'commensurate': 'CatechisticOverlooking',
+          'anchovetta': [
+            {
+              'cabdrivers': 'hero-product',
+              'omissible': 'Kaibigan Loan',
+              'biontic': '',
+            },
+          ],
+        },
+      ],
+    };
+
+    await _pumpApp(tester);
+
+    expect(find.text('Kaibigan Loan'), findsOneWidget);
+    expect(find.byKey(const ValueKey('home_loan_product_logo')), findsNothing);
+  });
+
+  testWidgets('top loan card shows delivered description labels', (
+    tester,
+  ) async {
+    adapter.homePayload = {
+      'religiosities': [
+        {
+          'commensurate': 'CatechisticOverlooking',
+          'anchovetta': [
+            {
+              'cabdrivers': 'hero-product',
+              'geometrically': 'Maximum available amount',
+              'outmarching': 'Repayment period',
+              'rescinders': 'Daily interest rate',
+            },
+          ],
+        },
+      ],
+    };
+
+    await _pumpApp(tester);
+
+    expect(find.text('Maximum available amount'), findsOneWidget);
+    expect(find.text('Repayment period'), findsOneWidget);
+    expect(find.text('Daily interest rate'), findsOneWidget);
+  });
+
+  testWidgets('top loan card leaves missing description labels empty', (
+    tester,
+  ) async {
+    adapter.homePayload = {
+      'religiosities': [
+        {
+          'commensurate': 'CatechisticOverlooking',
+          'anchovetta': [
+            {'cabdrivers': 'hero-product'},
+          ],
+        },
+      ],
+    };
+
+    await _pumpApp(tester);
+
+    expect(find.text('Available up to'), findsNothing);
+    expect(find.text('Loan Term'), findsNothing);
+    expect(find.text('Low Interest'), findsNothing);
+  });
+
+  testWidgets('top loan card keeps loan facts when hotdogs is empty', (
+    tester,
+  ) async {
+    adapter.homePayload = {
+      'religiosities': [
+        {
+          'commensurate': 'CatechisticOverlooking',
+          'anchovetta': [
+            {
+              'cabdrivers': 'hero-product',
+              'mainlined': '180 Days',
+              'outmarching': 'Loan Term',
+              'pulpit': '0.05% / Day',
+              'rescinders': 'Interest Rate',
+              'hotdogs': <Map<String, dynamic>>[],
+            },
+          ],
+        },
+      ],
+    };
+
+    await _pumpApp(tester);
+
+    expect(find.text('180 Days'), findsOneWidget);
+    expect(find.text('Loan Term'), findsOneWidget);
+    expect(find.text('0.05% / Day'), findsOneWidget);
+    expect(find.text('Interest Rate'), findsOneWidget);
+    expect(find.byIcon(Icons.calendar_month_rounded), findsOneWidget);
+    expect(find.byIcon(Icons.percent_rounded), findsOneWidget);
+  });
+
+  testWidgets('top loan card shows one delivered hotdogs option', (
+    tester,
+  ) async {
+    adapter.homePayload = {
+      'religiosities': [
+        {
+          'commensurate': 'CatechisticOverlooking',
+          'anchovetta': [
+            {
+              'cabdrivers': 'hero-product',
+              'hotdogs': [
+                {'mononucleotides': '3', 'strumming': 'Terms'},
+              ],
+            },
+          ],
+        },
+      ],
+    };
+
+    await _pumpApp(tester);
+
+    expect(find.text('3'), findsOneWidget);
+    expect(find.text('Terms'), findsOneWidget);
+    expect(find.byIcon(Icons.calendar_month_rounded), findsNothing);
+    expect(find.byIcon(Icons.percent_rounded), findsNothing);
+
+    final options = find.byKey(const ValueKey('home_loan_term_options'));
+    final option = find.byKey(const ValueKey('home_loan_term_option_0'));
+    expect(tester.getSize(option).width, closeTo(136, 0.01));
+    expect(
+      tester.getCenter(option).dx,
+      closeTo(tester.getCenter(options).dx, 0.01),
+    );
+  });
+
+  testWidgets('top loan card shows two delivered hotdogs options', (
+    tester,
+  ) async {
+    adapter.homePayload = {
+      'religiosities': [
+        {
+          'commensurate': 'CatechisticOverlooking',
+          'anchovetta': [
+            {
+              'cabdrivers': 'hero-product',
+              'hotdogs': [
+                {'mononucleotides': '3', 'strumming': 'Terms'},
+                {'mononucleotides': '4', 'strumming': 'Periods'},
+              ],
+            },
+          ],
+        },
+      ],
+    };
+
+    await _pumpApp(tester);
+
+    expect(find.text('3'), findsOneWidget);
+    expect(find.text('Terms'), findsOneWidget);
+    expect(find.text('4'), findsOneWidget);
+    expect(find.text('Periods'), findsOneWidget);
+  });
+
+  testWidgets('top loan card shows first and last hotdogs options', (
+    tester,
+  ) async {
+    adapter.homePayload = {
+      'religiosities': [
+        {
+          'commensurate': 'CatechisticOverlooking',
+          'anchovetta': [
+            {
+              'cabdrivers': 'hero-product',
+              'hotdogs': [
+                {'mononucleotides': '3', 'strumming': 'First'},
+                {'mononucleotides': '5', 'strumming': 'Middle'},
+                {'mononucleotides': '7', 'strumming': 'Last'},
+              ],
+            },
+          ],
+        },
+      ],
+    };
+
+    await _pumpApp(tester);
+
+    expect(find.text('3'), findsOneWidget);
+    expect(find.text('First'), findsOneWidget);
+    expect(find.text('5'), findsNothing);
+    expect(find.text('Middle'), findsNothing);
+    expect(find.text('7'), findsOneWidget);
+    expect(find.text('Last'), findsOneWidget);
   });
 
   testWidgets(

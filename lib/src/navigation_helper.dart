@@ -145,6 +145,7 @@ class NavigationHelper {
     }
 
     if (permissionAction == _LocationPermissionAction.requestPermission) {
+      await AppToast.dismissLoading();
       final requestStatus = await locationPermissionRequester();
       if (requestStatus.isGranted || requestStatus.isLimited) {
         return true;

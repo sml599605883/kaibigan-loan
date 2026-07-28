@@ -54,6 +54,7 @@ void main() {
 
     expect(find.text('Hi! Welcome'), findsOneWidget);
     expect(find.text('Apply Now'), findsOneWidget);
+    expect(apiClient.orderStatusRequests, isEmpty);
 
     await tester.tap(
       find.image(const AssetImage('assets/bar/orders_normal.png')),
