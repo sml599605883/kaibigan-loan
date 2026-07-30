@@ -67,7 +67,9 @@ class NavigationHelper {
   static const _appScheme = 'ph';
   static const _appSchemeHost = 'kaibigan-loan';
   static const _appSchemePlatform = 'ios';
+  static const _apiRemindRoute = 'apiRemindUrl';
   static const Set<String> _productIdAliases = {
+    'seamounts',
     'geobotanists',
     'productId',
     'cohabiter',
@@ -450,6 +452,10 @@ class NavigationHelper {
 
     final routeName = _routeForRawTarget(target);
     if (routeName != null) {
+      if (routeName == _apiRemindRoute) {
+        await applyProductWithFlow(_productIdFromTarget(target));
+        return;
+      }
       if (routeName == AppRoutes.detail) {
         await _toProductDetailFromTarget(target, arguments: arguments);
         return;
@@ -853,7 +859,8 @@ class NavigationHelper {
     if (uri == null) {
       return '';
     }
-    return (uri.queryParameters['geobotanists'] ??
+    return (uri.queryParameters['seamounts'] ??
+            uri.queryParameters['geobotanists'] ??
             uri.queryParameters['productId'] ??
             uri.queryParameters['cohabiter'] ??
             '')
@@ -974,10 +981,15 @@ class NavigationHelper {
       case 'BedlamiteNationwide':
         return AppRoutes.recredit;
       case AppRoutes.mineOrderList:
+      case 'order':
+      case 'Dependency':
       case 'orderList':
       case 'mineOrderList':
       case 'LoanList':
         return AppRoutes.mineOrderList;
+      case _apiRemindRoute:
+      case 'IodatingDekare':
+        return _apiRemindRoute;
       case AppRoutes.certificationFace:
       case 'face':
       case 'Vesicated':

@@ -560,6 +560,33 @@ void main() {
     );
     await tester.pumpAndSettle();
     expect(Get.currentRoute, AppRoutes.mineOrderList);
+
+    NavigationHelper.offAllToMain<void>();
+    await tester.pumpAndSettle();
+
+    await NavigationHelper.navigateRawTarget(
+      'ph://kaibigan-loan/ios/Dependency',
+    );
+    await tester.pumpAndSettle();
+    expect(Get.currentRoute, AppRoutes.mineOrderList);
+  });
+
+  testWidgets('documented api remind scheme starts product admission', (
+    tester,
+  ) async {
+    await SessionStore.instance.setLoggedIn(true);
+    NavigationHelper.locationAccessChecker = () async => true;
+    NavigationHelper.locationReporter = () async {};
+    apiClient.applyStates = <String, dynamic>{'threats': 505};
+    await _pumpRoutes(tester);
+
+    await NavigationHelper.navigateRawTarget(
+      'ph://kaibigan-loan/ios/IodatingDekare?seamounts=3',
+    );
+    await tester.pumpAndSettle();
+
+    expect(apiClient.productApplyIds, ['3']);
+    expect(apiClient.productApplySuccumbs, ['0']);
   });
 
   testWidgets('opens HTTP raw target in the in-app WebView', (tester) async {
