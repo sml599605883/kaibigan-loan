@@ -39,6 +39,17 @@ void main() {
     expect(content, contains('FlutterStreamHandler'));
   });
 
+  test('iOS report bridge buffers and emits notification routes', () {
+    final content = registrar.readAsStringSync();
+
+    expect(content, contains('func acceptNotificationPayload('));
+    expect(content, contains('"push_route"'));
+    expect(content, contains('pendingNotificationRoutes'));
+    expect(content, contains('JSONSerialization.jsonObject'));
+    expect(content, contains('userInfo["url"]'));
+    expect(content, contains('userInfo["params"]'));
+  });
+
   test('iOS registers for APNs regardless of notification permission', () {
     final content = registrar.readAsStringSync();
     final methodStart = content.indexOf(
