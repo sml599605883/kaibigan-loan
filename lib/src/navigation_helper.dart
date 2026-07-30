@@ -478,6 +478,15 @@ class NavigationHelper {
         );
         return;
       }
+      if (routeName == AppRoutes.mineOrderList) {
+        final uri = Uri.tryParse(target);
+        toMineOrderList<void>(
+          initialStatus: OrderListStatus.fromCode(
+            uri?.queryParameters['mummies'],
+          ),
+        );
+        return;
+      }
       toNamed<void>(routeName);
       return;
     }

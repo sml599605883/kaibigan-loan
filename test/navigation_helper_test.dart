@@ -589,6 +589,25 @@ void main() {
     expect(apiClient.productApplySuccumbs, ['0']);
   });
 
+  testWidgets('documented order scheme preserves the requested status', (
+    tester,
+  ) async {
+    await _pumpRoutes(tester);
+
+    for (final status in ['4', '5', '6', '7']) {
+      await NavigationHelper.navigateRawTarget(
+        'ph://kaibigan-loan/ios/Dependency?mummies=$status',
+      );
+      await tester.pumpAndSettle();
+
+      expect(Get.currentRoute, AppRoutes.mineOrderList);
+      expect(Get.arguments, {'initialStatus': status});
+
+      NavigationHelper.back<void>();
+      await tester.pumpAndSettle();
+    }
+  });
+
   testWidgets('opens HTTP raw target in the in-app WebView', (tester) async {
     await _pumpRoutes(tester);
 
