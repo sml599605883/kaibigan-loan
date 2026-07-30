@@ -6,6 +6,7 @@ import 'package:get/get.dart';
 import 'src/app_route_observer.dart';
 import 'src/app_routes.dart';
 import 'src/core/network/api_bootstrap.dart';
+import 'src/core/push/ios_notification_route_coordinator.dart';
 import 'src/core/report/report_exports.dart';
 import 'src/modules/main/main_controller.dart';
 import 'src/theme/app_colors.dart';
@@ -25,6 +26,7 @@ Future<void> main() async {
   ]);
   await bootstrapApiClient();
   ReportLifecycleObserver(ReportManager.instance).start();
+  IosNotificationRouteCoordinator.instance.start();
   configureAppToast();
   runApp(const KaibiganLoanApp());
 }

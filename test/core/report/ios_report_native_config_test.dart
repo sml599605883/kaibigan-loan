@@ -50,6 +50,22 @@ void main() {
     expect(content, contains('userInfo["params"]'));
   });
 
+  test('AppDelegate forwards foreground and clicked notifications', () {
+    final content = appDelegate.readAsStringSync();
+
+    expect(
+      content,
+      contains('UNUserNotificationCenter.current().delegate = self'),
+    );
+    expect(content, contains('willPresent notification: UNNotification'));
+    expect(content, contains('didReceive response: UNNotificationResponse'));
+    expect(
+      content,
+      contains('ClientBridgeRegistrar.shared.acceptNotificationPayload'),
+    );
+    expect(content, contains('routed ? [] : [.banner, .badge, .sound]'));
+  });
+
   test('iOS registers for APNs regardless of notification permission', () {
     final content = registrar.readAsStringSync();
     final methodStart = content.indexOf(
@@ -86,23 +102,29 @@ void main() {
     expect(methodBody, isNot(contains('requestWhenInUseAuthorization()')));
   });
 
-  test('iOS product permission request replaces and restarts pending request', () {
-    final content = registrar.readAsStringSync();
-    final methodStart = content.indexOf(
-      'private func requestLocationPermission(',
-    );
+  test(
+    'iOS product permission request replaces and restarts pending request',
+    () {
+      final content = registrar.readAsStringSync();
+      final methodStart = content.indexOf(
+        'private func requestLocationPermission(',
+      );
 
-    expect(methodStart, isNonNegative);
-    if (methodStart < 0) {
-      return;
-    }
-    final methodEnd = content.indexOf('\n  private func getLocation(', methodStart);
-    expect(methodEnd, greaterThan(methodStart));
-    final methodBody = content.substring(methodStart, methodEnd);
-    expect(methodBody, contains('pendingLocationPermissionResult'));
-    expect(methodBody, contains('previousResult("interrupted")'));
-    expect(methodBody, contains('requestWhenInUseAuthorization()'));
-  });
+      expect(methodStart, isNonNegative);
+      if (methodStart < 0) {
+        return;
+      }
+      final methodEnd = content.indexOf(
+        '\n  private func getLocation(',
+        methodStart,
+      );
+      expect(methodEnd, greaterThan(methodStart));
+      final methodBody = content.substring(methodStart, methodEnd);
+      expect(methodBody, contains('pendingLocationPermissionResult'));
+      expect(methodBody, contains('previousResult("interrupted")'));
+      expect(methodBody, contains('requestWhenInUseAuthorization()'));
+    },
+  );
 
   test('iOS location bridge queues concurrent reads as one native request', () {
     final content = registrar.readAsStringSync();
@@ -135,24 +157,27 @@ void main() {
     expect(methodBody, isNot(contains('locationManager.requestLocation()')));
   });
 
-  test('iOS location bridge stops continuous updates when completing reads', () {
-    final content = registrar.readAsStringSync();
-    final methodStart = content.indexOf(
-      'private func completeAllLocationRequests(',
-    );
+  test(
+    'iOS location bridge stops continuous updates when completing reads',
+    () {
+      final content = registrar.readAsStringSync();
+      final methodStart = content.indexOf(
+        'private func completeAllLocationRequests(',
+      );
 
-    expect(methodStart, isNonNegative);
-    if (methodStart < 0) {
-      return;
-    }
-    final methodEnd = content.indexOf(
-      '\n  private func locationAuthorizationStatus()',
-      methodStart,
-    );
-    expect(methodEnd, greaterThan(methodStart));
-    final methodBody = content.substring(methodStart, methodEnd);
-    expect(methodBody, contains('locationManager.stopUpdatingLocation()'));
-  });
+      expect(methodStart, isNonNegative);
+      if (methodStart < 0) {
+        return;
+      }
+      final methodEnd = content.indexOf(
+        '\n  private func locationAuthorizationStatus()',
+        methodStart,
+      );
+      expect(methodEnd, greaterThan(methodStart));
+      final methodBody = content.substring(methodStart, methodEnd);
+      expect(methodBody, contains('locationManager.stopUpdatingLocation()'));
+    },
+  );
 
   test('iOS location bridge times out pending reads after ten seconds', () {
     final content = registrar.readAsStringSync();
@@ -162,7 +187,10 @@ void main() {
       contains('private let locationRequestTimeoutInterval: TimeInterval = 10'),
     );
     expect(content, contains('private var activeLocationRequestID: UUID?'));
-    expect(content, contains('private var locationRequestTimeout: DispatchWorkItem?'));
+    expect(
+      content,
+      contains('private var locationRequestTimeout: DispatchWorkItem?'),
+    );
     expect(content, contains('DispatchQueue.main.asyncAfter'));
     expect(content, contains('activeLocationRequestID == requestID'));
     expect(content, contains('locationRequestTimeout?.cancel()'));
