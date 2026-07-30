@@ -48,7 +48,7 @@ class ReportManager {
   }) {
     final client = apiClient ?? ApiClient.instance;
     final store = sessionStore ?? getx.Get.find<SessionStore>();
-    final bridge = nativeBridge ?? MethodChannelReportNativeBridge();
+    final bridge = nativeBridge ?? MethodChannelReportNativeBridge.shared;
     return ReportManager(
       cache: SharedPreferencesReportCache(sessionStore: store),
       nativeBridge: bridge,

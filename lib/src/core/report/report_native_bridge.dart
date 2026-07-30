@@ -19,6 +19,9 @@ abstract interface class ReportNativeBridge {
 }
 
 class MethodChannelReportNativeBridge implements ReportNativeBridge {
+  static final MethodChannelReportNativeBridge shared =
+      MethodChannelReportNativeBridge();
+
   MethodChannelReportNativeBridge({
     MethodChannel? methodChannel,
     EventChannel? eventChannel,

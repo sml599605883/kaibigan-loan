@@ -12,18 +12,28 @@ void main() {
         .setMockMethodCallHandler(channel, null);
   });
 
-  test('requests location permission through the native report channel', () async {
-    final calls = <MethodCall>[];
-    TestDefaultBinaryMessengerBinding.instance.defaultBinaryMessenger
-        .setMockMethodCallHandler(channel, (call) async {
-          calls.add(call);
-          return 'authorized_when_in_use';
-        });
-    final bridge = MethodChannelReportNativeBridge(methodChannel: channel);
+  test(
+    'requests location permission through the native report channel',
+    () async {
+      final calls = <MethodCall>[];
+      TestDefaultBinaryMessengerBinding.instance.defaultBinaryMessenger
+          .setMockMethodCallHandler(channel, (call) async {
+            calls.add(call);
+            return 'authorized_when_in_use';
+          });
+      final bridge = MethodChannelReportNativeBridge(methodChannel: channel);
 
-    final status = await bridge.requestLocationPermission();
+      final status = await bridge.requestLocationPermission();
 
-    expect(status, 'authorized_when_in_use');
-    expect(calls.map((call) => call.method), ['requestLocationPermission']);
+      expect(status, 'authorized_when_in_use');
+      expect(calls.map((call) => call.method), ['requestLocationPermission']);
+    },
+  );
+
+  test('shares one production report native bridge', () {
+    expect(
+      MethodChannelReportNativeBridge.shared,
+      same(MethodChannelReportNativeBridge.shared),
+    );
   });
 }
