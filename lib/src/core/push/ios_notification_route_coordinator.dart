@@ -1,5 +1,4 @@
 import 'dart:async';
-import 'dart:collection';
 
 import 'package:flutter/widgets.dart';
 import 'package:get/get.dart';
@@ -30,29 +29,27 @@ class IosNotificationRouteCoordinator {
   final NavigationReady _navigationReady;
   final NotificationRouteOpener _openRoute;
   final RouteDrainDeferrer _defer;
-  final ListQueue<String> _routes = ListQueue<String>();
 
   StreamSubscription<Json>? _subscription;
-  bool _draining = false;
-  bool _retryPending = false;
-
-  @visibleForTesting
-  int get queuedRouteCount => _routes.length;
+  Future<void> _deliveryChain = Future<void>.value();
+  int _lifecycle = 0;
 
   void start() {
-    _subscription ??= _events().listen(_accept);
-    unawaited(_drain());
+    if (_subscription != null) {
+      return;
+    }
+    final lifecycle = ++_lifecycle;
+    _subscription = _events().listen((event) => _accept(event, lifecycle));
   }
 
   Future<void> stop() async {
+    _lifecycle++;
     await _subscription?.cancel();
     _subscription = null;
-    _routes.clear();
-    _draining = false;
-    _retryPending = false;
+    _deliveryChain = Future<void>.value();
   }
 
-  void _accept(Json event) {
+  void _accept(Json event, int lifecycle) {
     if (event['type'].stringValue != 'push_route') {
       return;
     }
@@ -60,46 +57,27 @@ class IosNotificationRouteCoordinator {
     if (route.isEmpty) {
       return;
     }
-    _routes.addLast(route);
-    unawaited(_drain());
+    _deliveryChain = _deliveryChain.then((_) => _deliver(route, lifecycle));
   }
 
-  Future<void> _drain() async {
-    if (_draining || _routes.isEmpty) {
-      return;
-    }
-    if (!_navigationReady()) {
-      _scheduleRetry();
-      return;
-    }
-    _draining = true;
+  Future<void> _deliver(String route, int lifecycle) async {
     try {
-      while (_routes.isNotEmpty && _navigationReady()) {
-        final route = _routes.removeFirst();
-        try {
-          await _openRoute(route);
-        } catch (_) {}
+      while (lifecycle == _lifecycle && !_navigationReady()) {
+        await _nextFrame();
       }
-      if (_routes.isNotEmpty) {
-        _scheduleRetry();
+      if (lifecycle == _lifecycle) {
+        await _openRoute(route);
       }
-    } finally {
-      _draining = false;
-    }
-  }
-
-  void _scheduleRetry() {
-    if (_retryPending) {
-      return;
-    }
-    _retryPending = true;
-    _defer(() {
-      _retryPending = false;
-      unawaited(_drain());
-    });
+    } catch (_) {}
   }
 
   static bool _isNavigationReady() => Get.context?.mounted ?? false;
+
+  Future<void> _nextFrame() {
+    final frame = Completer<void>();
+    _defer(frame.complete);
+    return frame.future;
+  }
 
   static void _deferUntilNextFrame(VoidCallback callback) {
     WidgetsBinding.instance.addPostFrameCallback((_) => callback());

@@ -56,7 +56,6 @@ void main() {
       await _flushMicrotasks();
 
       expect(openedRoutes, isEmpty);
-      expect(coordinator.queuedRouteCount, 1);
       expect(deferredCallbacks, hasLength(1));
 
       navigationReady = true;
@@ -64,7 +63,6 @@ void main() {
       await _flushMicrotasks();
 
       expect(openedRoutes, <String>['first']);
-      expect(coordinator.queuedRouteCount, 0);
     });
 
     test('opens queued routes serially in arrival order', () async {
