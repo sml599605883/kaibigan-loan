@@ -64,18 +64,13 @@ class SettingConfirmDialog extends StatelessWidget {
             top: 199.w,
             left: 27.w,
             right: 27.w,
-            height: 60.w,
-            child: Center(
-              child: Text(
-                _message,
-                maxLines: 3,
-                overflow: TextOverflow.ellipsis,
-                textAlign: TextAlign.center,
-                style: TextStyle(
-                  color: AppColors.settingValueText,
-                  fontSize: 16.sp,
-                  height: 20 / 16,
-                ),
+            child: Text(
+              _message,
+              textAlign: TextAlign.center,
+              style: TextStyle(
+                color: AppColors.settingValueText,
+                fontSize: 16.sp,
+                height: 20 / 16,
               ),
             ),
           ),
