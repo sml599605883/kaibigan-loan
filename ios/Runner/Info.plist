@@ -2,19 +2,6 @@
 <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
 <plist version="1.0">
 <dict>
-	<key>NSAppTransportSecurity</key>
-	<dict>
-		<key>NSAllowsArbitraryLoads</key>
-		<true/>
-	</dict>
-	<key>NSCameraUsageDescription</key>
-	<string>We need camera access to take a clear photo of your ID for identity verification.</string>
-	<key>NSPhotoLibraryUsageDescription</key>
-	<string>We need photo library access so you can upload an ID image for identity verification.</string>
-	<key>NSUserTrackingUsageDescription</key>
-	<string>We use your device advertising identifier to measure app install attribution and keep loan recommendations accurate.</string>
-	<key>NSLocationWhenInUseUsageDescription</key>
-	<string>We use your approximate location while the app is open to support account security and application risk checks.</string>
 	<key>CADisableMinimumFrameDurationOnPhone</key>
 	<true/>
 	<key>CFBundleDevelopmentRegion</key>
@@ -39,6 +26,19 @@
 	<string>$(FLUTTER_BUILD_NUMBER)</string>
 	<key>LSRequiresIPhoneOS</key>
 	<true/>
+	<key>NSAppTransportSecurity</key>
+	<dict>
+		<key>NSAllowsArbitraryLoads</key>
+		<true/>
+	</dict>
+	<key>NSCameraUsageDescription</key>
+	<string>We'd like to use your camera to snap your ID. This helps confirm it's really you – quick and secure.</string>
+	<key>NSLocationAlwaysAndWhenInUseUsageDescription</key>
+	<string>Allow location access to assist identity verification during credit assessment and strengthen account security.</string>
+	<key>NSLocationWhenInUseUsageDescription</key>
+	<string>Allow location access to assist identity verification during credit assessment and strengthen account security.</string>
+	<key>NSUserTrackingUsageDescription</key>
+	<string>IDFA helps us detect risks, keep your account safe, and deliver a more relevant experience in the app.</string>
 	<key>UIApplicationSceneManifest</key>
 	<dict>
 		<key>UIApplicationSupportsMultipleScenes</key>

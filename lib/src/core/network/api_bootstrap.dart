@@ -5,6 +5,7 @@ import 'package:shared_preferences/shared_preferences.dart';
 import '../client/client_bridge.dart';
 import '../device/device_info_sync.dart';
 import '../session/session_store.dart';
+import '../../navigation_helper.dart';
 import 'api_client.dart';
 import 'api_config.dart';
 
@@ -28,6 +29,8 @@ Future<ApiClient> bootstrapApiClient({
   }
   final config =
       apiConfig ?? ApiConfig(clientBridge: bridge, sessionStore: store);
+  config.authExpiredHandler ??=
+      NavigationHelper.redirectToLoginAfterSessionExpiry;
   final apiClient = ApiClient(config, dio: dio);
   Get.put(apiClient, permanent: true);
 

@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:convert';
 
 import 'package:dio/dio.dart';
@@ -14,9 +15,12 @@ import 'package:kaibigan_loan/src/core/network/api_config.dart';
 import 'package:kaibigan_loan/src/core/network/api_endpoints.dart';
 import 'package:kaibigan_loan/src/core/session/session_store.dart';
 import 'package:kaibigan_loan/src/modules/main/home_popup.dart';
+import 'package:kaibigan_loan/src/modules/main/home_page.dart';
 import 'package:kaibigan_loan/src/modules/main/main_controller.dart';
+import 'package:kaibigan_loan/src/modules/widgets/retention_popup.dart';
 import 'package:kaibigan_loan/src/navigation_helper.dart';
 import 'package:kaibigan_loan/src/utils/app_toast.dart';
+import 'package:permission_handler/permission_handler.dart';
 
 void main() {
   TestWidgetsFlutterBinding.ensureInitialized();
@@ -94,6 +98,15 @@ void main() {
     expect(adapter.dialogRequestCount, 2);
   });
 
+  testWidgets('shows and dismisses custom loading during home refresh', (
+    tester,
+  ) async {
+    await _pumpApp(tester);
+
+    expect(toastPresenter.showLoadingCount, 1);
+    expect(toastPresenter.dismissLoadingCount, 1);
+  });
+
   testWidgets('requests personal center dialog when Mine becomes visible', (
     tester,
   ) async {
@@ -104,6 +117,28 @@ void main() {
     await tester.pumpAndSettle();
 
     expect(adapter.dialogScenes, [1, 2]);
+  });
+
+  testWidgets('refreshes the phone number whenever Mine becomes visible', (
+    tester,
+  ) async {
+    await sessionStore.setLoggedIn(true);
+    await sessionStore.savePhone('09175551234');
+    await _pumpApp(tester);
+
+    await tester.tap(find.image(const AssetImage(AppAssets.profileNormal)));
+    await tester.pumpAndSettle();
+    expect(find.text('091***1234'), findsOneWidget);
+
+    await tester.tap(find.image(const AssetImage(AppAssets.homeNormal)));
+    await tester.pumpAndSettle();
+    await sessionStore.savePhone('09998887654');
+
+    await tester.tap(find.image(const AssetImage(AppAssets.profileNormal)));
+    await tester.pumpAndSettle();
+
+    expect(find.text('099***7654'), findsOneWidget);
+    expect(find.text('091***1234'), findsNothing);
   });
 
   testWidgets('requests personal center dialog when app resumes on Mine', (
@@ -179,41 +214,6 @@ void main() {
 
     expect(adapter.dialogRequestCount, 1);
     expect(find.byKey(HomePopup.marketingImageKey), findsOneWidget);
-  });
-
-  testWidgets('renders delivered banner and records banner tap', (
-    tester,
-  ) async {
-    adapter.homePayload = {
-      'religiosities': [
-        {
-          'commensurate': 'Moorages',
-          'anchovetta': [
-            {
-              'cabdrivers': 'banner-1',
-              'bloomeries': 'https://h5.example.test/banner',
-              'centerlines': 'https://cdn.example.test/banner-a.png',
-            },
-            {
-              'cabdrivers': 'banner-2',
-              'bloomeries': 'https://h5.example.test/banner-b',
-              'centerlines': 'https://cdn.example.test/banner-b.png',
-            },
-          ],
-        },
-      ],
-    };
-
-    await _pumpApp(tester);
-
-    expect(find.byKey(const ValueKey('home_promo_banner_0')), findsOneWidget);
-    expect(find.byKey(const ValueKey('home_promo_bottom_gap')), findsOneWidget);
-
-    await tester.tap(find.byKey(const ValueKey('home_promo_banner_0')));
-    await tester.pumpAndSettle();
-
-    expect(adapter.bannerClickRecordCount, 1);
-    expect(adapter.lastBannerId, 'banner-1');
   });
 
   testWidgets('sizes delivered banner from available width ratio', (
@@ -350,6 +350,7 @@ void main() {
               'tallisim': 'Due Date',
               'cracksmen': 3,
               'fictitiousness': 'Past Due',
+              'bloomeries': 'https://h5.example.test/order-card',
               'briefing': [
                 {
                   'commensurate': 'repay',
@@ -377,6 +378,14 @@ void main() {
     expect(find.text('2026/05/06'), findsOne);
     expect(find.text('Past Due'), findsOne);
     expect(find.text('Repay'), findsOne);
+    expect(
+      Get.find<MainController>().orderStatusItems.single.linkUrl,
+      'https://h5.example.test/order-card',
+    );
+    expect(
+      Get.find<MainController>().orderStatusItems.single.actions.single.url,
+      'https://h5.example.test/order',
+    );
   });
 
   testWidgets('renders failed process card with two visible actions', (
@@ -515,6 +524,11 @@ void main() {
       find.byKey(const ValueKey('home_recommendation_bottom_gap')),
       findsOneWidget,
     );
+    expect(find.text('Loan Process'), findsNothing);
+    expect(
+      find.image(const AssetImage(AppAssets.homeProcessPanel)),
+      findsNothing,
+    );
     expect(find.text('Recommendation'), findsOne);
     expect(find.text('Kaibigan Loan'), findsOne);
     expect(find.text('Partner Loan'), findsOne);
@@ -527,6 +541,7 @@ void main() {
   });
 
   testWidgets('applies recommendation product on card tap', (tester) async {
+    await sessionStore.setLoggedIn(true);
     adapter.homePayload = {
       'religiosities': [
         {
@@ -562,9 +577,43 @@ void main() {
     });
   });
 
-  testWidgets('disables recommendation product when button color is grey', (
+  testWidgets('redirects unauthenticated recommendation tap to login', (
     tester,
   ) async {
+    adapter.homePayload = {
+      'religiosities': [
+        {
+          'commensurate': 'PRODUCT_LIST',
+          'anchovetta': [
+            {
+              'cabdrivers': 'product-1',
+              'omissible': 'Kaibigan Loan',
+              'ghillies': '₱ 20,000',
+              'mainlined': '180 Days',
+              'whops': '≤ 0.5% / Day',
+              'logophiles': 'yellow',
+            },
+          ],
+        },
+      ],
+    };
+
+    await _pumpApp(tester);
+
+    await tester.tap(
+      find.byKey(const ValueKey('home_recommendation_product-1')),
+    );
+    await tester.pumpAndSettle();
+
+    expect(adapter.productApplyRequestCount, 0);
+    expect(adapter.productDetailRequestCount, 0);
+    expect(Get.currentRoute, AppRoutes.login);
+  });
+
+  testWidgets('applies grey recommendation product on card tap', (
+    tester,
+  ) async {
+    await sessionStore.setLoggedIn(true);
     adapter.homePayload = {
       'religiosities': [
         {
@@ -597,9 +646,10 @@ void main() {
     );
     await tester.pumpAndSettle();
 
-    expect(adapter.productApplyRequestCount, 0);
-    expect(adapter.productDetailRequestCount, 0);
-    expect(Get.currentRoute, AppRoutes.main);
+    expect(adapter.productApplyRequestCount, 1);
+    expect(adapter.productDetailRequestCount, 1);
+    expect(adapter.lastProductApplyId, 'product-1');
+    expect(Get.currentRoute, AppRoutes.detail);
   });
 
   testWidgets('applies top hero product on loan card tap', (tester) async {
@@ -658,6 +708,136 @@ void main() {
     expect(adapter.productApplyRequestCount, 0);
     expect(adapter.productDetailRequestCount, 0);
     expect(Get.currentRoute, AppRoutes.login);
+  });
+
+  testWidgets('top hero can be tapped again after locking during permission', (
+    tester,
+  ) async {
+    final oldPermissionRequest = Completer<PermissionStatus>();
+    final newPermissionRequest = Completer<PermissionStatus>();
+    addTearDown(() {
+      if (!oldPermissionRequest.isCompleted) {
+        oldPermissionRequest.complete(PermissionStatus.denied);
+      }
+      if (!newPermissionRequest.isCompleted) {
+        newPermissionRequest.complete(PermissionStatus.denied);
+      }
+      tester.binding.handleAppLifecycleStateChanged(AppLifecycleState.resumed);
+      NavigationHelper.nativeLocationLoader =
+          NavigationHelper.defaultNativeLocationLoader;
+      NavigationHelper.locationServiceStatusProvider =
+          NavigationHelper.defaultLocationServiceStatusProvider;
+      NavigationHelper.locationPermissionStatusProvider =
+          NavigationHelper.defaultLocationPermissionStatusProvider;
+      NavigationHelper.locationPermissionRequester =
+          NavigationHelper.defaultLocationPermissionRequester;
+    });
+    var permissionRequestCount = 0;
+    await sessionStore.setLoggedIn(true);
+    adapter.homePayload = {
+      'religiosities': [
+        {
+          'commensurate': 'CatechisticOverlooking',
+          'anchovetta': [
+            {
+              'cabdrivers': 'hero-product',
+              'humpiness': <Map<String, dynamic>>[],
+            },
+          ],
+        },
+      ],
+    };
+    NavigationHelper.locationAccessChecker =
+        NavigationHelper.defaultLocationAccessChecker;
+    NavigationHelper.nativeLocationLoader = () async => null;
+    NavigationHelper.locationServiceStatusProvider = () async =>
+        ServiceStatus.enabled;
+    NavigationHelper.locationPermissionStatusProvider = () async =>
+        PermissionStatus.denied;
+    NavigationHelper.locationPermissionRequester = () {
+      permissionRequestCount += 1;
+      return permissionRequestCount == 1
+          ? oldPermissionRequest.future
+          : newPermissionRequest.future;
+    };
+
+    await _pumpApp(tester);
+    await tester.tap(find.byKey(const ValueKey('home_loan_card')));
+    await tester.pump();
+
+    tester.binding.handleAppLifecycleStateChanged(AppLifecycleState.paused);
+    await tester.pump();
+    tester.binding.handleAppLifecycleStateChanged(AppLifecycleState.resumed);
+    await tester.pump();
+
+    await tester.tap(find.byKey(const ValueKey('home_loan_card')));
+    await tester.pump();
+
+    expect(permissionRequestCount, 2);
+    expect(adapter.productApplyRequestCount, 0);
+
+    newPermissionRequest.complete(PermissionStatus.granted);
+    await tester.pumpAndSettle();
+
+    expect(adapter.productApplyRequestCount, 1);
+
+    oldPermissionRequest.complete(PermissionStatus.granted);
+    await tester.pump();
+    expect(adapter.productApplyRequestCount, 1);
+  });
+
+  testWidgets('returning home releases the pending top hero tap lock', (
+    tester,
+  ) async {
+    final firstLocationCheck = Completer<bool>();
+    final secondLocationCheck = Completer<bool>();
+    addTearDown(() {
+      if (!firstLocationCheck.isCompleted) {
+        firstLocationCheck.complete(false);
+      }
+      if (!secondLocationCheck.isCompleted) {
+        secondLocationCheck.complete(false);
+      }
+    });
+    var locationCheckCount = 0;
+    await sessionStore.setLoggedIn(true);
+    adapter.homePayload = {
+      'religiosities': [
+        {
+          'commensurate': 'CatechisticOverlooking',
+          'anchovetta': [
+            {
+              'cabdrivers': 'hero-product',
+              'humpiness': <Map<String, dynamic>>[],
+            },
+          ],
+        },
+      ],
+    };
+    NavigationHelper.locationAccessChecker = () {
+      locationCheckCount += 1;
+      return locationCheckCount == 1
+          ? firstLocationCheck.future
+          : secondLocationCheck.future;
+    };
+
+    await _pumpApp(tester);
+    await tester.tap(find.byKey(const ValueKey('home_loan_card')));
+    await tester.pump();
+
+    Get.find<MainController>().returnToHomeTab();
+    await tester.tap(find.byKey(const ValueKey('home_loan_card')));
+    await tester.pump();
+
+    expect(locationCheckCount, 2);
+    expect(adapter.productApplyRequestCount, 0);
+
+    firstLocationCheck.complete(false);
+    await tester.pump();
+    await tester.tap(find.byKey(const ValueKey('home_loan_card')));
+    await tester.pump();
+
+    expect(locationCheckCount, 2);
   });
 
   testWidgets('top loan card prefers large card over small card', (
@@ -1009,6 +1189,63 @@ void main() {
     expect(adapter.dialogRequestCount, 2);
   });
 
+  testWidgets('dialog route changes do not refresh home data', (tester) async {
+    await _pumpApp(tester);
+
+    final dialog = Get.dialog<void>(
+      const AlertDialog(content: Text('Permission prompt')),
+      transitionDuration: Duration.zero,
+    );
+    await tester.pumpAndSettle();
+
+    expect(adapter.homeRequestCount, 1);
+
+    Get.back<void>();
+    await tester.pumpAndSettle();
+    await dialog;
+
+    expect(adapter.homeRequestCount, 1);
+  });
+
+  testWidgets('certification exits refresh home and keep pull refresh active', (
+    tester,
+  ) async {
+    await sessionStore.setLoggedIn(true);
+    await _pumpApp(tester);
+
+    NavigationHelper.toCertificationIdentity<void>(productId: 'product-1');
+    await tester.pumpAndSettle();
+    Get.back<void>();
+    await tester.pumpAndSettle();
+
+    expect(Get.currentRoute, AppRoutes.main);
+    expect(adapter.homeRequestCount, 2);
+
+    NavigationHelper.toCertificationIdentity<void>(productId: 'product-1');
+    await tester.pumpAndSettle();
+    final popup = Get.dialog<void>(
+      RetentionPopupContent(
+        imageUrl: 'https://example.test/retention.png',
+        exitText: 'Exit',
+        continueText: 'Continue',
+        onExit: () => Get.back<void>(),
+      ),
+      transitionDuration: Duration.zero,
+    );
+    await tester.pumpAndSettle();
+    await tester.tap(find.byKey(RetentionPopup.exitButtonKey));
+    await tester.pumpAndSettle();
+    await popup;
+
+    expect(Get.currentRoute, AppRoutes.main);
+    expect(adapter.homeRequestCount, 3);
+
+    await tester.drag(find.byType(Scrollable).first, const Offset(0, 360));
+    await tester.pumpAndSettle();
+
+    expect(adapter.homeRequestCount, 4);
+  });
+
   testWidgets('requests home page and dialog on app resume only on home', (
     tester,
   ) async {
@@ -1031,6 +1268,273 @@ void main() {
     expect(adapter.homeRequestCount, 2);
     expect(adapter.dialogRequestCount, 2);
   });
+
+  testWidgets('refreshes home only once for inactive resumes per app launch', (
+    tester,
+  ) async {
+    await _pumpApp(tester);
+
+    tester.binding.handleAppLifecycleStateChanged(AppLifecycleState.inactive);
+    tester.binding.handleAppLifecycleStateChanged(AppLifecycleState.resumed);
+    await tester.pumpAndSettle();
+
+    expect(adapter.homeRequestCount, 2);
+    expect(adapter.dialogRequestCount, 2);
+
+    tester.binding.handleAppLifecycleStateChanged(AppLifecycleState.inactive);
+    tester.binding.handleAppLifecycleStateChanged(AppLifecycleState.resumed);
+    await tester.pumpAndSettle();
+
+    expect(adapter.homeRequestCount, 2);
+    expect(adapter.dialogRequestCount, 2);
+  });
+
+  testWidgets('refreshes orders when the visible orders tab resumes', (
+    tester,
+  ) async {
+    await sessionStore.setLoggedIn(true);
+    await _pumpApp(tester);
+
+    await tester.tap(find.image(const AssetImage(AppAssets.ordersNormal)));
+    await tester.pumpAndSettle();
+
+    expect(adapter.orderListRequestCount, 1);
+
+    tester.binding.handleAppLifecycleStateChanged(AppLifecycleState.paused);
+    tester.binding.handleAppLifecycleStateChanged(AppLifecycleState.resumed);
+    await tester.pumpAndSettle();
+
+    expect(adapter.orderListRequestCount, 2);
+  });
+
+  testWidgets('refreshes orders after returning to the visible orders tab', (
+    tester,
+  ) async {
+    await sessionStore.setLoggedIn(true);
+    await _pumpApp(tester);
+
+    await tester.tap(find.image(const AssetImage(AppAssets.ordersNormal)));
+    await tester.pumpAndSettle();
+
+    expect(adapter.orderListRequestCount, 1);
+
+    Get.to<void>(() => const SizedBox());
+    await tester.pumpAndSettle();
+    Get.back<void>();
+    await tester.pumpAndSettle();
+
+    expect(adapter.orderListRequestCount, 2);
+  });
+
+  testWidgets('records banner tap and opens its delivered link', (
+    tester,
+  ) async {
+    adapter.homePayload = {
+      'religiosities': [
+        {
+          'commensurate': 'Moorages',
+          'anchovetta': [
+            {
+              'cabdrivers': 'banner-1',
+              'bloomeries': 'https://h5.example.test/banner',
+              'centerlines': 'https://cdn.example.test/banner-a.png',
+            },
+            {
+              'cabdrivers': 'banner-2',
+              'bloomeries': 'https://h5.example.test/banner-b',
+              'centerlines': 'https://cdn.example.test/banner-b.png',
+            },
+          ],
+        },
+      ],
+    };
+
+    await _pumpBannerApp(tester);
+
+    expect(find.byKey(const ValueKey('home_promo_banner_0')), findsOneWidget);
+    expect(find.byKey(const ValueKey('home_promo_bottom_gap')), findsOneWidget);
+
+    await tester.tap(find.byKey(const ValueKey('home_promo_banner_0')));
+    await tester.pumpAndSettle();
+
+    expect(adapter.bannerClickRecordCount, 1);
+    expect(adapter.lastBannerId, 'banner-1');
+    expect(Get.currentRoute, AppRoutes.webView);
+    expect(Get.arguments, {
+      'url': 'https://h5.example.test/banner',
+      'title': null,
+    });
+  });
+
+  testWidgets('order status card opens bloomeries without admission', (
+    tester,
+  ) async {
+    await _pumpBannerApp(tester);
+
+    await Get.find<MainController>().handleOrderStatusTap(
+      _orderStatusItem(
+        linkUrl: 'https://h5.example.test/order-card',
+        productId: 'product-link',
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    expect(adapter.productApplyRequestCount, 0);
+    expect(Get.currentRoute, AppRoutes.webView);
+    expect(Get.arguments, {
+      'url': 'https://h5.example.test/order-card',
+      'title': null,
+    });
+  });
+
+  testWidgets('order status card uses geobotanists when bloomeries is empty', (
+    tester,
+  ) async {
+    await sessionStore.setLoggedIn(true);
+    await _pumpApp(tester);
+
+    final admission = Get.find<MainController>().handleOrderStatusTap(
+      _orderStatusItem(linkUrl: '', productId: 'product-admission'),
+    );
+    await tester.pumpAndSettle();
+    await admission;
+
+    expect(adapter.productApplyRequestCount, 1);
+    expect(adapter.lastProductApplyId, 'product-admission');
+  });
+
+  testWidgets('order status retry action retries the original card', (
+    tester,
+  ) async {
+    adapter.originalCardRetryPayload = {
+      'preinserting': 'https://h5.example.test/retry-result',
+    };
+    await _pumpBannerApp(tester);
+
+    final action = Get.find<MainController>().handleOrderStatusButtonTap(
+      _orderStatusItem(linkUrl: '', productId: 'product-retry'),
+      const HomeOrderStatusAction(
+        type: 'retry',
+        text: 'Retry Original Card',
+        url: '',
+        visible: true,
+      ),
+    );
+    await tester.pumpAndSettle();
+    await action;
+
+    expect(adapter.originalCardRetryOrderNos, ['order-no']);
+    expect(Get.currentRoute, AppRoutes.webView);
+    expect(Get.arguments, {
+      'url': 'https://h5.example.test/retry-result',
+      'title': null,
+    });
+  });
+
+  testWidgets('order status retry dismisses loading when result url is empty', (
+    tester,
+  ) async {
+    adapter.originalCardRetryPayload = <String, dynamic>{};
+    await _pumpBannerApp(tester);
+    final loadingCount = toastPresenter.showLoadingCount;
+    final dismissCount = toastPresenter.dismissLoadingCount;
+
+    final action = Get.find<MainController>().handleOrderStatusButtonTap(
+      _orderStatusItem(linkUrl: '', productId: 'product-retry'),
+      const HomeOrderStatusAction(
+        type: 'retry',
+        text: 'Retry Original Card',
+        url: '',
+        visible: true,
+      ),
+    );
+    await tester.pumpAndSettle();
+    await action;
+
+    expect(toastPresenter.showLoadingCount, loadingCount + 1);
+    expect(toastPresenter.dismissLoadingCount, dismissCount + 1);
+    expect(toastPresenter.errorMessages, ['Missing retry result url']);
+    expect(Get.currentRoute, AppRoutes.main);
+  });
+
+  testWidgets('order status change action opens account list when available', (
+    tester,
+  ) async {
+    adapter.userAccountListPayload = {
+      'religiosities': [
+        {'smokehouse': 'bind-1'},
+      ],
+    };
+    await _pumpBannerApp(tester);
+
+    final action = Get.find<MainController>().handleOrderStatusButtonTap(
+      _orderStatusItem(linkUrl: '', productId: 'product-change'),
+      const HomeOrderStatusAction(
+        type: 'change',
+        text: 'Change Account',
+        url: '',
+        visible: true,
+      ),
+    );
+    await tester.pumpAndSettle();
+    await action;
+
+    expect(adapter.userAccountListProductIds, ['product-change']);
+    expect(Get.currentRoute, AppRoutes.accountList);
+    expect(Get.arguments, {
+      'geobotanists': 'product-change',
+      'dodgy': 'order-no',
+    });
+  });
+
+  testWidgets('order status change action opens bind card when list is empty', (
+    tester,
+  ) async {
+    adapter.userAccountListPayload = {'religiosities': <dynamic>[]};
+    await _pumpBannerApp(tester);
+
+    final action = Get.find<MainController>().handleOrderStatusButtonTap(
+      _orderStatusItem(linkUrl: '', productId: 'product-bind'),
+      const HomeOrderStatusAction(
+        type: 'change',
+        text: 'Change Account',
+        url: '',
+        visible: true,
+      ),
+    );
+    await tester.pumpAndSettle();
+    await action;
+
+    expect(adapter.userAccountListProductIds, ['product-bind']);
+    expect(Get.currentRoute, AppRoutes.certificationBindCard);
+    expect(Get.arguments, {
+      'geobotanists': 'product-bind',
+      'dodgy': 'order-no',
+      'isAccountChange': true,
+    });
+  });
+}
+
+HomeOrderStatusItem _orderStatusItem({
+  required String linkUrl,
+  required String productId,
+}) {
+  return HomeOrderStatusItem(
+    id: 'order-card',
+    productName: 'Kaibigan Loan',
+    productLogo: '',
+    amount: '1,000.00',
+    amountText: 'Loan Amount',
+    dueDate: '2026/08/08',
+    dateText: 'Due Date',
+    statusText: 'Pending',
+    buttonText: '',
+    linkUrl: linkUrl,
+    productId: productId,
+    orderNo: 'order-no',
+    cardStatus: 1,
+    actions: const [],
+  );
 }
 
 Future<void> _pumpApp(WidgetTester tester) async {
@@ -1043,16 +1547,58 @@ Future<void> _pumpApp(WidgetTester tester) async {
   await tester.pumpAndSettle();
 }
 
+Future<void> _pumpBannerApp(WidgetTester tester) async {
+  tester.view.physicalSize = const Size(375, 812);
+  tester.view.devicePixelRatio = 1;
+  addTearDown(tester.view.resetPhysicalSize);
+  addTearDown(tester.view.resetDevicePixelRatio);
+  addTearDown(() async {
+    await tester.pumpWidget(const SizedBox.shrink());
+    Get.reset();
+  });
+
+  Get.put<MainController>(MainController());
+  await tester.pumpWidget(
+    GetMaterialApp(
+      initialRoute: AppRoutes.main,
+      getPages: [
+        GetPage(
+          name: AppRoutes.main,
+          page: () => const Scaffold(body: HomePage()),
+        ),
+        GetPage(
+          name: AppRoutes.webView,
+          page: () => const SizedBox(key: Key('webViewPageStub')),
+        ),
+        GetPage(
+          name: AppRoutes.accountList,
+          page: () => const SizedBox(key: Key('accountListPageStub')),
+        ),
+        GetPage(
+          name: AppRoutes.certificationBindCard,
+          page: () => const SizedBox(key: Key('bindCardPageStub')),
+        ),
+      ],
+    ),
+  );
+  await tester.pumpAndSettle();
+}
+
 class _RecordingAdapter implements HttpClientAdapter {
   int homeRequestCount = 0;
   int dialogRequestCount = 0;
+  int orderListRequestCount = 0;
   int bannerClickRecordCount = 0;
   int productApplyRequestCount = 0;
   int productDetailRequestCount = 0;
+  final originalCardRetryOrderNos = <String>[];
+  final userAccountListProductIds = <String>[];
   String? lastBannerId;
   String? lastProductApplyId;
   Map<String, dynamic> homePayload = <String, dynamic>{};
   Map<String, dynamic> dialogPayload = <String, dynamic>{};
+  Map<String, dynamic> originalCardRetryPayload = <String, dynamic>{};
+  Map<String, dynamic> userAccountListPayload = <String, dynamic>{};
   final dialogScenes = <int>[];
 
   @override
@@ -1066,6 +1612,9 @@ class _RecordingAdapter implements HttpClientAdapter {
   ) async {
     if (options.path == 'https://api.example.test${ApiEndpoints.homePage}') {
       homeRequestCount++;
+    }
+    if (options.path == 'https://api.example.test${ApiEndpoints.orderList}') {
+      orderListRequestCount++;
     }
     if (options.path == 'https://api.example.test${ApiEndpoints.dialog}') {
       dialogRequestCount++;
@@ -1127,6 +1676,24 @@ class _RecordingAdapter implements HttpClientAdapter {
         },
       );
     }
+    if (options.path ==
+        'https://api.example.test${ApiEndpoints.originalCardRetry}') {
+      originalCardRetryOrderNos.add(
+        options.data is Map
+            ? options.data['chattinesses']?.toString() ?? ''
+            : '',
+      );
+      return _successResponse(originalCardRetryPayload);
+    }
+    if (options.path ==
+        'https://api.example.test${ApiEndpoints.userAccountList}') {
+      userAccountListProductIds.add(
+        options.data is Map
+            ? options.data['geobotanists']?.toString() ?? ''
+            : '',
+      );
+      return _successResponse(userAccountListPayload);
+    }
     return ResponseBody.fromString(
       jsonEncode({
         'griding': 0,
@@ -1139,15 +1706,37 @@ class _RecordingAdapter implements HttpClientAdapter {
       },
     );
   }
+
+  ResponseBody _successResponse(Map<String, dynamic> payload) {
+    return ResponseBody.fromString(
+      jsonEncode({'griding': 0, 'organizational': 'success', 'fas': payload}),
+      200,
+      headers: {
+        Headers.contentTypeHeader: [Headers.jsonContentType],
+      },
+    );
+  }
 }
 
 class _RecordingToastPresenter implements ToastPresenter {
-  @override
-  Future<void> show(String message, {required bool isError}) async {}
+  int showLoadingCount = 0;
+  int dismissLoadingCount = 0;
+  final errorMessages = <String>[];
 
   @override
-  Future<void> showLoading(String? message) async {}
+  Future<void> show(String message, {required bool isError}) async {
+    if (isError) {
+      errorMessages.add(message);
+    }
+  }
 
   @override
-  Future<void> dismissLoading() async {}
+  Future<void> showLoading(String? message) async {
+    showLoadingCount++;
+  }
+
+  @override
+  Future<void> dismissLoading() async {
+    dismissLoadingCount++;
+  }
 }

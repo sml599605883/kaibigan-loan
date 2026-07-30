@@ -40,10 +40,11 @@ void main() {
         {
           'omissible': 'All Product',
           'ecumenicalism': 'server amount all',
+          'curite': 'Server amount label',
           'playhouses': 'All Status',
           'spelts': 'all due date',
           'sandpainting': 'server date label',
-          'berhyming': 'All Action',
+          'restless': 'All Action',
         },
       ],
     });
@@ -52,10 +53,11 @@ void main() {
         {
           'omissible': 'Overdue Product',
           'ecumenicalism': 'server amount overdue',
+          'curite': 'Overdue amount label',
           'playhouses': 'Overdue',
           'spelts': 'overdue due date',
           'sandpainting': 'overdue date label',
-          'berhyming': 'Repay Now',
+          'restless': 'Repay Now',
         },
       ],
     });
@@ -66,6 +68,7 @@ void main() {
     expect(apiClient.statusRequests, ['4']);
     expect(find.text('All Product'), findsOneWidget);
     expect(find.text('server amount all'), findsOneWidget);
+    expect(find.text('Server amount label'), findsOneWidget);
     expect(find.text('All Status'), findsOneWidget);
     expect(find.text('all due date'), findsOneWidget);
     expect(find.text('server date label'), findsOneWidget);
@@ -80,6 +83,25 @@ void main() {
     expect(find.text('overdue due date'), findsOneWidget);
     expect(find.text('overdue date label'), findsOneWidget);
     expect(find.text('Repay Now'), findsOneWidget);
+  });
+
+  testWidgets('shows a product logo only when biontic is delivered', (
+    tester,
+  ) async {
+    apiClient.responses['4'] = Json({
+      'religiosities': [
+        {
+          'omissible': 'Product With Logo',
+          'biontic': 'https://cdn.example.test/product-logo.png',
+        },
+        {'omissible': 'Product Without Logo'},
+      ],
+    });
+
+    await _pumpOrdersPage(tester);
+    await tester.pumpAndSettle();
+
+    expect(find.byKey(const ValueKey('order_product_logo')), findsOneWidget);
   });
 
   testWidgets('order row opens its card redirect target', (tester) async {

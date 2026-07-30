@@ -88,6 +88,7 @@ class BindCardField {
     required this.placeholder,
     required this.fieldType,
     required Iterable<BindCardOption> options,
+    required this.numericKeyboard,
     required this.isRequired,
     required this.suggestedValue,
     required this.initialValue,
@@ -119,6 +120,7 @@ class BindCardField {
       placeholder: json['suppletive'].stringValue.trim(),
       fieldType: fieldType,
       options: options,
+      numericKeyboard: json['bellyache'].intValue == 1,
       isRequired: json['hairbreadth'].intValue != 1,
       suggestedValue: suggestedValue,
       initialValue: initialValue,
@@ -137,6 +139,7 @@ class BindCardField {
   final String placeholder;
   final BindCardFieldType fieldType;
   final List<BindCardOption> options;
+  final bool numericKeyboard;
   final bool isRequired;
   final String suggestedValue;
   final String initialValue;
@@ -191,6 +194,7 @@ class BindCardOption {
     required this.label,
     required this.logoUrl,
     required this.status,
+    required this.maintenanceText,
   });
 
   factory BindCardOption.fromJson(Json json) {
@@ -199,6 +203,7 @@ class BindCardOption {
       label: json['unwits'].stringValue.trim(),
       logoUrl: json['vocalically'].stringValue.trim(),
       status: json['bondmen'].stringValue.trim(),
+      maintenanceText: json['snatcher'].stringValue.trim(),
     );
   }
 
@@ -206,4 +211,5 @@ class BindCardOption {
   final String label;
   final String logoUrl;
   final String status;
+  final String maintenanceText;
 }

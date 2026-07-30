@@ -44,14 +44,15 @@ void main() {
           return <String, Object?>{'enabled': false, 'host': '', 'port': 0};
         });
 
+    final config = ApiConfig(
+      apiBaseUrl: 'https://api.example.test',
+      clientBridge: ClientBridge(platform: ClientPlatform.ios),
+      sessionStore: store,
+      randomDigitsProvider: (length) => '7' * length,
+    );
     final apiClient = await bootstrapApiClient(
       clientBridge: ClientBridge(platform: ClientPlatform.ios),
-      apiConfig: ApiConfig(
-        apiBaseUrl: 'https://api.example.test',
-        clientBridge: ClientBridge(platform: ClientPlatform.ios),
-        sessionStore: store,
-        randomDigitsProvider: (length) => '7' * length,
-      ),
+      apiConfig: config,
       dio: Dio()..httpClientAdapter = adapter,
       sessionStore: store,
     );
@@ -69,6 +70,7 @@ void main() {
     expect(adapter.lastBody, {'unwits': 'iPhone10,3', 'stoups': '777777'});
     expect(await store.gyrofrequency(), 'iPhone X');
     expect(await store.entertainers(), '375x812');
+    expect(config.authExpiredHandler, isNotNull);
   });
 
   test('does not return before native proxy lookup completes', () async {

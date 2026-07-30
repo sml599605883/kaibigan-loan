@@ -8,6 +8,8 @@ import 'package:kaibigan_loan/src/core/json/json.dart';
 import 'package:kaibigan_loan/src/core/network/api_client.dart';
 import 'package:kaibigan_loan/src/core/network/api_config.dart';
 import 'package:kaibigan_loan/src/core/network/api_response.dart';
+import 'package:kaibigan_loan/src/core/session/product_detail_cache.dart';
+import 'package:kaibigan_loan/src/core/session/session_store.dart';
 import 'package:kaibigan_loan/src/modules/certification/certification_contact_info_page.dart';
 import 'package:kaibigan_loan/src/modules/certification/certification_face_page.dart';
 import 'package:kaibigan_loan/src/modules/certification/certification_identity_page.dart';
@@ -59,6 +61,20 @@ void main() {
         expectedType: '4',
       ),
     ];
+    final sessionStore = SessionStore.memory();
+    await sessionStore.saveProductDetailCache(
+      const ProductDetailCache(
+        amount: '',
+        productid: 'product-1',
+        orderNo: '',
+        orderId: '',
+        term: '',
+        termType: '',
+        note: <String, dynamic>{},
+        nextStep: <String, dynamic>{},
+      ),
+    );
+    Get.put<SessionStore>(sessionStore);
     Get.put<ApiClient>(_FakeApiClient());
     await tester.pumpWidget(
       GetMaterialApp(

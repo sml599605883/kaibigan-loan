@@ -26,11 +26,18 @@ bool shouldCloseWebView({required bool canGoBack}) => !canGoBack;
 
 String jalapsRetentionProductId(String rawUrl) {
   final normalizedUrl = rawUrl.trim();
-  if (!normalizedUrl.toLowerCase().contains('jalaps')) {
+  if (!normalizedUrl.contains('Jalaps')) {
     return '';
   }
-  return Uri.tryParse(normalizedUrl)?.queryParameters['seamounts']?.trim() ??
-      '';
+  final uri = Uri.tryParse(normalizedUrl);
+  if (uri == null) {
+    return '';
+  }
+  final productId = uri.queryParameters['seamounts']?.trim() ?? '';
+  if (productId.isNotEmpty) {
+    return productId;
+  }
+  return Uri.tryParse(uri.fragment)?.queryParameters['seamounts']?.trim() ?? '';
 }
 
 Future<bool> showJalapsBackRetention({
@@ -131,7 +138,7 @@ class _WebViewPageState extends State<WebViewPage> with WidgetsBindingObserver {
             );
           },
       openExternalUri: NavigationHelper.openExternalUri,
-      navigateInternalUri: NavigationHelper.navigateRawTarget,
+      navigateInternalUri: NavigationHelper.navigateWebViewRawTarget,
       openInNewWebView: (url) async {
         NavigationHelper.toWebView(url: url);
       },

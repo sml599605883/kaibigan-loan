@@ -6,6 +6,7 @@ import '../../core/json/json.dart';
 import '../../core/network/api_client.dart';
 import '../../core/network/api_exception.dart';
 import '../../core/report/risk_report_scene.dart';
+import '../../core/session/session_store.dart';
 import '../../navigation_helper.dart';
 import '../../theme/app_colors.dart';
 import '../../utils/app_toast.dart';
@@ -108,10 +109,7 @@ class _CertificationPersonalInfoPageState
         return;
       }
       setState(() {
-        _prompt = _firstNonEmpty(
-          response.states['mourningly'].stringValue.trim(),
-          _defaultPrompt,
-        );
+        _prompt = _promptFromCache();
         _replaceFields(fields);
         _isLoading = false;
       });
@@ -149,6 +147,24 @@ class _CertificationPersonalInfoPageState
     return '';
   }
 
+  String _promptFromCache() {
+    if (!Get.isRegistered<SessionStore>()) {
+      return _defaultPrompt;
+    }
+    final key = widget._kind == _CertificationInfoKind.work
+        ? 'work'
+        : 'personal';
+    return _firstNonEmpty(
+      SessionStore.instance
+              .productDetailCache()
+              ?.note[key]
+              ?.toString()
+              .trim() ??
+          '',
+      _defaultPrompt,
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -158,6 +174,7 @@ class _CertificationPersonalInfoPageState
           children: [
             SizedBox(height: 16.h),
             _PersonalInfoHeader(
+              title: _pageTitle,
               onBack: CertificationRetentionGuard.backHandler(
                 type: widget._kind == _CertificationInfoKind.work ? '3' : '2',
                 productId: _productIdFromArguments(),
@@ -219,6 +236,10 @@ class _CertificationPersonalInfoPageState
   String get _progressAsset => widget._kind == _CertificationInfoKind.work
       ? AppAssets.certificationWorkProgress
       : AppAssets.certificationPersonalProgress;
+
+  String get _pageTitle => widget._kind == _CertificationInfoKind.work
+      ? 'Work Information'
+      : 'Personal information';
 
   Widget _buildContent() {
     if (_isLoading) {
@@ -379,14 +400,7 @@ class _CertificationPersonalInfoPageState
       'geobotanists': _productIdFromArguments(),
     };
     for (final field in _fields) {
-      final value = field.currentSubmitValue;
-      if (field.isRequired && value.isEmpty) {
-        await AppToast.error(field.placeholder);
-        return;
-      }
-      if (value.isNotEmpty) {
-        payload[field.keyName] = value;
-      }
+      payload[field.keyName] = field.currentSubmitValue;
     }
 
     setState(() => _isSubmitting = true);
@@ -428,8 +442,9 @@ class _CertificationPersonalInfoPageState
 enum _CertificationInfoKind { personal, work }
 
 class _PersonalInfoHeader extends StatelessWidget {
-  const _PersonalInfoHeader({required this.onBack});
+  const _PersonalInfoHeader({required this.title, required this.onBack});
 
+  final String title;
   final VoidCallback onBack;
 
   @override
@@ -455,7 +470,7 @@ class _PersonalInfoHeader extends StatelessWidget {
             ),
           ),
           Text(
-            'Identity verification',
+            title,
             style: TextStyle(
               color: AppColors.certificationTitleText,
               fontSize: 20.sp,

@@ -44,10 +44,10 @@ void main() {
     await tester.tap(find.text('Logout'));
     await tester.pumpAndSettle();
 
-    expect(find.text('Stay Signed In'), findsOneWidget);
+    expect(find.text('Before You Go'), findsOneWidget);
     expect(
       find.text(
-        'Staying logged in ensures you can access funds in seconds whenever you need them.',
+        'Keep your account connected for a smoother experience and quick access to your application details.',
       ),
       findsOneWidget,
     );
@@ -62,7 +62,7 @@ void main() {
     expect(barrier.color?.a, closeTo(0.6, 0.001));
     expect(apiClient.logoutRequestCount, 0);
 
-    await tester.tap(find.text('Logout').last);
+    await tester.tap(find.text('Log out anyway'));
     await tester.pumpAndSettle();
 
     expect(apiClient.logoutRequestCount, 1);
@@ -84,16 +84,16 @@ void main() {
     await tester.tap(find.text('Deactivate Account'));
     await tester.pumpAndSettle();
 
-    expect(find.text('Delete Your Account?'), findsOneWidget);
+    expect(find.text('We’d really miss you.'), findsOneWidget);
     expect(
       find.text(
-        'Deleting your account will remove your loan records and current benefits.',
+        'Deleting your account removes all your data, history, and settings forever. This action cannot be undone.',
       ),
       findsOneWidget,
     );
     expect(apiClient.deleteRequestCount, 0);
 
-    await tester.tap(find.text('Delete'));
+    await tester.tap(find.text('Delete Account'));
     await tester.pumpAndSettle();
 
     expect(apiClient.deleteRequestCount, 1);
@@ -115,12 +115,12 @@ void main() {
 
     await tester.tap(find.text('Logout'));
     await tester.pumpAndSettle();
-    await tester.tap(find.text('Cancel'));
+    await tester.tap(find.text('Stay Logged In'));
     await tester.pumpAndSettle();
 
     await tester.tap(find.text('Deactivate Account'));
     await tester.pumpAndSettle();
-    await tester.tap(find.text('Keep'));
+    await tester.tap(find.text('Stay Here'));
     await tester.pumpAndSettle();
 
     expect(apiClient.logoutRequestCount, 0);
@@ -136,7 +136,7 @@ void main() {
 
     await tester.tap(find.text('Logout'));
     await tester.pumpAndSettle();
-    await tester.tap(find.text('Logout').last);
+    await tester.tap(find.text('Log out anyway'));
     await tester.pump();
 
     expect(apiClient.logoutRequestCount, 1);

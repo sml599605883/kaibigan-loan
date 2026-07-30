@@ -78,7 +78,7 @@ class ApiClientReportNetwork implements ReportNetwork {
       hemolysis: payload.livenessId,
       alchemical: payload.requestId,
       dwarfishly: payload.resultCode,
-      threats: payload.resultMessage,
+      threats: Json(payload.toJson()).rawString(),
     );
   }
 }

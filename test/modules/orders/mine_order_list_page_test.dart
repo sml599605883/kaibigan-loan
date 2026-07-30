@@ -2,6 +2,7 @@ import 'package:dio/dio.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:get/get.dart';
+import 'package:kaibigan_loan/src/app_route_observer.dart';
 import 'package:kaibigan_loan/src/app_routes.dart';
 import 'package:kaibigan_loan/src/core/json/json.dart';
 import 'package:kaibigan_loan/src/core/network/api_client.dart';
@@ -65,6 +66,22 @@ void main() {
     expect(apiClient.statusRequests, ['4']);
     expect(find.text('No information available'), findsOneWidget);
   });
+
+  testWidgets('refreshes orders after returning from another page', (
+    tester,
+  ) async {
+    await _pumpMineOrderList(tester);
+    await tester.pumpAndSettle();
+
+    expect(apiClient.statusRequests, ['4']);
+
+    Get.toNamed<void>(AppRoutes.setting);
+    await tester.pumpAndSettle();
+    Get.back<void>();
+    await tester.pumpAndSettle();
+
+    expect(apiClient.statusRequests, ['4', '4']);
+  });
 }
 
 Future<void> _pumpMineOrderList(
@@ -79,12 +96,14 @@ Future<void> _pumpMineOrderList(
   await tester.pumpWidget(
     GetMaterialApp(
       initialRoute: AppRoutes.main,
+      navigatorObservers: [appRouteObserver],
       getPages: [
         GetPage(name: AppRoutes.main, page: () => const SizedBox()),
         GetPage(
           name: AppRoutes.mineOrderList,
           page: () => const MineOrderListPage(),
         ),
+        GetPage(name: AppRoutes.setting, page: () => const SizedBox()),
       ],
     ),
   );

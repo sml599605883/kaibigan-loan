@@ -31,7 +31,7 @@ void main() {
           'playhouses': 'Outstanding',
           'spelts': 'all due date',
           'sandpainting': 'server due label',
-          'berhyming': 'Server Details',
+          'restless': 'Server Details',
         },
       ],
     });
@@ -43,7 +43,7 @@ void main() {
           'playhouses': 'Overdue',
           'spelts': 'overdue due date',
           'sandpainting': 'overdue due label',
-          'berhyming': 'Repay Now',
+          'restless': 'Repay Now',
         },
       ],
     });

@@ -50,6 +50,24 @@ void main() {
     },
   );
 
+  test('startup clears location cached by the previous app run', () async {
+    cache.cachedLocation = const ReportLocation(
+      fullAddress: 'Previous location',
+      countryCode: 'PH',
+      country: 'Philippines',
+      street: 'Previous street',
+      latitude: '10',
+      longitude: '20',
+      city: 'Previous city',
+    );
+
+    await manager.onAppStarted();
+    await manager.onAppStarted();
+
+    expect(cache.cachedLocation, isNull);
+    expect(cache.clearSessionReportStateCalls, 1);
+  });
+
   test('first final tracking status triggers market report once', () async {
     bridge.snapshot = const NativeDeviceSnapshot(idfv: 'idfv', idfa: 'idfa');
 
@@ -196,10 +214,10 @@ void main() {
   );
 
   test(
-    'push token upload waits for stream and reports every invocation',
+    'push token upload reports empty token and every later invocation',
     () async {
       await manager.reportPushToken();
-      expect(network.pushTokens, isEmpty);
+      expect(network.pushTokens, ['']);
 
       final uploadFuture = manager.reportPushToken();
       await Future<void>.delayed(Duration.zero);
@@ -209,7 +227,7 @@ void main() {
 
       await manager.reportPushToken();
 
-      expect(network.pushTokens, ['token-1', 'token-1']);
+      expect(network.pushTokens, ['', 'token-1', 'token-1']);
       expect(cache.lastPushToken, isEmpty);
     },
   );
@@ -224,6 +242,7 @@ class _MemoryReportCache implements ReportCache {
   String lastMarketSignature = '';
   String lastPushToken = '';
   bool loggedIn = true;
+  int clearSessionReportStateCalls = 0;
 
   @override
   Future<bool> markAppOpened() async {
@@ -283,6 +302,7 @@ class _MemoryReportCache implements ReportCache {
 
   @override
   Future<void> clearSessionReportState() async {
+    clearSessionReportStateCalls++;
     cachedLocation = null;
   }
 }

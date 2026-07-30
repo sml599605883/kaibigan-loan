@@ -1,7 +1,9 @@
 import 'dart:async';
 
 import 'package:dio/dio.dart';
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:get/get.dart';
 import 'package:kaibigan_loan/src/app_routes.dart';
@@ -12,7 +14,6 @@ import 'package:kaibigan_loan/src/core/network/api_exception.dart';
 import 'package:kaibigan_loan/src/core/network/api_response.dart';
 import 'package:kaibigan_loan/src/core/report/report_cache.dart';
 import 'package:kaibigan_loan/src/core/report/report_manager.dart';
-import 'package:kaibigan_loan/src/core/report/report_models.dart';
 import 'package:kaibigan_loan/src/core/report/report_native_bridge.dart';
 import 'package:kaibigan_loan/src/core/report/report_network.dart';
 import 'package:kaibigan_loan/src/core/session/session_store.dart';
@@ -20,6 +21,7 @@ import 'package:kaibigan_loan/src/modules/main/main_controller.dart';
 import 'package:kaibigan_loan/src/modules/orders/order_list_models.dart';
 import 'package:kaibigan_loan/src/modules/recredit/recredit_page.dart';
 import 'package:kaibigan_loan/src/navigation_helper.dart';
+import 'package:kaibigan_loan/src/theme/app_colors.dart';
 import 'package:kaibigan_loan/src/utils/app_toast.dart';
 import 'package:permission_handler/permission_handler.dart';
 
@@ -235,13 +237,13 @@ void main() {
     await _pumpRoutes(tester);
 
     await NavigationHelper.navigateRawTarget(
-      'ph://kaibigan-loan/ios/ContradictSentimentalist?source=query&cohabiter=product-2',
+      'ph://kaibigan-loan/ios/BedlamiteNationwide?geobotanists=1',
       arguments: {'source': 'apply'},
     );
     await tester.pumpAndSettle();
 
     expect(Get.currentRoute, AppRoutes.recredit);
-    expect(Get.arguments, {'source': 'apply', 'cohabiter': 'product-2'});
+    expect(Get.arguments, {'geobotanists': '1', 'source': 'apply'});
   });
 
   testWidgets('prefers explicit payload product id over scheme alias', (
@@ -250,7 +252,7 @@ void main() {
     await _pumpRoutes(tester);
 
     await NavigationHelper.navigateRawTarget(
-      'ph://kaibigan-loan/ios/ContradictSentimentalist?geobotanists=query-product',
+      'ph://kaibigan-loan/ios/BedlamiteNationwide?geobotanists=query-product',
       arguments: {
         'payload': {'cohabiter': 'explicit-product'},
       },
@@ -469,6 +471,55 @@ void main() {
     expect(find.byKey(const Key('mainPageStub')), findsOneWidget);
   });
 
+  testWidgets('session expiry clears state and returns login to home', (
+    tester,
+  ) async {
+    await _pumpRoutes(tester);
+    final store = SessionStore.instance;
+    final controller = MainController();
+    Get.put<MainController>(controller);
+    controller.selectedIndex.value = 2;
+    await store.setLoggedIn(true);
+    await store.saveBungee('expired-token');
+    await store.saveCacheValue('stale-product', 'product-1');
+
+    NavigationHelper.toDetail<void>();
+    await tester.pumpAndSettle();
+
+    await NavigationHelper.redirectToLoginAfterSessionExpiry();
+    await tester.pumpAndSettle();
+
+    expect(Get.currentRoute, AppRoutes.login);
+    expect(await store.isLoggedIn(), isFalse);
+    expect(await store.bungee(), isEmpty);
+    expect(store.cacheValue('stale-product'), isNull);
+    expect(controller.selectedIndex.value, 0);
+
+    NavigationHelper.back<void>();
+    await tester.pumpAndSettle();
+
+    expect(Get.currentRoute, AppRoutes.main);
+  });
+
+  testWidgets('WebView login target returns login to home', (tester) async {
+    await _pumpRoutes(tester);
+
+    NavigationHelper.toWebView<void>(url: 'https://example.test/repayment');
+    await tester.pumpAndSettle();
+
+    await NavigationHelper.navigateWebViewRawTarget(
+      'ph://kaibigan-loan/ios/ImpleadExpositing',
+    );
+    await tester.pumpAndSettle();
+
+    expect(Get.currentRoute, AppRoutes.login);
+
+    NavigationHelper.back<void>();
+    await tester.pumpAndSettle();
+
+    expect(Get.currentRoute, AppRoutes.main);
+  });
+
   testWidgets('routes documented kaibigan scheme targets', (tester) async {
     await _pumpRoutes(tester);
 
@@ -484,6 +535,8 @@ void main() {
     );
     await tester.pumpAndSettle();
     expect(apiClient.productDetailIds, ['product-9']);
+    expect(toastPresenter.showLoadingCount, 1);
+    expect(toastPresenter.dismissLoadingCount, 1);
     expect(Get.currentRoute, AppRoutes.detail);
     expect(Get.arguments, {
       'geobotanists': 'product-9',
@@ -959,28 +1012,50 @@ void main() {
     expect(Get.currentRoute, AppRoutes.detail);
   });
 
+  testWidgets('apply product flow does not wait for location reporting', (
+    tester,
+  ) async {
+    final reportCompleter = Completer<void>();
+    addTearDown(() {
+      if (!reportCompleter.isCompleted) {
+        reportCompleter.complete();
+      }
+    });
+    await SessionStore.instance.setLoggedIn(true);
+    NavigationHelper.locationAccessChecker = () async => true;
+    NavigationHelper.locationReporter = () => reportCompleter.future;
+    apiClient.applyStates = <String, dynamic>{'threats': 200};
+    await _pumpRoutes(tester);
+
+    final applyFuture = NavigationHelper.applyProductWithFlow(
+      'product-background-location',
+    );
+    await tester.pump();
+
+    expect(apiClient.productApplyIds, ['product-background-location']);
+
+    reportCompleter.complete();
+    await applyFuture;
+    await tester.pumpAndSettle();
+  });
+
   testWidgets(
-    'location access proceeds when native location is already valid',
+    'location access proceeds from granted permission without loading location',
     (tester) async {
-      var serviceStatusRead = false;
-      NavigationHelper.nativeLocationLoader = () async => const ReportLocation(
-        fullAddress: '',
-        countryCode: '',
-        country: '',
-        street: '',
-        latitude: '14.5995',
-        longitude: '120.9842',
-        city: '',
-      );
-      NavigationHelper.locationServiceStatusProvider = () async {
-        serviceStatusRead = true;
-        return ServiceStatus.disabled;
+      var locationRead = false;
+      NavigationHelper.nativeLocationLoader = () async {
+        locationRead = true;
+        return null;
       };
+      NavigationHelper.locationServiceStatusProvider = () async =>
+          ServiceStatus.enabled;
+      NavigationHelper.locationPermissionStatusProvider = () async =>
+          PermissionStatus.granted;
 
       final canContinue = await NavigationHelper.defaultLocationAccessChecker();
 
       expect(canContinue, isTrue);
-      expect(serviceStatusRead, isFalse);
+      expect(locationRead, isFalse);
     },
   );
 
@@ -1020,13 +1095,34 @@ void main() {
     expect(settingsOpened, isTrue);
     expect(prompts, [
       {
-        'title': 'GPS is Off',
+        'title': 'Location Access Disabled',
         'content':
-            'It looks like your GPS is off. Please enable location services to complete the verification process.',
-        'cancelText': 'Cancel',
-        'confirmText': 'Settings',
+            'It looks like your device location is currently switched off. Please turn it on in Settings so we can verify your identity.',
+        'cancelText': 'Decline',
+        'confirmText': 'Go to Settings',
       },
     ]);
+  });
+
+  testWidgets('permission prompt renders cancel text in secondary gray', (
+    tester,
+  ) async {
+    await _pumpRoutes(tester);
+
+    final result = NavigationHelper.defaultPermissionPromptPresenter(
+      title: 'Location Required',
+      content: 'Allow location access to continue.',
+      cancelText: 'Later',
+      confirmText: 'Allow',
+    );
+    await tester.pumpAndSettle();
+
+    final cancelText = tester.widget<Text>(find.text('Later'));
+    expect(cancelText.style?.color, AppColors.textSecondary);
+
+    await tester.tap(find.text('Later'));
+    await tester.pumpAndSettle();
+    expect(await result, isFalse);
   });
 
   testWidgets('location permission request dismisses loading first', (
@@ -1048,6 +1144,128 @@ void main() {
 
     expect(canContinue, isTrue);
     expect(events, ['dismiss', 'request']);
+  });
+
+  testWidgets('default iOS location permission uses the native bridge', (
+    tester,
+  ) async {
+    const channel = MethodChannel('kaibigan_loan/report_method');
+    final calls = <MethodCall>[];
+    debugDefaultTargetPlatformOverride = TargetPlatform.iOS;
+    tester.binding.defaultBinaryMessenger.setMockMethodCallHandler(channel, (
+      call,
+    ) async {
+      calls.add(call);
+      return 'authorized_when_in_use';
+    });
+    try {
+      final status =
+          await NavigationHelper.defaultLocationPermissionRequester();
+
+      expect(status, PermissionStatus.granted);
+      expect(calls.map((call) => call.method), ['requestLocationPermission']);
+    } finally {
+      debugDefaultTargetPlatformOverride = null;
+      tester.binding.defaultBinaryMessenger.setMockMethodCallHandler(
+        channel,
+        null,
+      );
+    }
+  });
+
+  testWidgets('location permission request stops when app is paused', (
+    tester,
+  ) async {
+    final permissionCompleter = Completer<PermissionStatus>();
+    addTearDown(() {
+      if (!permissionCompleter.isCompleted) {
+        permissionCompleter.complete(PermissionStatus.denied);
+      }
+      tester.binding.handleAppLifecycleStateChanged(AppLifecycleState.resumed);
+    });
+    NavigationHelper.nativeLocationLoader = () async => null;
+    NavigationHelper.locationServiceStatusProvider = () async =>
+        ServiceStatus.enabled;
+    NavigationHelper.locationPermissionStatusProvider = () async =>
+        PermissionStatus.denied;
+    NavigationHelper.locationPermissionRequester = () =>
+        permissionCompleter.future;
+
+    var completed = false;
+    final accessFuture = NavigationHelper.defaultLocationAccessChecker().then((
+      value,
+    ) {
+      completed = true;
+      return value;
+    });
+    await tester.pump();
+
+    tester.binding.handleAppLifecycleStateChanged(AppLifecycleState.paused);
+    await tester.pump();
+
+    expect(completed, isTrue);
+    expect(await accessFuture, isFalse);
+  });
+
+  testWidgets('paused permission request does not block a new apply flow', (
+    tester,
+  ) async {
+    final oldPermissionRequest = Completer<PermissionStatus>();
+    final newPermissionRequest = Completer<PermissionStatus>();
+    addTearDown(() {
+      if (!oldPermissionRequest.isCompleted) {
+        oldPermissionRequest.complete(PermissionStatus.denied);
+      }
+      if (!newPermissionRequest.isCompleted) {
+        newPermissionRequest.complete(PermissionStatus.denied);
+      }
+      tester.binding.handleAppLifecycleStateChanged(AppLifecycleState.resumed);
+    });
+    var permissionRequestCount = 0;
+    await SessionStore.instance.setLoggedIn(true);
+    NavigationHelper.nativeLocationLoader = () async => null;
+    NavigationHelper.locationServiceStatusProvider = () async =>
+        ServiceStatus.enabled;
+    NavigationHelper.locationPermissionStatusProvider = () async =>
+        PermissionStatus.denied;
+    NavigationHelper.locationPermissionRequester = () {
+      permissionRequestCount += 1;
+      return permissionRequestCount == 1
+          ? oldPermissionRequest.future
+          : newPermissionRequest.future;
+    };
+    NavigationHelper.locationReporter = () async {};
+    apiClient.applyStates = <String, dynamic>{'threats': 200};
+    await _pumpRoutes(tester);
+
+    final firstApply = NavigationHelper.applyProductWithFlow(
+      'product-lock-screen',
+    );
+    await tester.pump();
+    tester.binding.handleAppLifecycleStateChanged(AppLifecycleState.paused);
+    await tester.pump();
+    await firstApply;
+
+    expect(apiClient.productApplyIds, isEmpty);
+
+    tester.binding.handleAppLifecycleStateChanged(AppLifecycleState.resumed);
+    final secondApply = NavigationHelper.applyProductWithFlow(
+      'product-lock-screen',
+    );
+    await tester.pump();
+
+    expect(permissionRequestCount, 2);
+    expect(apiClient.productApplyIds, isEmpty);
+
+    newPermissionRequest.complete(PermissionStatus.granted);
+    await secondApply;
+    await tester.pumpAndSettle();
+
+    expect(apiClient.productApplyIds, ['product-lock-screen']);
+
+    oldPermissionRequest.complete(PermissionStatus.granted);
+    await tester.pump();
+    expect(apiClient.productApplyIds, ['product-lock-screen']);
   });
 
   testWidgets(
@@ -1080,11 +1298,11 @@ void main() {
       expect(canContinue, isTrue);
       expect(prompts, [
         {
-          'title': 'Location Required',
+          'title': 'Enable Location Access',
           'content':
-              'Identity verification cannot be completed without your location. Please allow access in settings.',
-          'cancelText': 'Cancel',
-          'confirmText': 'Enable',
+              'Credit verification requires your location. Please allow access in your device Settings.',
+          'cancelText': 'Later',
+          'confirmText': 'Allow',
         },
       ]);
     },

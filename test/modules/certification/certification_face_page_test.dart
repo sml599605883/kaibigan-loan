@@ -10,6 +10,11 @@ import 'package:kaibigan_loan/src/core/network/api_client.dart';
 import 'package:kaibigan_loan/src/core/network/api_config.dart';
 import 'package:kaibigan_loan/src/core/network/api_exception.dart';
 import 'package:kaibigan_loan/src/core/network/api_response.dart';
+import 'package:kaibigan_loan/src/core/report/report_cache.dart';
+import 'package:kaibigan_loan/src/core/report/report_manager.dart';
+import 'package:kaibigan_loan/src/core/report/report_models.dart';
+import 'package:kaibigan_loan/src/core/report/report_native_bridge.dart';
+import 'package:kaibigan_loan/src/core/report/report_network.dart';
 import 'package:kaibigan_loan/src/core/session/product_detail_cache.dart';
 import 'package:kaibigan_loan/src/core/session/session_store.dart';
 import 'package:kaibigan_loan/src/modules/certification/certification_face_page.dart';
@@ -21,14 +26,17 @@ void main() {
   late SessionStore sessionStore;
   late _FakeApiClient apiClient;
   late _FakeToastPresenter toastPresenter;
+  late _RecordingReportManager reportManager;
 
   setUp(() {
     Get.testMode = true;
     sessionStore = SessionStore.memory();
     apiClient = _FakeApiClient();
     toastPresenter = _FakeToastPresenter();
+    reportManager = _RecordingReportManager();
     Get.put<SessionStore>(sessionStore);
     Get.put<ApiClient>(apiClient);
+    Get.put<ReportManager>(reportManager);
     AppToast.presenter = toastPresenter;
   });
 
@@ -87,7 +95,7 @@ void main() {
     await tester.pumpAndSettle();
 
     expect(apiClient.tokenRequests, [
-      _FaceTokenRequest(dodgy: 'product-face-1', commensurate: '11'),
+      _FaceTokenRequest(dodgy: 'ORDER001', commensurate: '0'),
     ]);
     expect(livenessCalls, isEmpty);
     expect(toastPresenter.loadingMessages, [null]);
@@ -109,7 +117,9 @@ void main() {
     };
     await _pumpFacePage(
       tester,
-      arguments: {'geobotanists': 'ORDER001'},
+      arguments: {'geobotanists': 'route-face-product'},
+      cachedProductId: 'cached-face-product',
+      cachedOrderNo: 'ORDER001',
       showTrustDecisionLiveness: (license) async {
         livenessCalls.add(license);
         return const TrustDecisionLivenessResult(
@@ -132,6 +142,9 @@ void main() {
     await tester.pumpAndSettle();
 
     expect(livenessCalls, ['td-license']);
+    expect(apiClient.tokenRequests, [
+      _FaceTokenRequest(dodgy: 'ORDER001', commensurate: '0'),
+    ]);
     expect(apiClient.uploads, [
       _UploadRequest(
         commensurate: '10',
@@ -148,7 +161,12 @@ void main() {
     expect(toastPresenter.loadingMessages, [null, null, null]);
     expect(toastPresenter.dismissCount, 3);
     expect(toastPresenter.messages, isEmpty);
-    expect(apiClient.productDetailIds, ['ORDER001']);
+    expect(apiClient.productDetailIds, ['cached-face-product']);
+    expect(reportManager.faceReports, hasLength(1));
+    expect(reportManager.faceReports.single.livenessId, 'live-1');
+    expect(reportManager.faceReports.single.requestId, 'seq-1');
+    expect(reportManager.faceReports.single.resultCode, '0');
+    expect(reportManager.faceReports.single.resultMessage, 'ok');
   });
 
   testWidgets('shows liveness error and skips upload when native fails', (
@@ -178,6 +196,11 @@ void main() {
 
     expect(apiClient.uploads, isEmpty);
     expect(toastPresenter.errors, ['liveness failed']);
+    expect(reportManager.faceReports, hasLength(1));
+    expect(reportManager.faceReports.single.livenessId, '');
+    expect(reportManager.faceReports.single.requestId, '');
+    expect(reportManager.faceReports.single.resultCode, '-1');
+    expect(reportManager.faceReports.single.resultMessage, 'liveness failed');
   });
 
   testWidgets('shows API error when face token request fails', (tester) async {
@@ -211,13 +234,15 @@ void main() {
 
     expect(apiClient.tokenRequests, isEmpty);
     expect(find.byType(CupertinoAlertDialog), findsOneWidget);
-    expect(find.text('Camera permission required'), findsOneWidget);
+    expect(find.text('Enable Your Camera'), findsOneWidget);
     expect(
-      find.text('Please enable camera access in Settings to continue.'),
+      find.text(
+        'ID document scanning and selfie require camera access. Please enable it in your device Settings to continue.',
+      ),
       findsOneWidget,
     );
 
-    await tester.tap(find.text('Settings'));
+    await tester.tap(find.text('Enable Camera'));
     await tester.pumpAndSettle();
 
     expect(openedSettings, isTrue);
@@ -227,11 +252,31 @@ void main() {
 Future<void> _pumpFacePage(
   WidgetTester tester, {
   required Object arguments,
+  String? cachedProductId,
+  String? cachedOrderNo,
   CameraPermissionRequester? requestCameraPermission,
   AppSettingsOpener? openAppSettingsPage,
   TrustDecisionLivenessLauncher? showTrustDecisionLiveness,
   FaceImageFilePathBuilder? faceImageFilePathBuilder,
 }) async {
+  final argumentProductId = arguments is Map
+      ? arguments['geobotanists']?.toString().trim() ?? ''
+      : '';
+  final productId = cachedProductId ?? argumentProductId;
+  if (productId.isNotEmpty) {
+    await SessionStore.instance.saveProductDetailCache(
+      ProductDetailCache(
+        amount: '',
+        productid: productId,
+        orderNo: cachedOrderNo ?? 'ORDER001',
+        orderId: '',
+        term: '',
+        termType: '',
+        note: const <String, dynamic>{},
+        nextStep: const <String, dynamic>{},
+      ),
+    );
+  }
   tester.view.physicalSize = const Size(375, 812);
   tester.view.devicePixelRatio = 1;
   addTearDown(tester.view.resetPhysicalSize);
@@ -258,6 +303,95 @@ Future<void> _pumpFacePage(
   await tester.pumpAndSettle();
   Get.toNamed<void>(AppRoutes.certificationFace, arguments: arguments);
   await tester.pumpAndSettle();
+}
+
+class _RecordingReportManager extends ReportManager {
+  _RecordingReportManager()
+    : super(
+        cache: _FakeReportCache(),
+        nativeBridge: _FakeReportNativeBridge(),
+        network: _FakeReportNetwork(),
+      );
+
+  final faceReports = <FaceReportPayload>[];
+
+  @override
+  Future<void> reportFaceResult(FaceReportPayload payload) async {
+    faceReports.add(payload);
+  }
+}
+
+class _FakeReportCache implements ReportCache {
+  @override
+  Future<void> clearSessionReportState() async {}
+  @override
+  Future<String> getAttributionLastStatus() async => '';
+  @override
+  Future<String> getLastMarketSignature() async => '';
+  @override
+  Future<String> getLastPushToken() async => '';
+  @override
+  Future<int> getLoginAt() async => 0;
+  @override
+  Future<ReportLocation?> getLocation() async => null;
+  @override
+  Future<bool> isAttributionInitialized() async => false;
+  @override
+  Future<bool> isLoggedIn() async => false;
+  @override
+  Future<bool> markAppOpened() async => false;
+  @override
+  Future<void> saveLocation(ReportLocation location) async {}
+  @override
+  Future<void> setAttributionInitialized(bool value) async {}
+  @override
+  Future<void> setAttributionLastStatus(String value) async {}
+  @override
+  Future<void> setLastMarketSignature(String signature) async {}
+  @override
+  Future<void> setLastPushToken(String token) async {}
+  @override
+  Future<void> setLoginAt(int millis) async {}
+}
+
+class _FakeReportNativeBridge implements ReportNativeBridge {
+  @override
+  Future<NativeDeviceSnapshot> getDeviceSnapshot() async =>
+      const NativeDeviceSnapshot();
+  @override
+  Future<ReportLocation?> getLocation() async => null;
+  @override
+  Future<String> getPushToken() async => '';
+  @override
+  Future<String> getTrackingStatus() async => '';
+  @override
+  Future<void> initializeAttribution(String token) async {}
+  @override
+  Stream<Json> nativeEvents() => const Stream<Json>.empty();
+  @override
+  Future<String> requestNotificationPermission() async => '';
+  @override
+  Future<String> requestTrackingPermission() async => '';
+}
+
+class _FakeReportNetwork implements ReportNetwork {
+  @override
+  Future<void> reportContacts(String encryptedPayload) async {}
+  @override
+  Future<void> reportDeviceInfo(String encryptedPayload) async {}
+  @override
+  Future<void> reportFaceResult(FaceReportPayload payload) async {}
+  @override
+  Future<Json> reportGoogleMarket({
+    required String idfv,
+    required String idfa,
+  }) async => Json(null);
+  @override
+  Future<void> reportLocation(ReportLocation location) async {}
+  @override
+  Future<void> reportPushToken(String token) async {}
+  @override
+  Future<void> reportRiskBehavior(Map<String, dynamic> payload) async {}
 }
 
 class _FakeApiClient extends ApiClient {

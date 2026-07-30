@@ -4,9 +4,12 @@ import 'dart:io';
 import 'package:dio/dio.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:kaibigan_loan/src/core/client/client_bridge.dart';
-import 'package:kaibigan_loan/src/core/session/session_store.dart';
 import 'package:kaibigan_loan/src/core/network/api_client.dart';
 import 'package:kaibigan_loan/src/core/network/api_config.dart';
+import 'package:kaibigan_loan/src/core/network/api_exception.dart';
+import 'package:kaibigan_loan/src/core/report/report_models.dart';
+import 'package:kaibigan_loan/src/core/report/report_network.dart';
+import 'package:kaibigan_loan/src/core/session/session_store.dart';
 
 void main() {
   late _RecordingAdapter adapter;
@@ -56,6 +59,48 @@ void main() {
     expect(adapter.lastRequest.path, 'https://api.example.test/plater/fas');
     expect(adapter.lastRequest.queryParameters['ghastful'], '777777');
     expect(adapter.lastRequest.queryParameters['lairs'], '777777');
+  });
+
+  test('uses the server message after handling an expired session', () async {
+    var authExpiredHandlerCalls = 0;
+    client = ApiClient(
+      ApiConfig(
+        apiBaseUrl: 'https://api.example.test',
+        signatureSecret: 'secret',
+        clientBridge: _FakeClientBridge(),
+        sessionStore: SessionStore.memory(),
+        timestampProvider: () => 1700000000000,
+        randomDigitsProvider: (length) => '7' * length,
+        authExpiredHandler: () async => authExpiredHandlerCalls += 1,
+      ),
+      dio: Dio()..httpClientAdapter = adapter,
+    );
+    adapter.queue.add(
+      ResponseBody.fromString(
+        jsonEncode({
+          'griding': -2,
+          'organizational': 'Session expired on another device',
+          'fas': {},
+        }),
+        200,
+        headers: {
+          Headers.contentTypeHeader: [Headers.jsonContentType],
+        },
+      ),
+    );
+
+    await expectLater(
+      client.homePage(),
+      throwsA(
+        isA<ApiBusinessException>().having(
+          (error) => error.message,
+          'message',
+          'Session expired on another device',
+        ),
+      ),
+    );
+
+    expect(authExpiredHandlerCalls, 1);
   });
 
   test('getDeviceName requires only device identifier from caller', () async {
@@ -121,13 +166,33 @@ void main() {
       'https://api.example.test/plater/informal',
     );
     expect(adapter.lastBody, {
-      'enates': '1001',
-      'nonfeasance': '1000',
-      'chad': '1000',
       'geobotanists': '1001',
       'succumbs': '2',
       'fib': '777777',
       'dyable': '777777',
+    });
+  });
+
+  test('face report sends the complete payload as threats JSON', () async {
+    const payload = FaceReportPayload(
+      livenessId: 'liveness-id',
+      requestId: 'request-id',
+      resultCode: '0',
+      resultMessage: 'success',
+    );
+
+    await ApiClientReportNetwork(client).reportFaceResult(payload);
+
+    expect(adapter.lastBody, {
+      'hemolysis': 'liveness-id',
+      'alchemical': 'request-id',
+      'dwarfishly': '0',
+      'threats': jsonEncode({
+        'livenessId': 'liveness-id',
+        'requestId': 'request-id',
+        'resultCode': '0',
+        'resultMessage': 'success',
+      }),
     });
   });
 

@@ -49,6 +49,9 @@ class ProductDetailCache {
       'base': json['aimless'].stringValue,
       'base_success': json['prosencephalic'].stringValue,
       'face': json['periodontal'].stringValue,
+      'personal': json['caput'].stringValue,
+      'work': json['turnups'].stringValue,
+      'contact': json['madrasah'].stringValue,
     };
   }
 

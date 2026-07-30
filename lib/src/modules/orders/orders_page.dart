@@ -1,10 +1,12 @@
 import 'package:flutter/material.dart';
+import 'package:get/get.dart';
 
 import '../../core/network/api_client.dart';
 import '../../core/network/api_exception.dart';
 import '../../navigation_helper.dart';
 import '../../theme/app_colors.dart';
 import '../../utils/screen_adapter.dart';
+import '../main/main_controller.dart';
 import 'order_list_models.dart';
 import 'order_list_widgets.dart';
 
@@ -20,11 +22,22 @@ class _OrdersPageState extends State<OrdersPage> {
   var _orders = const <OrderListItem>[];
   var _loading = true;
   String? _errorMessage;
+  VoidCallback? _unregisterOrdersRefresher;
 
   @override
   void initState() {
     super.initState();
+    if (Get.isRegistered<MainController>()) {
+      _unregisterOrdersRefresher = Get.find<MainController>()
+          .registerOrdersRefresher(_refreshOrders);
+    }
     _loadOrders();
+  }
+
+  @override
+  void dispose() {
+    _unregisterOrdersRefresher?.call();
+    super.dispose();
   }
 
   void _selectStatus(OrderListStatus status) {
@@ -89,7 +102,15 @@ class _OrdersPageState extends State<OrdersPage> {
           physics: const AlwaysScrollableScrollPhysics(),
           padding: EdgeInsets.fromLTRB(20.w, 24.h, 20.w, 132.h),
           children: [
-            const _OrdersHeader(),
+            Text(
+              'Hi! Welcome',
+              style: TextStyle(
+                color: AppColors.ordersHeaderText,
+                fontSize: 22.sp,
+                fontWeight: FontWeight.w700,
+                height: 26 / 22,
+              ),
+            ),
             SizedBox(height: 23.h),
             OrderListTabs(
               selectedStatus: _selectedStatus,
@@ -192,41 +213,6 @@ class _OrdersEmptyState extends StatelessWidget {
           ),
         ),
       ),
-    );
-  }
-}
-
-class _OrdersHeader extends StatelessWidget {
-  const _OrdersHeader();
-
-  @override
-  Widget build(BuildContext context) {
-    return Row(
-      mainAxisAlignment: MainAxisAlignment.spaceBetween,
-      children: [
-        Text(
-          'Hi! Welcome',
-          style: TextStyle(
-            color: AppColors.ordersHeaderText,
-            fontSize: 22.sp,
-            fontWeight: FontWeight.w700,
-            height: 26 / 22,
-          ),
-        ),
-        Container(
-          width: 35.w,
-          height: 35.h,
-          decoration: BoxDecoration(
-            color: AppColors.ordersActionBlueText.withValues(alpha: 0.9),
-            borderRadius: BorderRadius.circular(10.r),
-          ),
-          child: Icon(
-            Icons.chat_bubble_outline_rounded,
-            color: AppColors.tabBackground,
-            size: 24.r,
-          ),
-        ),
-      ],
     );
   }
 }

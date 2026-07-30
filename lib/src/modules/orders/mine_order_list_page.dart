@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 
+import '../../app_route_observer.dart';
 import '../../assets/app_assets.dart';
 import '../../core/network/api_client.dart';
 import '../../core/network/api_exception.dart';
@@ -17,16 +18,43 @@ class MineOrderListPage extends StatefulWidget {
   State<MineOrderListPage> createState() => _MineOrderListPageState();
 }
 
-class _MineOrderListPageState extends State<MineOrderListPage> {
+class _MineOrderListPageState extends State<MineOrderListPage> with RouteAware {
   late OrderListStatus _selectedStatus;
   var _items = const <OrderListItem>[];
   var _loading = true;
   String? _errorMessage;
+  PageRoute<dynamic>? _subscribedRoute;
 
   @override
   void initState() {
     super.initState();
     _selectedStatus = OrderListStatus.fromCode(_initialStatusCode());
+    _loadOrders();
+  }
+
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    final route = ModalRoute.of(context);
+    if (route is PageRoute<dynamic> && !identical(route, _subscribedRoute)) {
+      if (_subscribedRoute != null) {
+        appRouteObserver.unsubscribe(this);
+      }
+      _subscribedRoute = route;
+      appRouteObserver.subscribe(this, route);
+    }
+  }
+
+  @override
+  void dispose() {
+    if (_subscribedRoute != null) {
+      appRouteObserver.unsubscribe(this);
+    }
+    super.dispose();
+  }
+
+  @override
+  void didPopNext() {
     _loadOrders();
   }
 

@@ -23,7 +23,10 @@ class LoanProcessSection extends StatelessWidget {
           if (items.isEmpty) {
             return Image.asset(AppAssets.homeProcessPanel, fit: BoxFit.fill);
           }
-          return _LoanProcessPanel(items: items);
+          return _LoanProcessPanel(
+            items: items,
+            onTap: controller.applyTopHeroProduct,
+          );
         }),
       ],
     );
@@ -31,35 +34,44 @@ class LoanProcessSection extends StatelessWidget {
 }
 
 class _LoanProcessPanel extends StatelessWidget {
-  const _LoanProcessPanel({required this.items});
+  const _LoanProcessPanel({required this.items, required this.onTap});
 
   final List<HomeLoanProcessItem> items;
+  final VoidCallback onTap;
 
   @override
   Widget build(BuildContext context) {
-    return Container(
-      key: const ValueKey('home_loan_process_list'),
-      width: double.infinity,
-      padding: EdgeInsets.fromLTRB(7.w, 19.h, 7.w, 10.h),
-      decoration: BoxDecoration(
-        color: AppColors.homeProcessPanel,
-        borderRadius: BorderRadius.circular(20.r),
-        border: Border.all(color: AppColors.homeProcessBorder),
-      ),
-      child: Column(
-        children: [
-          _LoanProcessProgress(items: items),
-          SizedBox(height: 7.h),
-          _LoanProcessLabels(items: items),
-          SizedBox(height: 6.h),
-          _LoanProcessAmounts(items: items),
-          SizedBox(height: 17.h),
-          Image.asset(
-            AppAssets.complianceLogos,
-            height: 32.h,
-            fit: BoxFit.fill,
+    return Semantics(
+      button: true,
+      label: 'Apply Now',
+      child: GestureDetector(
+        behavior: HitTestBehavior.opaque,
+        onTap: onTap,
+        child: Container(
+          key: const ValueKey('home_loan_process_list'),
+          width: double.infinity,
+          padding: EdgeInsets.fromLTRB(7.w, 19.h, 7.w, 10.h),
+          decoration: BoxDecoration(
+            color: AppColors.homeProcessPanel,
+            borderRadius: BorderRadius.circular(20.r),
+            border: Border.all(color: AppColors.homeProcessBorder),
           ),
-        ],
+          child: Column(
+            children: [
+              _LoanProcessProgress(items: items),
+              SizedBox(height: 7.h),
+              _LoanProcessLabels(items: items),
+              SizedBox(height: 6.h),
+              _LoanProcessAmounts(items: items),
+              SizedBox(height: 17.h),
+              Image.asset(
+                AppAssets.complianceLogos,
+                height: 32.h,
+                fit: BoxFit.fill,
+              ),
+            ],
+          ),
+        ),
       ),
     );
   }

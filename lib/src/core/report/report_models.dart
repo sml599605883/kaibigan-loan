@@ -303,4 +303,13 @@ class FaceReportPayload {
   final String requestId;
   final String resultCode;
   final String resultMessage;
+
+  Map<String, dynamic> toJson() {
+    return {
+      'livenessId': livenessId,
+      'requestId': requestId,
+      'resultCode': resultCode,
+      'resultMessage': resultMessage,
+    };
+  }
 }

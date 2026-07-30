@@ -3,6 +3,7 @@ import 'package:flutter/services.dart';
 import 'package:flutter_easyloading/flutter_easyloading.dart';
 import 'package:get/get.dart';
 
+import 'src/app_route_observer.dart';
 import 'src/app_routes.dart';
 import 'src/core/network/api_bootstrap.dart';
 import 'src/core/report/report_exports.dart';
@@ -10,6 +11,12 @@ import 'src/modules/main/main_controller.dart';
 import 'src/theme/app_colors.dart';
 import 'src/utils/app_toast.dart';
 import 'src/utils/screen_adapter.dart';
+
+final NavigatorObserver _mainPageRouteObserver = PageRouteCallbackObserver(() {
+  if (Get.isRegistered<MainController>()) {
+    Get.find<MainController>().onRouteChanged();
+  }
+});
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -35,11 +42,7 @@ class KaibiganLoanApp extends StatelessWidget {
           debugShowCheckedModeBanner: false,
           initialRoute: AppRoutes.main,
           getPages: AppPages.pages,
-          routingCallback: (_) {
-            if (Get.isRegistered<MainController>()) {
-              Get.find<MainController>().onRouteChanged();
-            }
-          },
+          navigatorObservers: [appRouteObserver, _mainPageRouteObserver],
           defaultTransition: Transition.rightToLeft,
           transitionDuration: const Duration(milliseconds: 260),
           popGesture: false,

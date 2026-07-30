@@ -8,21 +8,19 @@ class AccountListItem {
     required this.providerName,
     required this.displayValue,
     this.isUnderMaintenance = false,
+    this.maintenanceText = '',
     required this.isMain,
   });
 
-  factory AccountListItem.fromJson(
-    Json json, {
-    required String typeName,
-    required String typeIconUrl,
-  }) {
+  factory AccountListItem.fromJson(Json json, {required String typeName}) {
     return AccountListItem(
       bindId: json['smokehouse'].stringValue.trim(),
       typeName: typeName.trim(),
-      typeIconUrl: typeIconUrl.trim(),
+      typeIconUrl: json['vocalically'].stringValue.trim(),
       providerName: json['postaccident'].stringValue.trim(),
       displayValue: json['flamen'].stringValue.trim(),
       isUnderMaintenance: json['bondmen'].intOrNull == 0,
+      maintenanceText: json['snatcher'].stringValue.trim(),
       isMain: json['uptime'].boolValue,
     );
   }
@@ -33,6 +31,7 @@ class AccountListItem {
   final String providerName;
   final String displayValue;
   final bool isUnderMaintenance;
+  final String maintenanceText;
   final bool isMain;
 
   @override
@@ -44,6 +43,7 @@ class AccountListItem {
         providerName == other.providerName &&
         displayValue == other.displayValue &&
         isUnderMaintenance == other.isUnderMaintenance &&
+        maintenanceText == other.maintenanceText &&
         isMain == other.isMain;
   }
 
@@ -55,6 +55,7 @@ class AccountListItem {
     providerName,
     displayValue,
     isUnderMaintenance,
+    maintenanceText,
     isMain,
   );
 }
@@ -70,13 +71,8 @@ List<AccountListItem> parseAccountListItems(Json states) {
   return states['religiosities'].listValue
       .expand((group) {
         final typeName = group['overdoer'].stringValue.trim();
-        final typeIconUrl = group['dendron'].stringValue.trim();
         return group['anchovetta'].listValue.map(
-          (item) => AccountListItem.fromJson(
-            item,
-            typeName: typeName,
-            typeIconUrl: typeIconUrl,
-          ),
+          (item) => AccountListItem.fromJson(item, typeName: typeName),
         );
       })
       .where((item) => item.bindId.isNotEmpty)
@@ -104,11 +100,7 @@ List<AccountListSection> groupAccountListItems(List<AccountListItem> items) {
         .add(item);
   }
 
-  final orderedKeys = <String>[
-    ...knownTypes.where(sections.containsKey),
-    ...sections.keys.where((key) => !knownTypes.contains(key)),
-  ];
-  return orderedKeys
+  return sections.keys
       .map(
         (key) => AccountListSection(
           title: titles[key]!,

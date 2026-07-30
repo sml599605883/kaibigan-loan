@@ -99,8 +99,8 @@ void main() {
     Get.back<void>();
     await tester.pumpAndSettle();
 
-    expect(Get.currentRoute, '/');
-    expect(find.byType(CertificationIdentityPage), findsNothing);
+    expect(Get.currentRoute, AppRoutes.certificationIdentity);
+    expect(find.byType(CertificationIdentityPage), findsOneWidget);
   });
 
   testWidgets(

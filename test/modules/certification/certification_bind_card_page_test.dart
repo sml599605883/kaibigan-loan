@@ -246,6 +246,24 @@ void main() {
     expect(find.text('Suggested Name'), findsNothing);
   });
 
+  testWidgets('bind card text fields use keyboard type from bellyache', (
+    tester,
+  ) async {
+    apiClient.states = _submissionStates();
+    await _pumpPage(tester, apiClient: apiClient, arguments: _arguments());
+    await tester.pumpAndSettle();
+
+    final textField = tester.widget<TextField>(
+      find.byKey(const Key('bindCardField_zips')),
+    );
+    final numericField = tester.widget<TextField>(
+      find.byKey(const Key('bindCardField_flabby')),
+    );
+
+    expect(textField.keyboardType, TextInputType.text);
+    expect(numericField.keyboardType, TextInputType.number);
+  });
+
   testWidgets('focused empty bind card field shows suggestion bubble', (
     tester,
   ) async {
@@ -557,7 +575,7 @@ void main() {
     );
     await tester.pumpAndSettle();
 
-    expect(find.text('Identity verification'), findsOneWidget);
+    expect(find.text('Account information'), findsOneWidget);
     expect(tester.takeException(), isNull);
   });
 
@@ -631,7 +649,7 @@ void main() {
     expect(tester.takeException(), isNull);
   });
 
-  testWidgets('required empty field shows server placeholder without saving', (
+  testWidgets('submits empty field values without local required validation', (
     tester,
   ) async {
     apiClient.states = _submissionStates(emptyFirstName: true);
@@ -641,9 +659,10 @@ void main() {
     await tester.tap(find.byKey(const Key('bindCardSubmit')));
     await tester.pumpAndSettle();
 
-    expect(toastPresenter.messages, ['Enter your first name']);
+    expect(toastPresenter.messages, isEmpty);
     expect(toastPresenter.errors, isEmpty);
-    expect(apiClient.saveRequests, isEmpty);
+    expect(apiClient.saveRequests, hasLength(1));
+    expect(apiClient.saveRequests.single['zips'], '');
   });
 
   testWidgets(
@@ -901,6 +920,11 @@ void main() {
     });
     expect(apiClient.productDetailIds, ['product-bind']);
     expect(reportManager.riskReports, hasLength(1));
+    expect(reportManager.faceReports, hasLength(1));
+    expect(reportManager.faceReports.single.livenessId, 'live-1');
+    expect(reportManager.faceReports.single.requestId, '');
+    expect(reportManager.faceReports.single.resultCode, '0');
+    expect(reportManager.faceReports.single.resultMessage, '');
     expect(toastPresenter.loadingMessages, [null, null, null]);
     expect(toastPresenter.dismissCount, 3);
   });
@@ -938,9 +962,9 @@ void main() {
     expect(apiClient.faceTokenRequests, isEmpty);
     expect(livenessStarted, isFalse);
     expect(find.byType(CupertinoAlertDialog), findsOneWidget);
-    expect(find.text('Camera permission required'), findsOneWidget);
+    expect(find.text('Enable Your Camera'), findsOneWidget);
 
-    await tester.tap(find.text('Settings'));
+    await tester.tap(find.text('Enable Camera'));
     await tester.pumpAndSettle();
 
     expect(openedSettings, isTrue);
@@ -1036,6 +1060,8 @@ void main() {
     );
     apiClient.faceTokenStates = _validFaceTokenStates();
     await SessionStore.instance.saveProductDetailCache(_productDetailCache());
+    final reportManager = _RecordingReportManager();
+    Get.put<ReportManager>(reportManager);
     await _pumpPage(
       tester,
       apiClient: apiClient,
@@ -1050,6 +1076,9 @@ void main() {
 
     expect(apiClient.saveRequests, hasLength(1));
     expect(toastPresenter.errors, ['native failed']);
+    expect(reportManager.faceReports, hasLength(1));
+    expect(reportManager.faceReports.single.resultCode, '-1');
+    expect(reportManager.faceReports.single.resultMessage, 'native failed');
   });
 
   testWidgets('native liveness failure uses the fallback message', (
@@ -1621,6 +1650,7 @@ Map<String, dynamic> _submissionStates({
           'griding': 'flabby',
           'suppletive': 'Enter account number',
           'prognosticator': 'Foxfishes',
+          'bellyache': 1,
           'hairbreadth': 0,
           'solonets': initialCardNo.isEmpty ? '09171234567' : initialCardNo,
         },
@@ -1886,6 +1916,7 @@ class _RecordingReportManager extends ReportManager {
       );
 
   final riskReports = <Map<String, Object>>[];
+  final faceReports = <FaceReportPayload>[];
 
   @override
   Future<void> reportRiskBehavior({
@@ -1900,6 +1931,11 @@ class _RecordingReportManager extends ReportManager {
       'orderNo': orderNo,
       'startTimeSeconds': startTimeSeconds,
     });
+  }
+
+  @override
+  Future<void> reportFaceResult(FaceReportPayload payload) async {
+    faceReports.add(payload);
   }
 }
 

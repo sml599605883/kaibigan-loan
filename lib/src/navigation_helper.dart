@@ -1,6 +1,8 @@
+import 'dart:async';
 import 'dart:developer';
 
 import 'package:flutter/cupertino.dart';
+import 'package:flutter/foundation.dart';
 import 'package:get/get.dart';
 import 'package:permission_handler/permission_handler.dart';
 import 'package:url_launcher/url_launcher.dart';
@@ -17,6 +19,7 @@ import 'core/session/product_detail_cache.dart';
 import 'core/session/session_store.dart';
 import 'modules/main/main_controller.dart';
 import 'modules/orders/order_list_models.dart';
+import 'theme/app_colors.dart';
 import 'utils/app_toast.dart';
 
 typedef RawTargetLauncher = Future<bool> Function(Uri uri);
@@ -41,6 +44,20 @@ enum _LocationPermissionAction {
   requestPermission,
   openServicePrompt,
   openSettingsPrompt,
+}
+
+class _LocationPermissionLifecycleObserver extends WidgetsBindingObserver {
+  _LocationPermissionLifecycleObserver(this.onInterrupted);
+
+  final VoidCallback onInterrupted;
+
+  @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    if (state == AppLifecycleState.paused ||
+        state == AppLifecycleState.detached) {
+      onInterrupted();
+    }
+  }
 }
 
 class NavigationHelper {
@@ -114,11 +131,6 @@ class NavigationHelper {
   }
 
   static Future<bool> defaultLocationAccessChecker() async {
-    final location = await nativeLocationLoader();
-    if (location != null && location.isValid) {
-      return true;
-    }
-
     final serviceStatus = await locationServiceStatusProvider();
     final permissionStatus = await locationPermissionStatusProvider();
     final permissionAction = _resolveLocationPermissionAction(
@@ -131,11 +143,11 @@ class NavigationHelper {
     if (permissionAction == _LocationPermissionAction.openServicePrompt) {
       await AppToast.dismissLoading();
       final goToService = await permissionPromptPresenter(
-        title: 'GPS is Off',
+        title: 'Location Access Disabled',
         content:
-            'It looks like your GPS is off. Please enable location services to complete the verification process.',
-        cancelText: 'Cancel',
-        confirmText: 'Settings',
+            'It looks like your device location is currently switched off. Please turn it on in Settings so we can verify your identity.',
+        cancelText: 'Decline',
+        confirmText: 'Go to Settings',
       );
       if (goToService) {
         await appSettingsOpener();
@@ -146,7 +158,10 @@ class NavigationHelper {
 
     if (permissionAction == _LocationPermissionAction.requestPermission) {
       await AppToast.dismissLoading();
-      final requestStatus = await locationPermissionRequester();
+      final requestStatus = await _requestLocationPermissionUntilInterrupted();
+      if (requestStatus == null) {
+        return false;
+      }
       if (requestStatus.isGranted || requestStatus.isLimited) {
         return true;
       }
@@ -157,17 +172,38 @@ class NavigationHelper {
 
     await AppToast.dismissLoading();
     final goToSettings = await permissionPromptPresenter(
-      title: 'Location Required',
+      title: 'Enable Location Access',
       content:
-          'Identity verification cannot be completed without your location. Please allow access in settings.',
-      cancelText: 'Cancel',
-      confirmText: 'Enable',
+          'Credit verification requires your location. Please allow access in your device Settings.',
+      cancelText: 'Later',
+      confirmText: 'Allow',
     );
     if (goToSettings) {
       await appSettingsOpener();
       return false;
     }
     return true;
+  }
+
+  static Future<PermissionStatus?>
+  _requestLocationPermissionUntilInterrupted() async {
+    final interrupted = Completer<PermissionStatus?>();
+    final observer = _LocationPermissionLifecycleObserver(() {
+      if (!interrupted.isCompleted) {
+        interrupted.complete();
+      }
+    });
+    WidgetsBinding.instance.addObserver(observer);
+    try {
+      return await Future.any<PermissionStatus?>([
+        locationPermissionRequester().then<PermissionStatus?>(
+          (status) => status,
+        ),
+        interrupted.future,
+      ]);
+    } finally {
+      WidgetsBinding.instance.removeObserver(observer);
+    }
   }
 
   static Future<ReportLocation?> defaultNativeLocationLoader() {
@@ -182,7 +218,20 @@ class NavigationHelper {
     return Permission.locationWhenInUse.status;
   }
 
-  static Future<PermissionStatus> defaultLocationPermissionRequester() {
+  static Future<PermissionStatus> defaultLocationPermissionRequester() async {
+    if (defaultTargetPlatform == TargetPlatform.iOS) {
+      final status = await MethodChannelReportNativeBridge()
+          .requestLocationPermission();
+      return switch (status) {
+        'authorized' ||
+        'authorized_always' ||
+        'authorized_when_in_use' => PermissionStatus.granted,
+        'limited' => PermissionStatus.limited,
+        'restricted' => PermissionStatus.restricted,
+        'permanently_denied' => PermissionStatus.permanentlyDenied,
+        _ => PermissionStatus.denied,
+      };
+    }
     return Permission.locationWhenInUse.request();
   }
 
@@ -206,7 +255,10 @@ class NavigationHelper {
               actions: [
                 CupertinoDialogAction(
                   onPressed: () => Navigator.of(dialogContext).pop(false),
-                  child: Text(cancelText),
+                  child: Text(
+                    cancelText,
+                    style: const TextStyle(color: AppColors.textSecondary),
+                  ),
                 ),
                 CupertinoDialogAction(
                   onPressed: () => Navigator.of(dialogContext).pop(true),
@@ -250,6 +302,21 @@ class NavigationHelper {
 
   static Future<T?>? toLogin<T extends Object?>() {
     return _toNamedIfNotCurrent<T>(AppRoutes.login);
+  }
+
+  static Future<void> redirectToLoginAfterSessionExpiry() async {
+    await SessionStore.instance.clearPersistent();
+    await SessionStore.instance.clearCache();
+    if (Get.isRegistered<MainController>()) {
+      Get.find<MainController>().returnToHomeTab();
+    }
+    if (Get.currentRoute == AppRoutes.login) {
+      return;
+    }
+    Get.offNamedUntil<void>(
+      AppRoutes.login,
+      (route) => route.settings.name == AppRoutes.main,
+    );
   }
 
   static Future<T?>? toNamed<T extends Object?>(String routeName) {
@@ -358,11 +425,13 @@ class NavigationHelper {
         return;
       }
       await AppToast.showLoading();
-      try {
-        await locationReporter();
-      } catch (error) {
-        logger('location report before apply failed: $error');
-      }
+      unawaited(() async {
+        try {
+          await locationReporter();
+        } catch (error) {
+          logger('location report before apply failed: $error');
+        }
+      }());
       await _applyProductNavigation(normalizedProductId, succumbs: succumbs);
       await AppToast.dismissLoading();
     } catch (error) {
@@ -411,6 +480,14 @@ class NavigationHelper {
     if (webUri != null) {
       toWebView<void>(url: webUri.toString());
     }
+  }
+
+  static Future<void> navigateWebViewRawTarget(String rawTarget) async {
+    if (_routeForRawTarget(rawTarget) == AppRoutes.login) {
+      await redirectToLoginAfterSessionExpiry();
+      return;
+    }
+    await navigateRawTarget(rawTarget);
   }
 
   static Future<T?>? toSetting<T extends Object?>() {
@@ -511,10 +588,7 @@ class NavigationHelper {
   static Future<T?>? toCertificationUpload<T extends Object?>({
     Object? arguments,
   }) {
-    return _toNamedAfterPruningCertificationFlow<T>(
-      AppRoutes.certificationUpload,
-      arguments: arguments,
-    );
+    return Get.toNamed<T>(AppRoutes.certificationUpload, arguments: arguments);
   }
 
   static Future<T?>? toCertificationIdentitySubmit<T extends Object?>({
@@ -688,11 +762,13 @@ class NavigationHelper {
     if (productId.isEmpty) {
       return;
     }
-    final response = await ApiClient.instance.productDetail(
-      geobotanists: productId,
-    );
-    await _cacheProductDetail(response.states);
-    await _handleProductDetailFlow(response.states);
+    await _runApiNavigation(() async {
+      final response = await ApiClient.instance.productDetail(
+        geobotanists: productId,
+      );
+      await _cacheProductDetail(response.states);
+      await _handleProductDetailFlow(response.states);
+    });
   }
 
   static Future<void> _cacheProductDetail(Json productDetail) async {
@@ -895,7 +971,7 @@ class NavigationHelper {
         return AppRoutes.setting;
       case AppRoutes.recredit:
       case 'recredit':
-      case 'ContradictSentimentalist':
+      case 'BedlamiteNationwide':
         return AppRoutes.recredit;
       case AppRoutes.mineOrderList:
       case 'orderList':

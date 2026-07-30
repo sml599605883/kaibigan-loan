@@ -13,10 +13,11 @@ void main() {
             'anchovetta': <Map<String, dynamic>>[
               <String, dynamic>{
                 'smokehouse': 'bank-1',
-                'vocalically': '',
+                'vocalically': 'https://example.com/metro-bank.png',
                 'postaccident': 'Metro Bank',
                 'flamen': '**** 1234',
                 'bondmen': 0,
+                'snatcher': '  Bank maintenance notice  ',
                 'uptime': '1',
               },
             ],
@@ -27,7 +28,7 @@ void main() {
             'anchovetta': <Map<String, dynamic>>[
               <String, dynamic>{
                 'smokehouse': 'wallet-1',
-                'vocalically': '',
+                'vocalically': 'https://example.com/gcash.png',
                 'postaccident': 'GCash',
                 'flamen': '0917 000 0000',
                 'bondmen': 1,
@@ -45,20 +46,22 @@ void main() {
       const AccountListItem(
         bindId: 'bank-1',
         typeName: 'Bank',
-        typeIconUrl: 'https://example.com/bank.png',
+        typeIconUrl: 'https://example.com/metro-bank.png',
         providerName: 'Metro Bank',
         displayValue: '**** 1234',
         isUnderMaintenance: true,
+        maintenanceText: 'Bank maintenance notice',
         isMain: true,
       ),
     );
-    expect(items.last.typeIconUrl, 'https://example.com/wallet.png');
+    expect(items.last.typeIconUrl, 'https://example.com/gcash.png');
     expect(items.last.displayValue, '0917 000 0000');
     expect(items.last.isUnderMaintenance, isFalse);
+    expect(items.last.maintenanceText, isEmpty);
     expect(items.last.isMain, isFalse);
   });
 
-  test('groups known types first and keeps unknown server titles', () {
+  test('keeps account type groups in server order', () {
     final sections = groupAccountListItems(<AccountListItem>[
       _item('cash-1', 'cash pickup'),
       _item('other-1', 'Crypto Wallet'),
@@ -69,13 +72,13 @@ void main() {
     ]);
 
     expect(sections.map((section) => section.title), <String>[
-      'bank',
-      'E-WALLET',
       'cash pickup',
       'Crypto Wallet',
+      'E-WALLET',
+      'bank',
       'Other',
     ]);
-    expect(sections[3].items.map((item) => item.bindId), <String>[
+    expect(sections[1].items.map((item) => item.bindId), <String>[
       'other-1',
       'other-2',
     ]);

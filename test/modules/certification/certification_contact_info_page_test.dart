@@ -11,8 +11,11 @@ import 'package:kaibigan_loan/src/core/network/api_client.dart';
 import 'package:kaibigan_loan/src/core/network/api_config.dart';
 import 'package:kaibigan_loan/src/core/network/api_exception.dart';
 import 'package:kaibigan_loan/src/core/network/api_response.dart';
+import 'package:kaibigan_loan/src/core/session/product_detail_cache.dart';
+import 'package:kaibigan_loan/src/core/session/session_store.dart';
 import 'package:kaibigan_loan/src/modules/certification/certification_contact_info_page.dart';
 import 'package:kaibigan_loan/src/modules/certification/widgets/certification_selection_sheet.dart';
+import 'package:kaibigan_loan/src/theme/app_colors.dart';
 import 'package:kaibigan_loan/src/utils/app_toast.dart';
 
 void main() {
@@ -23,6 +26,7 @@ void main() {
     Get.testMode = true;
     apiClient = _FakeApiClient();
     toastPresenter = _FakeToastPresenter();
+    Get.put<SessionStore>(SessionStore.memory());
     Get.put<ApiClient>(apiClient);
     AppToast.presenter = toastPresenter;
   });
@@ -35,6 +39,14 @@ void main() {
   testWidgets('loads and displays documented emergency contact groups', (
     tester,
   ) async {
+    await SessionStore.instance.saveProductDetailCache(
+      ProductDetailCache.fromJson({
+        'metallurgists': {
+          'madrasah':
+              'Please enter the reliable contact information of your emergency contact person for safety.',
+        },
+      }),
+    );
     apiClient.contactInfoStates = {
       'backdating': {
         'religiosities': [
@@ -72,6 +84,16 @@ void main() {
     await tester.pumpAndSettle();
 
     expect(apiClient.contactInfoIds, ['product-contact']);
+    expect(
+      find.text(
+        'Please enter the reliable contact information of your emergency contact person for safety.',
+      ),
+      findsOneWidget,
+    );
+    expect(
+      find.text('We will protect your personal information from disclosure'),
+      findsNothing,
+    );
     expect(find.text('Emergency Contacts - 1'), findsOneWidget);
     expect(find.text('Friend'), findsOneWidget);
     expect(find.text('Anna'), findsOneWidget);
@@ -120,6 +142,37 @@ void main() {
     expect(find.text('Parent'), findsOneWidget);
   });
 
+  testWidgets('uses placeholder color for unselected contact fields', (
+    tester,
+  ) async {
+    apiClient.contactInfoStates = {
+      'backdating': {
+        'religiosities': [
+          {
+            'flashbulbs': 'first',
+            'scenarists': '',
+            'unwits': '',
+            'daybed': '',
+            'hosted': [
+              {'unwits': 'Friend', 'commensurate': '5'},
+            ],
+          },
+        ],
+      },
+    };
+
+    await _pumpPage(tester);
+
+    expect(
+      tester.widget<Text>(find.text('Please select')).style?.color,
+      AppColors.certificationFieldLabel,
+    );
+    expect(
+      tester.widget<Text>(_emptyContactTextFinder()).style?.color,
+      AppColors.certificationFieldLabel,
+    );
+  });
+
   testWidgets('fills name and preferred phone from the native contact picker', (
     tester,
   ) async {
@@ -149,6 +202,38 @@ void main() {
     expect(find.text('Maria Santos'), findsOneWidget);
     expect(find.text('09175551234'), findsOneWidget);
   });
+
+  testWidgets(
+    'replaces existing contact details when the selected contact is empty',
+    (tester) async {
+      apiClient.contactInfoStates = _contactInfoStates();
+      const channel = MethodChannel('flutter_native_contact_picker');
+      tester.binding.defaultBinaryMessenger.setMockMethodCallHandler(channel, (
+        call,
+      ) async {
+        expect(call.method, 'selectContact');
+        return {
+          'fullName': '',
+          'phoneNumbers': <String>[],
+          'selectedPhoneNumber': '',
+        };
+      });
+      addTearDown(
+        () => tester.binding.defaultBinaryMessenger.setMockMethodCallHandler(
+          channel,
+          null,
+        ),
+      );
+
+      await _pumpPage(tester);
+      await tester.tap(find.byKey(const Key('contactInfoContact_first')));
+      await tester.pumpAndSettle();
+
+      expect(_emptyContactTextFinder(), findsOneWidget);
+      expect(find.text('Anna'), findsNothing);
+      expect(find.text('86543217190'), findsNothing);
+    },
+  );
 
   testWidgets('saves documented contact JSON and continues product flow', (
     tester,
@@ -193,6 +278,15 @@ void main() {
     expect(apiClient.contactInfoIds, ['product-contact', 'product-contact']);
     expect(find.text('Anna'), findsOneWidget);
   });
+}
+
+Finder _emptyContactTextFinder() {
+  return find.descendant(
+    of: find.byKey(const Key('contactInfoContact_first')),
+    matching: find.byWidgetPredicate(
+      (widget) => widget is Text && widget.data == '',
+    ),
+  );
 }
 
 Future<void> _pumpPage(WidgetTester tester) async {

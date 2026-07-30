@@ -52,6 +52,31 @@ void main() {
     expect(find.byType(UpgradePopupContent), findsNothing);
   });
 
+  testWidgets('upgrade popup closes when target URL is missing', (
+    tester,
+  ) async {
+    var externalOpenCount = 0;
+    await tester.pumpWidget(const GetMaterialApp(home: SizedBox()));
+
+    final shown = HomePopup.show(
+      const HomePopupData(type: HomePopupType.appUpgrade),
+      externalOpener: (uri) async {
+        externalOpenCount += 1;
+        return true;
+      },
+    );
+    await tester.pumpAndSettle();
+
+    expect(find.byType(UpgradePopupContent), findsOneWidget);
+
+    await tester.tap(find.byKey(HomePopup.upgradeButtonKey));
+    await tester.pumpAndSettle();
+
+    expect(externalOpenCount, 0);
+    expect(find.byType(UpgradePopupContent), findsNothing);
+    expect(await shown, isTrue);
+  });
+
   testWidgets('marketing popup opens documented target in app', (tester) async {
     String? openedUrl;
     await tester.pumpWidget(const GetMaterialApp(home: SizedBox()));

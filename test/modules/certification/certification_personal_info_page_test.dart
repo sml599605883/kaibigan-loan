@@ -9,6 +9,8 @@ import 'package:kaibigan_loan/src/core/network/api_client.dart';
 import 'package:kaibigan_loan/src/core/network/api_config.dart';
 import 'package:kaibigan_loan/src/core/network/api_exception.dart';
 import 'package:kaibigan_loan/src/core/network/api_response.dart';
+import 'package:kaibigan_loan/src/core/session/product_detail_cache.dart';
+import 'package:kaibigan_loan/src/core/session/session_store.dart';
 import 'package:kaibigan_loan/src/modules/certification/certification_personal_info_page.dart';
 import 'package:kaibigan_loan/src/modules/certification/widgets/certification_selection_sheet.dart';
 import 'package:kaibigan_loan/src/theme/app_colors.dart';
@@ -22,6 +24,7 @@ void main() {
     Get.testMode = true;
     apiClient = _FakeApiClient();
     toastPresenter = _FakeToastPresenter();
+    Get.put<SessionStore>(SessionStore.memory());
     Get.put<ApiClient>(apiClient);
     AppToast.presenter = toastPresenter;
   });
@@ -35,16 +38,20 @@ void main() {
     tester,
   ) async {
     apiClient.personalInfoStates = _personalInfoStates();
+    await _cacheProductDetailPrompts();
 
     await _pumpPage(tester, arguments: {'geobotanists': 'product-1'});
     await tester.pumpAndSettle();
 
     expect(apiClient.personalInfoIds, ['product-1']);
-    expect(find.text('Identity verification'), findsOneWidget);
+    expect(find.text('Personal information'), findsOneWidget);
     expect(
-      find.text('Fill in personal information truthfully.'),
+      find.text(
+        'Kindly provide your authentic personal information to help us verify your profile safely',
+      ),
       findsOneWidget,
     );
+    expect(find.text('Fill in personal information truthfully.'), findsNothing);
     expect(find.byKey(const Key('personalInfoProgressImage')), findsOneWidget);
     expect(
       (tester
@@ -110,7 +117,9 @@ void main() {
     expect(apiClient.productDetailIds, ['product-2']);
   });
 
-  testWidgets('requires mandatory fields before submitting', (tester) async {
+  testWidgets('submits empty dynamic field values without client validation', (
+    tester,
+  ) async {
     apiClient.personalInfoStates = {
       'enthrones': [
         {
@@ -129,8 +138,10 @@ void main() {
     await tester.tap(find.text('Submit'));
     await tester.pumpAndSettle();
 
-    expect(apiClient.savePersonalInfoPayloads, isEmpty);
-    expect(toastPresenter.errors, ['Please input email']);
+    expect(apiClient.savePersonalInfoPayloads, [
+      {'geobotanists': 'product-3', 'offer': ''},
+    ]);
+    expect(toastPresenter.errors, isEmpty);
   });
 
   testWidgets('shows API error when personal info request fails', (
@@ -148,6 +159,7 @@ void main() {
   testWidgets('work info route uses work info APIs with the same UI', (
     tester,
   ) async {
+    await _cacheProductDetailPrompts();
     apiClient.jobInfoStates = {
       'mourningly': 'Complete the filling and increase the borrowing limit.',
       'enthrones': [
@@ -184,7 +196,17 @@ void main() {
     await tester.pumpAndSettle();
 
     expect(apiClient.jobInfoIds, ['product-work']);
-    expect(find.text('Identity verification'), findsOneWidget);
+    expect(find.text('Work Information'), findsOneWidget);
+    expect(
+      find.text(
+        'Please provide and upload your genuine employment details to proceed with verification',
+      ),
+      findsOneWidget,
+    );
+    expect(
+      find.text('Complete the filling and increase the borrowing limit.'),
+      findsNothing,
+    );
     expect(find.text('Company Name'), findsOneWidget);
     expect(find.text('SPSS'), findsOneWidget);
     expect(find.text('Profession'), findsOneWidget);
@@ -316,6 +338,19 @@ void main() {
       );
       expect(find.text('Region'), findsNothing);
     },
+  );
+}
+
+Future<void> _cacheProductDetailPrompts() {
+  return SessionStore.instance.saveProductDetailCache(
+    ProductDetailCache.fromJson({
+      'metallurgists': {
+        'caput':
+            'Kindly provide your authentic personal information to help us verify your profile safely',
+        'turnups':
+            'Please provide and upload your genuine employment details to proceed with verification',
+      },
+    }),
   );
 }
 

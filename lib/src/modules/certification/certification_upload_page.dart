@@ -360,14 +360,17 @@ class _CertificationUploadPageState extends State<CertificationUploadPage> {
       context: context,
       builder: (dialogContext) {
         return CupertinoAlertDialog(
-          title: const Text('Camera permission required'),
+          title: const Text('Enable Your Camera'),
           content: const Text(
-            'Please enable camera access in Settings to continue.',
+            'ID document scanning and selfie require camera access. Please enable it in your device Settings to continue.',
           ),
           actions: [
             CupertinoDialogAction(
               onPressed: () => Navigator.of(dialogContext).pop(),
-              child: const Text('Cancel'),
+              child: const Text(
+                'Maybe Later',
+                style: TextStyle(color: AppColors.cameraPermissionLaterText),
+              ),
             ),
             CupertinoDialogAction(
               onPressed: () async {
@@ -375,7 +378,7 @@ class _CertificationUploadPageState extends State<CertificationUploadPage> {
                 await widget.openAppSettingsPage();
               },
               isDefaultAction: true,
-              child: const Text('Settings'),
+              child: const Text('Enable Camera'),
             ),
           ],
         );

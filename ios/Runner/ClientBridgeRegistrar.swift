@@ -1,6 +1,7 @@
 import AdSupport
 import AppTrackingTransparency
 import CFNetwork
+import Contacts
 import CoreLocation
 import CoreTelephony
 import DeviceKit
@@ -27,7 +28,12 @@ final class ClientBridgeRegistrar: NSObject, FlutterStreamHandler, CLLocationMan
   private let geocoder = CLGeocoder()
   private var hasConfiguredTrustDecision = false
   private var eventSink: FlutterEventSink?
-  private var pendingLocationResult: FlutterResult?
+  private var pendingLocationResults: [UUID: FlutterResult] = [:]
+  private var isRequestingLocation = false
+  private let locationRequestTimeoutInterval: TimeInterval = 10
+  private var activeLocationRequestID: UUID?
+  private var locationRequestTimeout: DispatchWorkItem?
+  private var pendingLocationPermissionResult: FlutterResult?
 
   private override init() {
     super.init()
@@ -82,6 +88,8 @@ final class ClientBridgeRegistrar: NSObject, FlutterStreamHandler, CLLocationMan
         self.requestTrackingPermission(result: result)
       case "getTrackingStatus":
         result(self.trackingStatusString())
+      case "requestLocationPermission":
+        self.requestLocationPermission(result: result)
       case "getLocation":
         self.getLocation(result: result)
       case "getPushToken":
@@ -124,9 +132,7 @@ final class ClientBridgeRegistrar: NSObject, FlutterStreamHandler, CLLocationMan
   private func requestNotificationPermission(result: @escaping FlutterResult) {
     UNUserNotificationCenter.current().requestAuthorization(options: [.alert, .badge, .sound]) { granted, _ in
       DispatchQueue.main.async {
-        if granted {
-          UIApplication.shared.registerForRemoteNotifications()
-        }
+        UIApplication.shared.registerForRemoteNotifications()
         result(granted ? "authorized" : "denied")
       }
     }
@@ -147,14 +153,30 @@ final class ClientBridgeRegistrar: NSObject, FlutterStreamHandler, CLLocationMan
     }
   }
 
+  private func requestLocationPermission(result: @escaping FlutterResult) {
+    let status = locationAuthorizationStatus()
+    guard status == .notDetermined else {
+      result(locationStatusString(status))
+      return
+    }
+
+    if let previousResult = pendingLocationPermissionResult {
+      pendingLocationPermissionResult = nil
+      previousResult("interrupted")
+    }
+    pendingLocationPermissionResult = result
+    locationManager.requestWhenInUseAuthorization()
+  }
+
   private func getLocation(result: @escaping FlutterResult) {
     let status = locationAuthorizationStatus()
     switch status {
     case .notDetermined:
       result(locationPayload(location: nil, status: locationStatusString(status)))
     case .authorizedAlways, .authorizedWhenInUse:
-      pendingLocationResult = result
-      locationManager.requestLocation()
+      let id = UUID()
+      pendingLocationResults[id] = result
+      startLocationIfNeeded()
     default:
       result(locationPayload(location: nil, status: locationStatusString(status)))
     }
@@ -162,45 +184,58 @@ final class ClientBridgeRegistrar: NSObject, FlutterStreamHandler, CLLocationMan
 
   func locationManagerDidChangeAuthorization(_ manager: CLLocationManager) {
     let status = locationAuthorizationStatus()
+    if status != .notDetermined,
+       let result = pendingLocationPermissionResult {
+      pendingLocationPermissionResult = nil
+      result(locationStatusString(status))
+    }
     if status == .authorizedAlways || status == .authorizedWhenInUse {
-      manager.requestLocation()
-    } else if let result = pendingLocationResult, status != .notDetermined {
-      pendingLocationResult = nil
-      result(locationPayload(location: nil, status: locationStatusString(status)))
+      startLocationIfNeeded()
+    } else if status != .notDetermined {
+      completeAllLocationRequests(
+        with: locationPayload(location: nil, status: locationStatusString(status))
+      )
     }
   }
 
   func locationManager(_ manager: CLLocationManager, didUpdateLocations locations: [CLLocation]) {
-    guard let result = pendingLocationResult else {
+    guard !pendingLocationResults.isEmpty else {
       return
     }
-    pendingLocationResult = nil
     guard let location = locations.last else {
-      result(locationPayload(location: nil, status: locationStatusString(locationAuthorizationStatus())))
+      completeAllLocationRequests(
+        with: locationPayload(
+          location: nil,
+          status: locationStatusString(locationAuthorizationStatus())
+        )
+      )
+      return
+    }
+    guard !geocoder.isGeocoding else {
       return
     }
 
-    if geocoder.isGeocoding {
-      geocoder.cancelGeocode()
-    }
     geocoder.reverseGeocodeLocation(location) { [weak self] placemarks, _ in
       guard let self else {
         return
       }
-      result(self.locationPayload(
-        location: location,
-        placemark: placemarks?.first,
-        status: self.locationStatusString(self.locationAuthorizationStatus())
-      ))
+      self.completeAllLocationRequests(
+        with: self.locationPayload(
+          location: location,
+          placemark: placemarks?.first,
+          status: self.locationStatusString(self.locationAuthorizationStatus())
+        )
+      )
     }
   }
 
   func locationManager(_ manager: CLLocationManager, didFailWithError error: Error) {
-    guard let result = pendingLocationResult else {
-      return
-    }
-    pendingLocationResult = nil
-    result(locationPayload(location: nil, status: locationStatusString(locationAuthorizationStatus())))
+    completeAllLocationRequests(
+      with: locationPayload(
+        location: nil,
+        status: locationStatusString(locationAuthorizationStatus())
+      )
+    )
   }
 
   private func configureTrustDecisionIfNeeded() {
@@ -596,10 +631,8 @@ final class ClientBridgeRegistrar: NSObject, FlutterStreamHandler, CLLocationMan
     guard let placemark else {
       return ""
     }
-    let parts = [placemark.subThoroughfare, placemark.thoroughfare, placemark.subLocality, placemark.name]
-      .compactMap { $0?.trimmingCharacters(in: .whitespacesAndNewlines) }
-      .filter { !$0.isEmpty }
-    return uniqueAddressParts(parts).joined(separator: " ")
+    return placemark.postalAddress?.street
+      .trimmingCharacters(in: .whitespacesAndNewlines) ?? ""
   }
 
   private func fullAddress(from placemark: CLPlacemark?) -> String {
@@ -619,6 +652,52 @@ final class ClientBridgeRegistrar: NSObject, FlutterStreamHandler, CLLocationMan
   private func uniqueAddressParts(_ parts: [String]) -> [String] {
     var seen = Set<String>()
     return parts.filter { seen.insert($0).inserted }
+  }
+
+  private func startLocationIfNeeded() {
+    guard !isRequestingLocation else {
+      return
+    }
+    guard !pendingLocationResults.isEmpty else {
+      return
+    }
+    let requestID = UUID()
+    isRequestingLocation = true
+    activeLocationRequestID = requestID
+    let timeout = DispatchWorkItem { [weak self] in
+      guard let self, self.activeLocationRequestID == requestID else {
+        return
+      }
+      self.completeAllLocationRequests(
+        with: self.locationPayload(
+          location: nil,
+          status: self.locationStatusString(self.locationAuthorizationStatus())
+        )
+      )
+    }
+    locationRequestTimeout = timeout
+    DispatchQueue.main.asyncAfter(
+      deadline: .now() + locationRequestTimeoutInterval,
+      execute: timeout
+    )
+    locationManager.startUpdatingLocation()
+  }
+
+  private func completeAllLocationRequests(with payload: [String: Any]) {
+    locationManager.stopUpdatingLocation()
+    locationRequestTimeout?.cancel()
+    locationRequestTimeout = nil
+    activeLocationRequestID = nil
+    guard !pendingLocationResults.isEmpty else {
+      isRequestingLocation = false
+      return
+    }
+    let results = Array(pendingLocationResults.values)
+    pendingLocationResults.removeAll()
+    isRequestingLocation = false
+    for result in results {
+      result(payload)
+    }
   }
 
   private func locationAuthorizationStatus() -> CLAuthorizationStatus {

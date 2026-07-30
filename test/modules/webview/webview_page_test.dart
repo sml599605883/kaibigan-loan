@@ -1,8 +1,21 @@
+import 'dart:io';
+
 import 'package:flutter_test/flutter_test.dart';
 import 'package:kaibigan_loan/src/modules/webview/webview_page.dart';
 import 'package:kaibigan_loan/src/core/json/json.dart';
 
 void main() {
+  test('WebView routes internal login schemes through session-safe navigation', () {
+    final source = File(
+      '${Directory.current.path}/lib/src/modules/webview/webview_page.dart',
+    ).readAsStringSync();
+
+    expect(
+      source,
+      contains('navigateInternalUri: NavigationHelper.navigateWebViewRawTarget'),
+    );
+  });
+
   test('does not use a stale WebView controller after page disposal', () {
     final controller = Object();
 
@@ -53,7 +66,19 @@ void main() {
     );
     expect(
       jalapsRetentionProductId(
+        'http://8.220.135.86/#/Jalaps?joyriding=19&seamounts=1&changeAcount=1&chattinesses=1472026072818395822322355',
+      ),
+      '1',
+    );
+    expect(
+      jalapsRetentionProductId(
         'https://h5.example.test/other?seamounts=product-5',
+      ),
+      isEmpty,
+    );
+    expect(
+      jalapsRetentionProductId(
+        'https://h5.example.test/jalaps/confirm?seamounts=product-5',
       ),
       isEmpty,
     );
@@ -68,7 +93,7 @@ void main() {
     var exitCount = 0;
 
     final shown = await showJalapsBackRetention(
-      rawUrl: 'https://h5.example.test/jalaps/confirm?seamounts=product-6',
+      rawUrl: 'https://h5.example.test/Jalaps/confirm?seamounts=product-6',
       onExit: () => exitCount++,
       presenter: ({required type, required productId, required onExit}) async {
         calls.add({'type': type, 'productId': productId});

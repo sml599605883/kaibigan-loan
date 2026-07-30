@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
@@ -15,6 +17,7 @@ import '../../theme/app_colors.dart';
 import '../../utils/app_toast.dart';
 import '../../utils/screen_adapter.dart';
 import 'models/bind_card_info.dart';
+import 'trust_decision_result_reporter.dart';
 import 'widgets/certification_bind_card_form_widgets.dart';
 import 'widgets/certification_bind_card_option_sheet.dart';
 import 'widgets/certification_prompt_banner.dart';
@@ -457,17 +460,7 @@ class _CertificationBindCardPageState extends State<CertificationBindCardPage> {
     );
     final values = <String, String>{};
     for (final field in group.fields) {
-      final value = field.currentSubmitValue;
-      values[field.saveKey] = value;
-      if (field.isRequired && value.isEmpty) {
-        final placeholder = field.placeholder.trim();
-        await AppToast.show(
-          placeholder.isNotEmpty
-              ? placeholder
-              : 'Please complete ${field.label.trim()}',
-        );
-        return;
-      }
+      values[field.saveKey] = field.currentSubmitValue;
     }
 
     setState(() => _isSubmitting = true);
@@ -585,6 +578,7 @@ class _CertificationBindCardPageState extends State<CertificationBindCardPage> {
       await AppToast.dismissLoading();
       ownsLoading = false;
       final result = await widget.showTrustDecisionLiveness(token.license);
+      unawaited(reportTrustDecisionResult(result));
       if (!mounted) {
         return;
       }
@@ -640,14 +634,17 @@ class _CertificationBindCardPageState extends State<CertificationBindCardPage> {
       context: context,
       builder: (dialogContext) {
         return CupertinoAlertDialog(
-          title: const Text('Camera permission required'),
+          title: const Text('Enable Your Camera'),
           content: const Text(
-            'Please enable camera access in Settings to continue.',
+            'ID document scanning and selfie require camera access. Please enable it in your device Settings to continue.',
           ),
           actions: [
             CupertinoDialogAction(
               onPressed: () => Navigator.of(dialogContext).pop(),
-              child: const Text('Cancel'),
+              child: const Text(
+                'Maybe Later',
+                style: TextStyle(color: AppColors.cameraPermissionLaterText),
+              ),
             ),
             CupertinoDialogAction(
               onPressed: () async {
@@ -655,7 +652,7 @@ class _CertificationBindCardPageState extends State<CertificationBindCardPage> {
                 await widget.openAppSettingsPage();
               },
               isDefaultAction: true,
-              child: const Text('Settings'),
+              child: const Text('Enable Camera'),
             ),
           ],
         );

@@ -96,7 +96,7 @@ class ReportManager {
   bool _pushTokenListenerAttached = false;
   bool _waitingFirstLaunchTracking = false;
   bool _attributionInitializing = false;
-  String _reportingPushToken = '';
+  String? _reportingPushToken;
   Future<ReportLocation?>? _pendingLocationFuture;
   StreamSubscription<dynamic>? _nativeEventSubscription;
 
@@ -106,6 +106,7 @@ class ReportManager {
     }
     _starting = true;
     try {
+      await _cache.clearSessionReportState();
       final isFirstLaunch = await _cache.markAppOpened();
       if (isFirstLaunch) {
         _waitingFirstLaunchTracking = true;
@@ -250,7 +251,7 @@ class ReportManager {
     if (token.isEmpty) {
       token = await _waitPushTokenFromStream();
     }
-    if (token.isEmpty || _reportingPushToken == token) {
+    if (_reportingPushToken == token) {
       return;
     }
 
@@ -260,7 +261,9 @@ class ReportManager {
     } catch (error) {
       _log(error);
     } finally {
-      _reportingPushToken = '';
+      if (_reportingPushToken == token) {
+        _reportingPushToken = null;
+      }
     }
   }
 

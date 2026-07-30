@@ -67,13 +67,12 @@ class HomePage extends StatelessWidget {
           const RecommendationSection(),
           Obx(
             () => controller.recommendationItems.isEmpty
-                ? const SizedBox.shrink()
+                ? const LoanProcessSection()
                 : SizedBox(
                     key: const ValueKey('home_recommendation_bottom_gap'),
                     height: 12.h,
                   ),
           ),
-          const LoanProcessSection(),
         ],
       ),
     );

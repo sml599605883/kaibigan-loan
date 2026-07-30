@@ -12,7 +12,7 @@ abstract final class AppColors {
   static const homeProcessBorder = Color(0xFFA2DDFF);
   static const homeProcessTrack = Color(0xFFADE1FF);
   static const homeProcessDot = Color(0xFF40F4E6);
-  static const homeProcessInactiveText = Color(0xFFAFC8D8);
+  static const homeProcessInactiveText = Color(0xFFD7F0FF);
   static const homeProcessAmountMuted = Color(0xFFA9A049);
   static const homeBannerText = Color(0xFF131560);
   static const homeBannerAccent = Color(0xFFFF712E);
@@ -26,6 +26,7 @@ abstract final class AppColors {
   static const ordersGreen = Color(0xFF08764E);
   static const ordersCardBorder = Color(0xFFA2DDFF);
   static const ordersYellow = Color(0xFFFFF275);
+  static const ordersBadgeStart = Color(0xFFFFF5B0);
   static const ordersYellowEnd = Color(0xFFFFF047);
   static const ordersOrangeStart = Color(0xFFFFC6B0);
   static const ordersOrangeEnd = Color(0xFFFF7C47);
@@ -71,9 +72,11 @@ abstract final class AppColors {
   static const certificationTabInactive = Color(0xFFECECEC);
   static const certificationTabActiveText = Color(0xFFFFF275);
   static const certificationTabInactiveText = Color(0xFFB5B5B5);
+  static const cameraPermissionLaterText = Color(0xFFB8B8B8);
   static const certificationCardBackground = Color(0xFFFFFFFF);
   static const certificationTitleText = Color(0xFF000000);
   static const certificationEmptyText = Color(0xFFB5B5B5);
+  static const certificationMaintenanceText = Color(0xFFFFA300);
   static const certificationPromptStart = Color(0xFFFFF5B0);
   static const certificationPromptEnd = Color(0xFFFFF047);
   static const certificationPromptText = Color(0xFFF2835D);

@@ -8,6 +8,7 @@ import '../../core/session/session_store.dart';
 import '../../navigation_helper.dart';
 import '../../theme/app_colors.dart';
 import '../../utils/screen_adapter.dart';
+import '../main/main_controller.dart';
 import '../orders/order_list_models.dart';
 import '../widgets/section_title.dart';
 
@@ -22,15 +23,27 @@ class ProfilePage extends StatelessWidget {
         physics: const AlwaysScrollableScrollPhysics(),
         padding: EdgeInsets.fromLTRB(20.w, 0, 20.w, 120.h),
         children: [
-          FutureBuilder<String>(
-            future: SessionStore.instance.phone(),
-            builder: (context, snapshot) => _ProfileSummaryCard(
-              phoneNumber: _maskPhoneNumber(snapshot.data ?? ''),
-            ),
-          ),
+          _buildProfileSummaryCard(),
           SizedBox(height: 20.h),
           const _ServiceSection(),
         ],
+      ),
+    );
+  }
+
+  Widget _buildProfileSummaryCard() {
+    if (Get.isRegistered<MainController>()) {
+      final controller = Get.find<MainController>();
+      return Obx(
+        () => _ProfileSummaryCard(
+          phoneNumber: _maskPhoneNumber(controller.profilePhoneNumber.value),
+        ),
+      );
+    }
+    return FutureBuilder<String>(
+      future: SessionStore.instance.phone(),
+      builder: (context, snapshot) => _ProfileSummaryCard(
+        phoneNumber: _maskPhoneNumber(snapshot.data ?? ''),
       ),
     );
   }
@@ -61,7 +74,7 @@ class _ProfileSummaryCard extends StatelessWidget {
       ),
       child: Column(
         children: [
-          SizedBox(height: 46.h),
+          SizedBox(height: 46.w),
           Row(
             crossAxisAlignment: CrossAxisAlignment.end,
             children: [
@@ -70,7 +83,7 @@ class _ProfileSummaryCard extends StatelessWidget {
                 child: Image.asset(
                   AppAssets.profileAvatar,
                   width: 66.w,
-                  height: 66.h,
+                  height: 66.w,
                   fit: BoxFit.contain,
                 ),
               ),
@@ -88,26 +101,32 @@ class _ProfileSummaryCard extends StatelessWidget {
               ),
             ],
           ),
-          SizedBox(height: 16.h),
+          SizedBox(height: 16.w),
           Padding(
-            padding: EdgeInsets.symmetric(horizontal: 16.w, vertical: 25.h),
+            padding: EdgeInsets.symmetric(horizontal: 15.w, vertical: 25.w),
             child: Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              mainAxisAlignment: MainAxisAlignment.spaceEvenly,
               children: const [
-                _OrderShortcut(
-                  label: 'All order',
-                  asset: AppAssets.profileOrderAll,
-                  status: OrderListStatus.all,
+                Expanded(
+                  child: _OrderShortcut(
+                    label: 'All order',
+                    asset: AppAssets.profileOrderAll,
+                    status: OrderListStatus.all,
+                  ),
                 ),
-                _OrderShortcut(
-                  label: 'Outstanding',
-                  asset: AppAssets.profileOrderOutstanding,
-                  status: OrderListStatus.outstanding,
+                Expanded(
+                  child: _OrderShortcut(
+                    label: 'Outstanding',
+                    asset: AppAssets.profileOrderOutstanding,
+                    status: OrderListStatus.outstanding,
+                  ),
                 ),
-                _OrderShortcut(
-                  label: 'Settled',
-                  asset: AppAssets.profileOrderSettled,
-                  status: OrderListStatus.settled,
+                Expanded(
+                  child: _OrderShortcut(
+                    label: 'Settled',
+                    asset: AppAssets.profileOrderSettled,
+                    status: OrderListStatus.settled,
+                  ),
                 ),
               ],
             ),
@@ -137,31 +156,26 @@ class _OrderShortcut extends StatelessWidget {
         borderRadius: BorderRadius.circular(10.r),
         onTap: () =>
             NavigationHelper.toMineOrderList<void>(initialStatus: status),
-        child: SizedBox(
-          width: 84.w,
-          height: 87.h,
-          child: Stack(
-            alignment: Alignment.bottomCenter,
-            children: [
-              Image.asset(asset, width: 102.w, height: 95.h, fit: BoxFit.fill),
-              Padding(
-                padding: EdgeInsets.only(left: 4.w, right: 4.w, bottom: 10.h),
-                child: FittedBox(
-                  fit: BoxFit.scaleDown,
-                  child: Text(
-                    label,
-                    maxLines: 1,
-                    textAlign: TextAlign.center,
-                    style: TextStyle(
-                      color: AppColors.ordersTitleText,
-                      fontSize: 12.sp,
-                      fontWeight: FontWeight.w700,
-                      height: 14 / 12,
-                    ),
-                  ),
-                ),
+        child: Container(
+          decoration: BoxDecoration(
+            image: DecorationImage(image: AssetImage(asset), fit: BoxFit.fill),
+          ),
+          alignment: Alignment.bottomCenter,
+          padding: EdgeInsets.only(bottom: 13.w),
+          height: 95.w,
+          child: FittedBox(
+            fit: BoxFit.scaleDown,
+            child: Text(
+              label,
+              maxLines: 1,
+              textAlign: TextAlign.center,
+              style: TextStyle(
+                color: AppColors.ordersTitleText,
+                fontSize: 12.sp,
+                fontWeight: FontWeight.w700,
+                height: 14 / 12,
               ),
-            ],
+            ),
           ),
         ),
       ),
@@ -265,7 +279,7 @@ class _ServiceListItem extends StatelessWidget {
                   overflow: TextOverflow.ellipsis,
                   style: TextStyle(
                     color: AppColors.profileServiceText,
-                    fontSize: 16.sp,
+                    fontSize: 14.sp,
                     fontWeight: FontWeight.w400,
                     height: 19 / 16,
                   ),

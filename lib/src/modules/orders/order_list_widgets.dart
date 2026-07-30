@@ -168,12 +168,15 @@ class _OrderAmountBlock extends StatelessWidget {
         ? 'App Name'
         : item.productName;
     final amountText = item.amountText.isEmpty ? '--' : item.amountText;
+    final amountLabel = item.amountLabel.isEmpty
+        ? 'Loan Amount'
+        : item.amountLabel;
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       mainAxisSize: MainAxisSize.min,
       children: [
-        _AppNameTag(productName: productName),
+        _AppNameTag(productName: productName, productLogo: item.productLogo),
         SizedBox(height: 8.h),
         SizedBox(
           height: 31.h,
@@ -197,7 +200,7 @@ class _OrderAmountBlock extends StatelessWidget {
             fit: BoxFit.scaleDown,
             alignment: Alignment.centerLeft,
             child: Text(
-              'Loan Amount',
+              amountLabel,
               maxLines: 1,
               style: TextStyle(
                 color: AppColors.ordersLightText,
@@ -214,9 +217,10 @@ class _OrderAmountBlock extends StatelessWidget {
 }
 
 class _AppNameTag extends StatelessWidget {
-  const _AppNameTag({required this.productName});
+  const _AppNameTag({required this.productName, required this.productLogo});
 
   final String productName;
+  final String productLogo;
 
   @override
   Widget build(BuildContext context) {
@@ -234,15 +238,21 @@ class _AppNameTag extends StatelessWidget {
       ),
       child: Row(
         children: [
-          Container(
-            width: 16.w,
-            height: 16.h,
-            decoration: const BoxDecoration(
-              color: AppColors.tabBackground,
-              shape: BoxShape.circle,
+          if (productLogo.isNotEmpty) ...[
+            Container(
+              key: const ValueKey('order_product_logo'),
+              width: 16.w,
+              height: 16.h,
+              clipBehavior: Clip.antiAlias,
+              decoration: const BoxDecoration(shape: BoxShape.circle),
+              child: Image.network(
+                productLogo,
+                fit: BoxFit.cover,
+                errorBuilder: (_, _, _) => const SizedBox.shrink(),
+              ),
             ),
-          ),
-          SizedBox(width: 4.w),
+            SizedBox(width: 4.w),
+          ],
           Expanded(
             child: Text(
               productName,

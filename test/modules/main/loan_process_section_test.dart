@@ -43,19 +43,35 @@ void main() {
 
     _expectMarkerCenteredOnAmount(tester, 0);
   });
+
+  testWidgets('applies the top hero product when process panel is tapped', (
+    tester,
+  ) async {
+    final controller = _RecordingMainController();
+    await _pumpLoanProcess(
+      tester,
+      selected: const [true, false, false, false],
+      controller: controller,
+    );
+
+    await tester.tap(find.byKey(const ValueKey('home_loan_process_list')));
+
+    expect(controller.applyTopHeroProductCallCount, 1);
+  });
 }
 
 Future<void> _pumpLoanProcess(
   WidgetTester tester, {
   required List<bool> selected,
+  MainController? controller,
 }) async {
   tester.view.physicalSize = const Size(375, 812);
   tester.view.devicePixelRatio = 1;
   addTearDown(tester.view.resetPhysicalSize);
   addTearDown(tester.view.resetDevicePixelRatio);
 
-  final controller = Get.put(MainController());
-  controller.loanProcessItems.assignAll(
+  final mainController = Get.put(controller ?? MainController());
+  mainController.loanProcessItems.assignAll(
     List.generate(
       selected.length,
       (index) => HomeLoanProcessItem(
@@ -70,6 +86,15 @@ Future<void> _pumpLoanProcess(
     const GetMaterialApp(home: Scaffold(body: LoanProcessSection())),
   );
   await tester.pump();
+}
+
+class _RecordingMainController extends MainController {
+  int applyTopHeroProductCallCount = 0;
+
+  @override
+  Future<void> applyTopHeroProduct() async {
+    applyTopHeroProductCallCount += 1;
+  }
 }
 
 void _expectMarkerCenteredOnAmount(WidgetTester tester, int index) {

@@ -8,6 +8,7 @@ import '../../core/json/json.dart';
 import '../../core/network/api_client.dart';
 import '../../core/network/api_exception.dart';
 import '../../core/report/risk_report_scene.dart';
+import '../../core/session/session_store.dart';
 import '../../theme/app_colors.dart';
 import '../../utils/app_toast.dart';
 import '../../utils/screen_adapter.dart';
@@ -81,10 +82,7 @@ class _CertificationContactInfoPageState
             .map((value) => _ContactGroup.fromJson(Json(value)))
             .where((group) => group.groupKey.isNotEmpty)
             .toList(growable: false);
-        _prompt = _firstNonEmpty(
-          response.states['mourningly'].stringValue.trim(),
-          _defaultPrompt,
-        );
+        _prompt = _promptFromCache();
         _loadError = '';
         _isLoading = false;
       });
@@ -99,6 +97,21 @@ class _CertificationContactInfoPageState
       });
       await AppToast.error(message);
     }
+  }
+
+  String _promptFromCache() {
+    if (!Get.isRegistered<SessionStore>()) {
+      return _defaultPrompt;
+    }
+    return _firstNonEmpty(
+      SessionStore.instance
+              .productDetailCache()
+              ?.note['contact']
+              ?.toString()
+              .trim() ??
+          '',
+      _defaultPrompt,
+    );
   }
 
   @override
@@ -256,16 +269,9 @@ class _CertificationContactInfoPageState
     }
     final name = (contact.fullName ?? '').trim();
     final phone = _primaryPhone(contact);
-    if (name.isEmpty && phone.isEmpty) {
-      return;
-    }
     setState(() {
-      if (name.isNotEmpty) {
-        group.name = name;
-      }
-      if (phone.isNotEmpty) {
-        group.phone = phone;
-      }
+      group.name = name;
+      group.phone = phone;
     });
   }
 
@@ -402,7 +408,7 @@ class _ContactInfoHeader extends StatelessWidget {
             ),
           ),
           Text(
-            'Identity verification',
+            'Contact information',
             style: TextStyle(
               color: AppColors.certificationTitleText,
               fontSize: 20.sp,
@@ -458,7 +464,16 @@ class _ContactGroupView extends StatelessWidget {
             height: 40,
             child: Row(
               children: [
-                Expanded(child: Text(group.relationshipLabel)),
+                Expanded(
+                  child: Text(
+                    group.relationshipLabel,
+                    style: TextStyle(
+                      color: group.relationshipValue.isEmpty
+                          ? AppColors.certificationFieldLabel
+                          : AppColors.certificationFieldText,
+                    ),
+                  ),
+                ),
                 Image.asset(
                   AppAssets.arrowRight,
                   key: Key('contactInfoRelationshipArrow_${group.groupKey}'),
@@ -493,9 +508,12 @@ class _ContactGroupView extends StatelessWidget {
                     mainAxisAlignment: MainAxisAlignment.center,
                     children: [
                       Text(
-                        group.name.isEmpty
-                            ? 'Please select contact'
-                            : group.name,
+                        group.name,
+                        style: TextStyle(
+                          color: group.name.isEmpty
+                              ? AppColors.certificationFieldLabel
+                              : AppColors.certificationFieldText,
+                        ),
                       ),
                       if (group.phone.isNotEmpty) SizedBox(height: 12.h),
                       if (group.phone.isNotEmpty) Text(group.phone),

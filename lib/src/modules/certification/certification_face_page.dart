@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:convert';
 import 'dart:io';
 
@@ -16,6 +17,7 @@ import '../../navigation_helper.dart';
 import '../../theme/app_colors.dart';
 import '../../utils/app_toast.dart';
 import '../../utils/screen_adapter.dart';
+import 'trust_decision_result_reporter.dart';
 import 'widgets/certification_prompt_banner.dart';
 import 'widgets/certification_retention_guard.dart';
 
@@ -73,7 +75,7 @@ class _CertificationFacePageState extends State<CertificationFacePage> {
             _FaceHeader(
               onBack: CertificationRetentionGuard.backHandler(
                 type: '1',
-                productId: _productIdFromArguments(),
+                productId: _productIdFromCache(),
               ),
             ),
             SizedBox(height: 20.h),
@@ -158,8 +160,8 @@ class _CertificationFacePageState extends State<CertificationFacePage> {
         return;
       }
       final response = await ApiClient.instance.getFaceToken(
-        dodgy: _productIdFromArguments(),
-        commensurate: '11',
+        dodgy: _orderNoFromCache(),
+        commensurate: '0',
       );
       if (!mounted) {
         return;
@@ -184,6 +186,7 @@ class _CertificationFacePageState extends State<CertificationFacePage> {
         return;
       }
       final result = await widget.showTrustDecisionLiveness(token.license);
+      unawaited(reportTrustDecisionResult(result));
       if (!result.success) {
         await AppToast.error(
           result.message.isNotEmpty
@@ -211,14 +214,17 @@ class _CertificationFacePageState extends State<CertificationFacePage> {
       context: context,
       builder: (dialogContext) {
         return CupertinoAlertDialog(
-          title: const Text('Camera permission required'),
+          title: const Text('Enable Your Camera'),
           content: const Text(
-            'Please enable camera access in Settings to continue.',
+            'ID document scanning and selfie require camera access. Please enable it in your device Settings to continue.',
           ),
           actions: [
             CupertinoDialogAction(
               onPressed: () => Navigator.of(dialogContext).pop(),
-              child: const Text('Cancel'),
+              child: const Text(
+                'Maybe Later',
+                style: TextStyle(color: AppColors.cameraPermissionLaterText),
+              ),
             ),
             CupertinoDialogAction(
               onPressed: () async {
@@ -226,7 +232,7 @@ class _CertificationFacePageState extends State<CertificationFacePage> {
                 await widget.openAppSettingsPage();
               },
               isDefaultAction: true,
-              child: const Text('Settings'),
+              child: const Text('Enable Camera'),
             ),
           ],
         );
@@ -234,12 +240,18 @@ class _CertificationFacePageState extends State<CertificationFacePage> {
     );
   }
 
-  String _productIdFromArguments() {
-    final arguments = Get.arguments;
-    if (arguments is Map) {
-      return arguments['geobotanists']?.toString().trim() ?? '';
+  String _productIdFromCache() {
+    if (!Get.isRegistered<SessionStore>()) {
+      return '';
     }
-    return '';
+    return SessionStore.instance.productDetailCache()?.productid.trim() ?? '';
+  }
+
+  String _orderNoFromCache() {
+    if (!Get.isRegistered<SessionStore>()) {
+      return '';
+    }
+    return SessionStore.instance.productDetailCache()?.orderNo.trim() ?? '';
   }
 
   Future<void> _uploadTrustDecisionFace({
@@ -265,7 +277,7 @@ class _CertificationFacePageState extends State<CertificationFacePage> {
       return;
     }
     await AppToast.dismissLoading();
-    final productId = _productIdFromArguments();
+    final productId = _productIdFromCache();
     if (productId.isNotEmpty) {
       RiskReportScene.report(
         productId: productId,

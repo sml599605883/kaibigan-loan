@@ -50,6 +50,10 @@ class MethodChannelReportNativeBridge implements ReportNativeBridge {
     return _invokeString('requestTrackingPermission');
   }
 
+  Future<String> requestLocationPermission() {
+    return _invokeString('requestLocationPermission');
+  }
+
   @override
   Future<String> getTrackingStatus() {
     return _invokeString('getTrackingStatus');

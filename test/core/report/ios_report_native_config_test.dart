@@ -31,11 +31,32 @@ void main() {
     expect(content, contains('kaibigan_loan/report_event'));
     expect(content, contains('requestNotificationPermission'));
     expect(content, contains('requestTrackingPermission'));
+    expect(content, contains('requestLocationPermission'));
     expect(content, contains('getTrackingStatus'));
     expect(content, contains('getLocation'));
     expect(content, contains('getPushToken'));
     expect(content, contains('getDeviceSnapshot'));
     expect(content, contains('FlutterStreamHandler'));
+  });
+
+  test('iOS registers for APNs regardless of notification permission', () {
+    final content = registrar.readAsStringSync();
+    final methodStart = content.indexOf(
+      'private func requestNotificationPermission(',
+    );
+    final methodEnd = content.indexOf(
+      '\n  private func requestTrackingPermission(',
+      methodStart,
+    );
+
+    expect(methodStart, isNonNegative);
+    expect(methodEnd, greaterThan(methodStart));
+    final methodBody = content.substring(methodStart, methodEnd);
+    expect(
+      methodBody,
+      contains('UIApplication.shared.registerForRemoteNotifications()'),
+    );
+    expect(methodBody, isNot(contains('if granted {')));
   });
 
   test('iOS location reads never request permission implicitly', () {
@@ -52,6 +73,88 @@ void main() {
     expect(methodBody, contains('case .notDetermined:'));
     expect(methodBody, contains('result(locationPayload(location: nil'));
     expect(methodBody, isNot(contains('requestWhenInUseAuthorization()')));
+  });
+
+  test('iOS product permission request replaces and restarts pending request', () {
+    final content = registrar.readAsStringSync();
+    final methodStart = content.indexOf(
+      'private func requestLocationPermission(',
+    );
+
+    expect(methodStart, isNonNegative);
+    if (methodStart < 0) {
+      return;
+    }
+    final methodEnd = content.indexOf('\n  private func getLocation(', methodStart);
+    expect(methodEnd, greaterThan(methodStart));
+    final methodBody = content.substring(methodStart, methodEnd);
+    expect(methodBody, contains('pendingLocationPermissionResult'));
+    expect(methodBody, contains('previousResult("interrupted")'));
+    expect(methodBody, contains('requestWhenInUseAuthorization()'));
+  });
+
+  test('iOS location bridge queues concurrent reads as one native request', () {
+    final content = registrar.readAsStringSync();
+
+    expect(content, contains('pendingLocationResults'));
+    expect(content, contains('isRequestingLocation'));
+    expect(content, contains('pendingLocationResults[id] = result'));
+    expect(content, contains('guard !isRequestingLocation else {'));
+    expect(content, contains('guard !geocoder.isGeocoding else {'));
+    expect(content, contains('completeAllLocationRequests'));
+    expect(content, isNot(contains('private var pendingLocationResult:')));
+    expect(content, isNot(contains('geocoder.cancelGeocode()')));
+  });
+
+  test('iOS location bridge starts continuous location updates', () {
+    final content = registrar.readAsStringSync();
+    final methodStart = content.indexOf('private func startLocationIfNeeded()');
+
+    expect(methodStart, isNonNegative);
+    if (methodStart < 0) {
+      return;
+    }
+    final methodEnd = content.indexOf(
+      '\n  private func completeAllLocationRequests(',
+      methodStart,
+    );
+    expect(methodEnd, greaterThan(methodStart));
+    final methodBody = content.substring(methodStart, methodEnd);
+    expect(methodBody, contains('locationManager.startUpdatingLocation()'));
+    expect(methodBody, isNot(contains('locationManager.requestLocation()')));
+  });
+
+  test('iOS location bridge stops continuous updates when completing reads', () {
+    final content = registrar.readAsStringSync();
+    final methodStart = content.indexOf(
+      'private func completeAllLocationRequests(',
+    );
+
+    expect(methodStart, isNonNegative);
+    if (methodStart < 0) {
+      return;
+    }
+    final methodEnd = content.indexOf(
+      '\n  private func locationAuthorizationStatus()',
+      methodStart,
+    );
+    expect(methodEnd, greaterThan(methodStart));
+    final methodBody = content.substring(methodStart, methodEnd);
+    expect(methodBody, contains('locationManager.stopUpdatingLocation()'));
+  });
+
+  test('iOS location bridge times out pending reads after ten seconds', () {
+    final content = registrar.readAsStringSync();
+
+    expect(
+      content,
+      contains('private let locationRequestTimeoutInterval: TimeInterval = 10'),
+    );
+    expect(content, contains('private var activeLocationRequestID: UUID?'));
+    expect(content, contains('private var locationRequestTimeout: DispatchWorkItem?'));
+    expect(content, contains('DispatchQueue.main.asyncAfter'));
+    expect(content, contains('activeLocationRequestID == requestID'));
+    expect(content, contains('locationRequestTimeout?.cancel()'));
   });
 
   test('iOS bridge registers with the initialized Flutter engine', () {
@@ -113,6 +216,30 @@ void main() {
         'placemark.subLocality, streetNumber]',
       ),
     );
+  });
+
+  test('iOS bridge reads street from the placemark street field', () {
+    final content = registrar.readAsStringSync();
+    final methodStart = content.indexOf(
+      'private func street(from placemark: CLPlacemark?)',
+    );
+
+    expect(content, contains('import Contacts'));
+    expect(methodStart, isNonNegative);
+    if (methodStart < 0) {
+      return;
+    }
+    final methodEnd = content.indexOf(
+      '\n  private func fullAddress(',
+      methodStart,
+    );
+    expect(methodEnd, greaterThan(methodStart));
+    final methodBody = content.substring(methodStart, methodEnd);
+    expect(methodBody, contains('placemark.postalAddress?.street'));
+    expect(methodBody, isNot(contains('placemark.subThoroughfare')));
+    expect(methodBody, isNot(contains('placemark.thoroughfare')));
+    expect(methodBody, isNot(contains('placemark.subLocality')));
+    expect(methodBody, isNot(contains('placemark.name')));
   });
 
   test('iOS registrar collects report fields instead of hardcoding blanks', () {

@@ -17,6 +17,7 @@ import 'package:kaibigan_loan/src/app_routes.dart';
 import 'package:kaibigan_loan/src/modules/login/login_page.dart';
 import 'package:kaibigan_loan/src/theme/app_colors.dart';
 import 'package:kaibigan_loan/src/utils/app_toast.dart';
+import 'package:kaibigan_loan/src/utils/screen_adapter.dart';
 
 void main() {
   late _FakeApiClient apiClient;
@@ -157,6 +158,51 @@ void main() {
     expect(toastPresenter.showLoadingCount, 0);
   });
 
+  testWidgets('logs in after accepting agreement and tapping submit', (
+    tester,
+  ) async {
+    await _pumpLoginWithRoutes(tester);
+
+    await tester.tap(find.byKey(const Key('loginAgreementToggle')));
+    await tester.enterText(
+      find.byKey(const Key('loginPhoneField')),
+      '09171234567',
+    );
+    await tester.enterText(find.byKey(const Key('loginCodeField')), '123456');
+    await tester.pump();
+
+    expect(apiClient.loginRequestCount, 0);
+    expect(toastPresenter.messages, ['Please agree to the Privacy Policy']);
+
+    await tester.tap(find.byKey(const Key('loginAgreementToggle')));
+    await tester.pump();
+    final submitButton = tester.widget<GestureDetector>(
+      find.byKey(const Key('loginSubmitButton')),
+    );
+    expect(submitButton.onTap, isNotNull);
+    submitButton.onTap!();
+    await tester.pumpAndSettle();
+
+    expect(apiClient.loginRequestCount, 1);
+    expect(Get.currentRoute, isNot(AppRoutes.login));
+  });
+
+  testWidgets('agreement text is not clipped on a small screen', (
+    tester,
+  ) async {
+    await _pumpLogin(tester, size: const Size(320, 568));
+
+    final richTextFinder = find.byWidgetPredicate(
+      (widget) =>
+          widget is RichText &&
+          widget.text.toPlainText().contains('Privacy Policy'),
+    );
+    final richText = tester.renderObject<RenderBox>(richTextFinder);
+
+    expect(tester.takeException(), isNull);
+    expect(richText.size.height, greaterThanOrEqualTo(28));
+  });
+
   testWidgets('clears code and refocuses when automatic login fails', (
     tester,
   ) async {
@@ -201,6 +247,17 @@ void main() {
       find.byKey(const Key('loginPhoneField')),
       '8724723748234',
     );
+    await tester.enterText(find.byKey(const Key('loginCodeField')), '21323');
+    await tester.pump();
+
+    final incompleteCodeButton = tester.widget<DecoratedBox>(
+      find.byKey(const Key('loginSubmitDecoration')),
+    );
+    expect(
+      (incompleteCodeButton.decoration as BoxDecoration).color,
+      AppColors.loginButtonDisabled,
+    );
+
     await tester.enterText(find.byKey(const Key('loginCodeField')), '213238');
     await tester.pump();
 
@@ -233,13 +290,24 @@ void main() {
   });
 }
 
-Future<void> _pumpLogin(WidgetTester tester) async {
-  tester.view.physicalSize = const Size(375, 812);
+Future<void> _pumpLogin(
+  WidgetTester tester, {
+  Size size = const Size(375, 812),
+}) async {
+  tester.view.physicalSize = size;
   tester.view.devicePixelRatio = 1;
   addTearDown(tester.view.resetPhysicalSize);
   addTearDown(tester.view.resetDevicePixelRatio);
 
-  await tester.pumpWidget(const MaterialApp(home: LoginPage()));
+  await tester.pumpWidget(
+    MaterialApp(
+      builder: (context, child) {
+        ScreenAdapter.init(context);
+        return child!;
+      },
+      home: const LoginPage(),
+    ),
+  );
 }
 
 Future<void> _pumpLoginWithRoutes(WidgetTester tester) async {

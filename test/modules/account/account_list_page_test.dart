@@ -102,10 +102,7 @@ void main() {
       findsOneWidget,
     );
     expect(
-      find.text(
-        'The bank is under maintenance. Loans may be delayed.\n'
-        'Please wait or choose another option',
-      ),
+      find.text('Maintenance notice issued by the server'),
       findsOneWidget,
     );
     expect(_selectionImageFor(tester, 'bind-1').width, 20);
@@ -350,6 +347,7 @@ Json _accounts() => Json(<String, dynamic>{
           'postaccident': 'BDO',
           'flamen': '**** 1234',
           'bondmen': 0,
+          'snatcher': 'Maintenance notice issued by the server',
           'uptime': 1,
         },
       ],

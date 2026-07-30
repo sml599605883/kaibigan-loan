@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 
-import '../../../navigation_helper.dart';
 import '../../../theme/app_colors.dart';
 import '../../../utils/screen_adapter.dart';
 import '../../widgets/section_title.dart';
@@ -27,7 +26,10 @@ class RecommendationSection extends StatelessWidget {
           ...items.map(
             (item) => Padding(
               padding: EdgeInsets.only(bottom: 16.h),
-              child: _RecommendationCard(item: item),
+              child: _RecommendationCard(
+                item: item,
+                onApply: () => controller.applyRecommendationProduct(item),
+              ),
             ),
           ),
         ],
@@ -37,9 +39,10 @@ class RecommendationSection extends StatelessWidget {
 }
 
 class _RecommendationCard extends StatelessWidget {
-  const _RecommendationCard({required this.item});
+  const _RecommendationCard({required this.item, required this.onApply});
 
   final HomeRecommendationItem item;
+  final Future<void> Function() onApply;
 
   @override
   Widget build(BuildContext context) {
@@ -48,9 +51,7 @@ class _RecommendationCard extends StatelessWidget {
     return GestureDetector(
       key: ValueKey('home_recommendation_${item.productId}'),
       behavior: HitTestBehavior.opaque,
-      onTap: canApply
-          ? () => NavigationHelper.applyProduct(item.productId)
-          : null,
+      onTap: onApply,
       child: SizedBox(
         height: 105.h,
         child: Stack(

@@ -4,8 +4,10 @@ import 'package:get/get.dart';
 import '../../app_routes.dart';
 import '../../core/json/json.dart';
 import '../../core/network/api_client.dart';
+import '../../core/network/api_exception.dart';
 import '../../core/session/session_store.dart';
 import '../../navigation_helper.dart';
+import '../../utils/app_toast.dart';
 import 'home_popup.dart';
 import 'home_popup_data.dart';
 
@@ -16,10 +18,17 @@ class MainController extends GetxController with WidgetsBindingObserver {
   final orderStatusItems = <HomeOrderStatusItem>[].obs;
   final recommendationItems = <HomeRecommendationItem>[].obs;
   final topLoanCardItems = <HomeTopLoanCardItem>[].obs;
+  final profilePhoneNumber = ''.obs;
 
   bool _homeRefreshRequesting = false;
   bool _profilePopupRequesting = false;
-  bool _topHeroApplyRequesting = false;
+  bool _ordersRefreshRequesting = false;
+  bool _wasInactive = false;
+  bool _wasInBackground = false;
+  bool _inactiveResumeRefreshConsumed = false;
+  Object? _productApplyRequestToken;
+  bool _orderStatusTapRequesting = false;
+  Future<void> Function()? _ordersRefresher;
 
   ApiClient get _apiClient => ApiClient.instance;
 
@@ -43,9 +52,31 @@ class MainController extends GetxController with WidgetsBindingObserver {
 
   @override
   void didChangeAppLifecycleState(AppLifecycleState state) {
-    if (state == AppLifecycleState.resumed) {
-      _requestVisibleTabData();
+    if (state == AppLifecycleState.inactive) {
+      _wasInactive = true;
+      return;
     }
+    if (state == AppLifecycleState.hidden ||
+        state == AppLifecycleState.paused) {
+      _wasInBackground = true;
+      return;
+    }
+    if (state != AppLifecycleState.resumed) {
+      return;
+    }
+
+    final resumedFromBackground = _wasInBackground;
+    final firstInactiveResume =
+        _wasInactive && !_inactiveResumeRefreshConsumed;
+    _wasInactive = false;
+    _wasInBackground = false;
+    if (!resumedFromBackground && !firstInactiveResume) {
+      return;
+    }
+    if (!resumedFromBackground) {
+      _inactiveResumeRefreshConsumed = true;
+    }
+    _requestVisibleTabData();
   }
 
   Future<void> selectTab(int index) async {
@@ -62,6 +93,7 @@ class MainController extends GetxController with WidgetsBindingObserver {
 
   void returnToHomeTab() {
     selectedIndex.value = 0;
+    _productApplyRequestToken = null;
   }
 
   void onRouteChanged() {
@@ -74,8 +106,17 @@ class MainController extends GetxController with WidgetsBindingObserver {
       return;
     }
     if (_isProfileVisible) {
+      refreshProfilePhoneNumber();
       requestProfilePopupIfVisible();
+      return;
     }
+    if (_isOrdersVisible) {
+      requestOrdersDataIfVisible();
+    }
+  }
+
+  Future<void> refreshProfilePhoneNumber() async {
+    profilePhoneNumber.value = await SessionStore.instance.phone();
   }
 
   Future<void> requestHomeDataIfVisible() async {
@@ -83,7 +124,10 @@ class MainController extends GetxController with WidgetsBindingObserver {
       return;
     }
     _homeRefreshRequesting = true;
+    var shouldDismissLoading = false;
     try {
+      await AppToast.showLoading();
+      shouldDismissLoading = true;
       final response = await _apiClient.homePage();
       banners.assignAll(HomeBanner.fromHome(response.states));
       loanProcessItems.assignAll(HomeLoanProcessItem.fromHome(response.states));
@@ -92,9 +136,14 @@ class MainController extends GetxController with WidgetsBindingObserver {
         HomeRecommendationItem.fromHome(response.states),
       );
       topLoanCardItems.assignAll(HomeTopLoanCardItem.fromHome(response.states));
-      await _requestAndShowPopup(scene: 1);
+      await AppToast.dismissLoading();
+      shouldDismissLoading = false;
+      _requestAndShowPopup(scene: 1);
     } catch (_) {
       // Home refresh failures must not block the home page.
+      if (shouldDismissLoading) {
+        await AppToast.dismissLoading();
+      }
     } finally {
       _homeRefreshRequesting = false;
     }
@@ -114,6 +163,28 @@ class MainController extends GetxController with WidgetsBindingObserver {
     }
   }
 
+  Future<void> requestOrdersDataIfVisible() async {
+    final refresher = _ordersRefresher;
+    if (!_isOrdersVisible || _ordersRefreshRequesting || refresher == null) {
+      return;
+    }
+    _ordersRefreshRequesting = true;
+    try {
+      await refresher();
+    } finally {
+      _ordersRefreshRequesting = false;
+    }
+  }
+
+  VoidCallback registerOrdersRefresher(Future<void> Function() refresher) {
+    _ordersRefresher = refresher;
+    return () {
+      if (identical(_ordersRefresher, refresher)) {
+        _ordersRefresher = null;
+      }
+    };
+  }
+
   Future<void> _requestAndShowPopup({required int scene}) async {
     final response = await _apiClient.dialog(loungy: scene);
     final popup = HomePopupData.fromJson(response.states);
@@ -128,34 +199,156 @@ class MainController extends GetxController with WidgetsBindingObserver {
 
   bool get _isProfileVisible => selectedIndex.value == 2 && _isMainRoute;
 
+  bool get _isOrdersVisible => selectedIndex.value == 1 && _isMainRoute;
+
   bool get _isMainRoute {
     final route = Get.currentRoute;
     return route.isEmpty || route == AppRoutes.main;
   }
 
   Future<void> handleBannerTap(HomeBanner banner) async {
-    if (banner.id.isEmpty || banner.linkUrl.isEmpty) {
+    final linkUrl = banner.linkUrl.trim();
+    if (linkUrl.isEmpty) {
       return;
     }
-    try {
-      await _apiClient.bannerClickRecord(mesial: banner.id);
-    } catch (_) {
-      // Banner click reporting must not interrupt the tap interaction.
+    final bannerId = banner.id.trim();
+    if (bannerId.isNotEmpty) {
+      try {
+        await _apiClient.bannerClickRecord(mesial: bannerId);
+      } catch (_) {
+        // Banner click reporting must not interrupt the tap interaction.
+      }
     }
+    await NavigationHelper.navigateRawTarget(linkUrl);
   }
 
   Future<void> applyTopHeroProduct() async {
     final productId = topLoanCardItems.isEmpty
         ? ''
         : topLoanCardItems.first.productId.trim();
-    if (_topHeroApplyRequesting || productId.isEmpty) {
+    await _applyProductWithFlow(productId);
+  }
+
+  Future<void> applyRecommendationProduct(HomeRecommendationItem item) async {
+    await _applyProductWithFlow(item.productId);
+  }
+
+  Future<void> _applyProductWithFlow(String productId) async {
+    final normalizedProductId = productId.trim();
+    if (_productApplyRequestToken != null || normalizedProductId.isEmpty) {
       return;
     }
-    _topHeroApplyRequesting = true;
+    final requestToken = Object();
+    _productApplyRequestToken = requestToken;
     try {
-      await NavigationHelper.applyProductWithFlow(productId);
+      await NavigationHelper.applyProductWithFlow(normalizedProductId);
     } finally {
-      _topHeroApplyRequesting = false;
+      if (identical(_productApplyRequestToken, requestToken)) {
+        _productApplyRequestToken = null;
+      }
+    }
+  }
+
+  Future<void> handleOrderStatusTap(HomeOrderStatusItem item) async {
+    if (_orderStatusTapRequesting) {
+      return;
+    }
+    final linkUrl = item.linkUrl.trim();
+    final productId = item.productId.trim();
+    if (linkUrl.isEmpty && productId.isEmpty) {
+      return;
+    }
+
+    _orderStatusTapRequesting = true;
+    try {
+      if (linkUrl.isNotEmpty) {
+        final arguments = <String, dynamic>{
+          if (productId.isNotEmpty) 'geobotanists': productId,
+          if (item.orderNo.trim().isNotEmpty) 'dodgy': item.orderNo.trim(),
+        };
+        NavigationHelper.navigateRawTarget(
+          linkUrl,
+          arguments: arguments.isEmpty ? null : arguments,
+        );
+        return;
+      }
+      NavigationHelper.applyProductWithFlow(productId);
+    } finally {
+      _orderStatusTapRequesting = false;
+    }
+  }
+
+  Future<void> handleOrderStatusButtonTap(
+    HomeOrderStatusItem item,
+    HomeOrderStatusAction button,
+  ) async {
+    final action = button.type.trim().toLowerCase();
+    if (_orderStatusTapRequesting ||
+        (action != 'retry' && action != 'change')) {
+      return;
+    }
+    final productId = item.productId.trim();
+    final orderNo = item.orderNo.trim();
+    if (orderNo.isEmpty || (action == 'change' && productId.isEmpty)) {
+      return;
+    }
+
+    _orderStatusTapRequesting = true;
+    var shouldDismissLoading = false;
+    try {
+      await AppToast.showLoading();
+      shouldDismissLoading = true;
+      if (action == 'retry') {
+        final response = await _apiClient.originalCardRetry(
+          chattinesses: orderNo,
+        );
+        final redirectUrl = response
+            .ensureSuccess()
+            .states['preinserting']
+            .stringValue
+            .trim();
+        if (redirectUrl.isEmpty) {
+          throw ApiBusinessException('Missing retry result url');
+        }
+        await AppToast.dismissLoading();
+        shouldDismissLoading = false;
+        await NavigationHelper.navigateRawTarget(redirectUrl);
+        return;
+      }
+
+      final response = await _apiClient.userAccountList(
+        geobotanists: productId,
+      );
+      final hasAccounts = response
+          .ensureSuccess()
+          .states['religiosities']
+          .listValue
+          .isNotEmpty;
+      await AppToast.dismissLoading();
+      shouldDismissLoading = false;
+      if (hasAccounts) {
+        NavigationHelper.toAccountList<void>(
+          productId: productId,
+          orderNo: orderNo,
+        );
+      } else {
+        NavigationHelper.toCertificationBindCard<void>(
+          productId: productId,
+          orderNo: orderNo,
+          isAccountChange: true,
+        );
+      }
+    } catch (error) {
+      if (shouldDismissLoading) {
+        await AppToast.dismissLoading();
+        shouldDismissLoading = false;
+      }
+      await AppToast.error(ApiErrorMessage.resolve(error));
+    } finally {
+      if (shouldDismissLoading) {
+        await AppToast.dismissLoading();
+      }
+      _orderStatusTapRequesting = false;
     }
   }
 }
@@ -332,7 +525,7 @@ class HomeOrderStatusItem {
     required this.dateText,
     required this.statusText,
     required this.buttonText,
-    required this.actionUrl,
+    required this.linkUrl,
     required this.productId,
     required this.orderNo,
     required this.cardStatus,
@@ -348,7 +541,7 @@ class HomeOrderStatusItem {
   final String dateText;
   final String statusText;
   final String buttonText;
-  final String actionUrl;
+  final String linkUrl;
   final String productId;
   final String orderNo;
   final int cardStatus;
@@ -380,7 +573,7 @@ class HomeOrderStatusItem {
       dateText: json['tallisim'].stringValue,
       statusText: json['fictitiousness'].stringValue,
       buttonText: json['stoles'].stringValue,
-      actionUrl: json['dismasts'].stringValue,
+      linkUrl: json['bloomeries'].stringValue,
       productId: json['geobotanists'].stringValue,
       orderNo: json['dodgy'].stringValue,
       cardStatus: json['cracksmen'].intValue,

@@ -161,9 +161,6 @@ class ApiClient {
     return post(
       ApiEndpoints.productApply,
       data: {
-        'enates': '1001',
-        'nonfeasance': '1000',
-        'chad': '1000',
         'geobotanists': geobotanists,
         'succumbs': succumbs,
         'fib': _randomDigits(6),
@@ -709,14 +706,14 @@ class ApiClient {
   Future<ApiResponse> _handleResponse(dynamic raw) async {
     final response = ApiResponse.fromRaw(raw);
     if (response.isAuthExpired) {
-      await _handleAuthExpired();
+      await _handleAuthExpired(response.message);
     }
     return response.ensureSuccess();
   }
 
-  Future<void> _handleAuthExpired() async {
+  Future<void> _handleAuthExpired(String serverMessage) async {
     if (_handlingAuthExpired) {
-      throw ApiBusinessException('Login expired', code: '-2');
+      throw ApiBusinessException(serverMessage, code: '-2');
     }
     _handlingAuthExpired = true;
     try {
@@ -724,7 +721,7 @@ class ApiClient {
     } finally {
       _handlingAuthExpired = false;
     }
-    throw ApiBusinessException('Login expired', code: '-2');
+    throw ApiBusinessException(serverMessage, code: '-2');
   }
 
   Json _parseRemoteConfig(String body) {

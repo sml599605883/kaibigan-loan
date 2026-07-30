@@ -39,7 +39,7 @@ class CertificationBindCardHeader extends StatelessWidget {
           Padding(
             padding: EdgeInsets.symmetric(horizontal: 64.w, vertical: 4.h),
             child: Text(
-              'Identity verification',
+              'Account information',
               textAlign: TextAlign.center,
               style: TextStyle(
                 color: AppColors.certificationTitleText,
@@ -103,6 +103,9 @@ class CertificationBindCardField extends StatelessWidget {
                       key: Key('bindCardField_${field.saveKey}'),
                       controller: controller,
                       focusNode: focusNode,
+                      keyboardType: field.numericKeyboard
+                          ? TextInputType.number
+                          : TextInputType.text,
                       decoration: _fieldDecoration(field.placeholder),
                       style: TextStyle(
                         color: AppColors.certificationFieldText,

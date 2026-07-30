@@ -367,8 +367,7 @@ class _AccountListCard extends StatelessWidget {
                   SizedBox(
                     height: 28.h,
                     child: Text(
-                      'The bank is under maintenance. Loans may be delayed.\n'
-                      'Please wait or choose another option',
+                      item.maintenanceText,
                       maxLines: 2,
                       textAlign: TextAlign.center,
                       style: TextStyle(

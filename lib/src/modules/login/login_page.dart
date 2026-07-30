@@ -36,7 +36,7 @@ class _LoginPageState extends State<LoginPage> {
 
   bool get _canSubmit {
     return _phoneController.text.isNotEmpty &&
-        _codeController.text.isNotEmpty &&
+        _codeController.text.length == 6 &&
         _agreementAccepted;
   }
 
@@ -260,6 +260,7 @@ class _LoginPageState extends State<LoginPage> {
               countdownSeconds: _countdownSeconds,
               requestingCode: _requestingCode,
               onGetCode: _requestSmsCode,
+              onSubmit: _loginWithSmsCode,
             ),
             const Spacer(),
           ],
@@ -268,8 +269,7 @@ class _LoginPageState extends State<LoginPage> {
       bottomNavigationBar: SafeArea(
         top: false,
         child: Container(
-          height: 36.h,
-          padding: EdgeInsets.fromLTRB(37.w, 0, 37.w, 0),
+          padding: EdgeInsets.fromLTRB(37.w, 8.h, 37.w, 8.h),
           child: _AgreementRow(
             accepted: _agreementAccepted,
             onTap: _toggleAgreement,
@@ -290,6 +290,7 @@ class _LoginPanel extends StatelessWidget {
     required this.countdownSeconds,
     required this.requestingCode,
     required this.onGetCode,
+    required this.onSubmit,
   });
 
   final TextEditingController phoneController;
@@ -299,6 +300,7 @@ class _LoginPanel extends StatelessWidget {
   final int countdownSeconds;
   final bool requestingCode;
   final VoidCallback onGetCode;
+  final VoidCallback onSubmit;
 
   @override
   Widget build(BuildContext context) {
@@ -341,7 +343,7 @@ class _LoginPanel extends StatelessWidget {
                   onGetCode: onGetCode,
                 ),
                 SizedBox(height: 40.h),
-                _SubmitButton(enabled: canSubmit),
+                _SubmitButton(enabled: canSubmit, onTap: onSubmit),
               ],
             ),
           ),
@@ -509,17 +511,19 @@ class _CodeInput extends StatelessWidget {
 }
 
 class _SubmitButton extends StatelessWidget {
-  const _SubmitButton({required this.enabled});
+  const _SubmitButton({required this.enabled, required this.onTap});
 
   final bool enabled;
+  final VoidCallback onTap;
 
   @override
   Widget build(BuildContext context) {
     return Padding(
       padding: EdgeInsets.symmetric(horizontal: 11.w),
       child: GestureDetector(
+        key: const Key('loginSubmitButton'),
         behavior: HitTestBehavior.opaque,
-        onTap: enabled ? () {} : null,
+        onTap: enabled ? onTap : null,
         child: DecoratedBox(
           key: const Key('loginSubmitDecoration'),
           decoration: BoxDecoration(
@@ -572,7 +576,7 @@ class _AgreementRow extends StatelessWidget {
           onTap: onTap,
           child: SizedBox(
             width: 24.w,
-            // height: 36.h,
+            height: 46.h,
             child: Align(
               alignment: Alignment.topLeft,
               child: accepted

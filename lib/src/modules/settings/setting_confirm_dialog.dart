@@ -18,25 +18,25 @@ class SettingConfirmDialog extends StatelessWidget {
   final VoidCallback onConfirm;
 
   String get _title => switch (type) {
-    SettingConfirmDialogType.logout => 'Stay Signed In',
-    SettingConfirmDialogType.deleteAccount => 'Delete Your Account?',
+    SettingConfirmDialogType.logout => 'Before You Go',
+    SettingConfirmDialogType.deleteAccount => 'We’d really miss you.',
   };
 
   String get _message => switch (type) {
     SettingConfirmDialogType.logout =>
-      'Staying logged in ensures you can access funds in seconds whenever you need them.',
+      'Keep your account connected for a smoother experience and quick access to your application details.',
     SettingConfirmDialogType.deleteAccount =>
-      'Deleting your account will remove your loan records and current benefits.',
+      'Deleting your account removes all your data, history, and settings forever. This action cannot be undone.',
   };
 
   String get _confirmText => switch (type) {
-    SettingConfirmDialogType.logout => 'Logout',
-    SettingConfirmDialogType.deleteAccount => 'Delete',
+    SettingConfirmDialogType.logout => 'Log out anyway',
+    SettingConfirmDialogType.deleteAccount => 'Delete Account',
   };
 
   String get _cancelText => switch (type) {
-    SettingConfirmDialogType.logout => 'Cancel',
-    SettingConfirmDialogType.deleteAccount => 'Keep',
+    SettingConfirmDialogType.logout => 'Stay Logged In',
+    SettingConfirmDialogType.deleteAccount => 'Stay Here',
   };
 
   @override
@@ -139,18 +139,57 @@ class _SettingPopupButton extends StatelessWidget {
           color: backgroundColor,
           borderRadius: BorderRadius.circular(24.r),
         ),
-        child: Text(
-          label,
-          maxLines: 1,
-          overflow: TextOverflow.ellipsis,
-          style: TextStyle(
-            color: textColor,
-            fontSize: 18.sp,
-            fontWeight: FontWeight.w700,
-            height: 22 / 18,
+        child: Padding(
+          padding: EdgeInsets.symmetric(horizontal: 8.w, vertical: 2.w),
+          child: LayoutBuilder(
+            builder: (context, constraints) {
+              final fontSize = _fontSizeThatFits(context, constraints);
+              return Text(
+                label,
+                maxLines: 2,
+                overflow: TextOverflow.ellipsis,
+                textAlign: TextAlign.center,
+                style: TextStyle(
+                  color: textColor,
+                  fontSize: fontSize,
+                  fontWeight: FontWeight.w700,
+                  height: 22 / 18,
+                ),
+              );
+            },
           ),
         ),
       ),
     );
+  }
+
+  double _fontSizeThatFits(BuildContext context, BoxConstraints constraints) {
+    final maximumFontSize = 18.sp;
+    final minimumFontSize = 8.sp;
+    final step = 0.5.sp;
+    var fontSize = maximumFontSize;
+    while (fontSize > minimumFontSize) {
+      final painter = TextPainter(
+        text: TextSpan(
+          text: label,
+          style: TextStyle(
+            fontSize: fontSize,
+            fontWeight: FontWeight.w700,
+            height: 22 / 18,
+          ),
+        ),
+        maxLines: 2,
+        textDirection: Directionality.of(context),
+        textScaler: MediaQuery.textScalerOf(context),
+      )..layout(maxWidth: constraints.maxWidth);
+      final fits =
+          !painter.didExceedMaxLines && painter.height <= constraints.maxHeight;
+      painter.dispose();
+      if (fits) {
+        return fontSize;
+      }
+      fontSize -= step;
+    }
+    return minimumFontSize;
   }
 }

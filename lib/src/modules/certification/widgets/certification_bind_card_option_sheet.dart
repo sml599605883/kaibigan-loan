@@ -99,6 +99,9 @@ class _BindCardOptionSheetState extends State<_BindCardOptionSheet> {
                   itemBuilder: (_, index) {
                     final option = widget.options[index];
                     final selected = option.value == _selected?.value;
+                    final showMaintenanceText =
+                        option.status == '0' &&
+                        option.maintenanceText.isNotEmpty;
                     return GestureDetector(
                       behavior: HitTestBehavior.opaque,
                       onTap: () => setState(() => _selected = option),
@@ -122,15 +125,45 @@ class _BindCardOptionSheetState extends State<_BindCardOptionSheet> {
                                     SizedBox(width: 12.w),
                                   ],
                                   Flexible(
-                                    child: Text(
-                                      option.label,
-                                      maxLines: 1,
-                                      overflow: TextOverflow.ellipsis,
-                                      style: TextStyle(
-                                        color: AppColors.uploadMethodText,
-                                        fontSize: 18.sp,
-                                      ),
-                                    ),
+                                    child: showMaintenanceText
+                                        ? Column(
+                                            mainAxisSize: MainAxisSize.min,
+                                            crossAxisAlignment:
+                                                CrossAxisAlignment.center,
+                                            children: [
+                                              Text(
+                                                option.label,
+                                                maxLines: 1,
+                                                overflow: TextOverflow.ellipsis,
+                                                style: TextStyle(
+                                                  color: AppColors
+                                                      .uploadMethodText,
+                                                  fontSize: 16.sp,
+                                                  height: 1.25,
+                                                ),
+                                              ),
+                                              Text(
+                                                option.maintenanceText,
+                                                maxLines: 1,
+                                                overflow: TextOverflow.ellipsis,
+                                                style: TextStyle(
+                                                  color: AppColors
+                                                      .certificationMaintenanceText,
+                                                  fontSize: 10.sp,
+                                                  height: 2,
+                                                ),
+                                              ),
+                                            ],
+                                          )
+                                        : Text(
+                                            option.label,
+                                            maxLines: 1,
+                                            overflow: TextOverflow.ellipsis,
+                                            style: TextStyle(
+                                              color: AppColors.uploadMethodText,
+                                              fontSize: 18.sp,
+                                            ),
+                                          ),
                                   ),
                                 ],
                               ),

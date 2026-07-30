@@ -181,11 +181,11 @@ Future<void> _openExternalTarget(
   String rawUrl, {
   HomePopupExternalOpener? externalOpener,
 }) async {
+  Get.back<void>();
   final uri = Uri.tryParse(rawUrl.trim());
   if (uri == null || !uri.hasScheme) {
     return;
   }
-  Get.back<void>();
   await (externalOpener ?? NavigationHelper.defaultRawTargetLauncher)(uri);
 }
 
