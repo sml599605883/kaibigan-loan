@@ -46,8 +46,8 @@ void main() {
 
     expect(await store.isLoggedIn(), isFalse);
     expect(await store.phone(), '09171234567');
-    expect(await store.gyrofrequency(), '');
-    expect(await store.entertainers(), '');
+    expect(await store.gyrofrequency(), 'iPhone X');
+    expect(await store.entertainers(), '375x812');
     expect(await store.bungee(), '');
   });
 

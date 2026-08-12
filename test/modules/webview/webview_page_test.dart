@@ -5,14 +5,30 @@ import 'package:kaibigan_loan/src/modules/webview/webview_page.dart';
 import 'package:kaibigan_loan/src/core/json/json.dart';
 
 void main() {
-  test('WebView routes internal login schemes through session-safe navigation', () {
+  test(
+    'WebView routes internal login schemes through session-safe navigation',
+    () {
+      final source = File(
+        '${Directory.current.path}/lib/src/modules/webview/webview_page.dart',
+      ).readAsStringSync();
+
+      expect(
+        source,
+        contains(
+          'navigateInternalUri: NavigationHelper.navigateWebViewRawTarget',
+        ),
+      );
+    },
+  );
+
+  test('WebView toGrade requests the native iOS review prompt', () {
     final source = File(
       '${Directory.current.path}/lib/src/modules/webview/webview_page.dart',
     ).readAsStringSync();
 
     expect(
       source,
-      contains('navigateInternalUri: NavigationHelper.navigateWebViewRawTarget'),
+      contains('requestAppReview: ClientBridge().requestAppReview'),
     );
   });
 

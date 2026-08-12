@@ -149,6 +149,14 @@ class ClientBridge {
     return result ?? false;
   }
 
+  Future<void> requestAppReview() async {
+    if (!supportsNativeBridge) {
+      throw UnsupportedError('App review is currently implemented for iOS.');
+    }
+
+    await _channel.invokeMethod<void>('requestAppReview');
+  }
+
   Future<ClientPlatformInfo> getPlatformInfo() async {
     if (!supportsNativeBridge) {
       throw UnsupportedError('ClientBridge is currently implemented for iOS.');

@@ -112,6 +112,20 @@ void main() {
     });
   });
 
+  test('requests app review for the toGrade action', () async {
+    var reviewRequests = 0;
+    final dispatcher = WebViewBridgeDispatcher(
+      requestAppReview: () async => reviewRequests++,
+    );
+
+    final result = await dispatcher.dispatch(
+      _request(WebViewBridgeActionNames.toGrade, const <String, dynamic>{}),
+    );
+
+    expect(result.code, 0);
+    expect(reviewRequests, 1);
+  });
+
   test(
     'opens account selection with the H5 product and order fields',
     () async {

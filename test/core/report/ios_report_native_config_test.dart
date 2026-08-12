@@ -222,6 +222,20 @@ void main() {
     expect(content, contains('currentPath.status == .satisfied'));
   });
 
+  test('iOS bridge requests the StoreKit review prompt', () {
+    final content = registrar.readAsStringSync();
+
+    expect(content, contains('import StoreKit'));
+    expect(content, contains('case "requestAppReview"'));
+    expect(content, contains('self.requestAppReview(result: result)'));
+    expect(content, contains('activationState == .foregroundActive'));
+    expect(
+      content,
+      contains('SKStoreReviewController.requestReview(in: scene)'),
+    );
+    expect(content, contains('SKStoreReviewController.requestReview()'));
+  });
+
   test('iOS bridge collects Salmon-compatible hardware values', () {
     final podContent = podfile.readAsStringSync();
     final content = registrar.readAsStringSync();

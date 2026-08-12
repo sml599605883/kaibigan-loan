@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 
@@ -54,6 +56,7 @@ class _CertificationPersonalInfoPageState
   void initState() {
     super.initState();
     _sceneStartTimeSeconds = RiskReportScene.nowSeconds();
+    unawaited(_prefetchAddressOptions());
     _loadPersonalInfo();
   }
 
@@ -377,6 +380,14 @@ class _CertificationPersonalInfoPageState
     final future = _fetchAddressOptions();
     _addressOptionsFuture = future;
     return future;
+  }
+
+  Future<void> _prefetchAddressOptions() async {
+    try {
+      await _getAddressOptions();
+    } catch (_) {
+      // The picker retries and shows the request error when the user opens it.
+    }
   }
 
   Future<List<AddressOption>> _fetchAddressOptions() async {

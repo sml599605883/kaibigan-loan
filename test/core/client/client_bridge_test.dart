@@ -18,6 +18,7 @@ void main() {
     expect(await bridge.isNativeBridgeAvailable(), isFalse);
     expect(() => bridge.getPlatformInfo(), throwsA(isA<UnsupportedError>()));
     expect(() => bridge.getProxySettings(), throwsA(isA<UnsupportedError>()));
+    expect(() => bridge.requestAppReview(), throwsA(isA<UnsupportedError>()));
   });
 
   test('calls iOS method channel for bridge availability', () async {
@@ -46,6 +47,21 @@ void main() {
 
     expect(await bridge.isNetworkAvailable(), isTrue);
     expect(calls.single.method, 'isNetworkAvailable');
+  });
+
+  test('requests the iOS in-app review prompt', () async {
+    final calls = <MethodCall>[];
+    TestDefaultBinaryMessengerBinding.instance.defaultBinaryMessenger
+        .setMockMethodCallHandler(channel, (call) async {
+          calls.add(call);
+          return null;
+        });
+
+    await ClientBridge(platform: ClientPlatform.ios).requestAppReview();
+
+    expect(calls, hasLength(1));
+    expect(calls.single.method, 'requestAppReview');
+    expect(calls.single.arguments, isNull);
   });
 
   test('normalizes iOS platform info response', () async {

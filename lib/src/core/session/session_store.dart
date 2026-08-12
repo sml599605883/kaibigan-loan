@@ -94,15 +94,11 @@ class SessionStore {
     if (memory != null) {
       memory
         ..remove(loggedInKey)
-        ..remove(bungeeKey)
-        ..remove(gyrofrequencyKey)
-        ..remove(entertainersKey);
+        ..remove(bungeeKey);
       return;
     }
     await _preferences!.remove(loggedInKey);
     await _preferences.remove(bungeeKey);
-    await _preferences.remove(gyrofrequencyKey);
-    await _preferences.remove(entertainersKey);
   }
 
   Future<void> clearCache() async {

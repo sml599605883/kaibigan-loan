@@ -44,6 +44,7 @@ void main() {
     await tester.pumpAndSettle();
 
     expect(apiClient.personalInfoIds, ['product-1']);
+    expect(apiClient.addressInitCallCount, 1);
     expect(find.text('Personal information'), findsOneWidget);
     expect(
       find.text(
@@ -196,6 +197,7 @@ void main() {
     await tester.pumpAndSettle();
 
     expect(apiClient.jobInfoIds, ['product-work']);
+    expect(apiClient.addressInitCallCount, 1);
     expect(find.text('Work Information'), findsOneWidget);
     expect(
       find.text(
@@ -287,6 +289,7 @@ void main() {
 
       await _pumpPage(tester, arguments: {'geobotanists': 'product-address'});
       await tester.pumpAndSettle();
+      expect(apiClient.addressInitCallCount, 1);
 
       await tester.tap(find.text('Old Region-Old Province-Old Municipality'));
       await tester.pumpAndSettle();
@@ -331,6 +334,7 @@ void main() {
       await tester.tap(find.text('Old Region-Old Province-Old Municipality'));
       await tester.pumpAndSettle();
 
+      expect(apiClient.addressInitCallCount, 2);
       expect(toastPresenter.errors, ['address failed']);
       expect(
         find.text('Old Region-Old Province-Old Municipality'),

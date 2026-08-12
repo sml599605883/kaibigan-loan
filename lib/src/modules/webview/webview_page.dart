@@ -6,6 +6,7 @@ import 'package:flutter_inappwebview/flutter_inappwebview.dart';
 import 'package:get/get.dart';
 import 'package:kaibigan_loan/src/core/json/json.dart';
 
+import '../../core/client/client_bridge.dart';
 import '../../core/network/api_client.dart';
 import '../../core/network/api_signature.dart';
 import '../../core/report/report_manager.dart';
@@ -145,6 +146,7 @@ class _WebViewPageState extends State<WebViewPage> with WidgetsBindingObserver {
       reloadOrOpenInWebView: _reloadOrOpenInWebView,
       closePage: () async => Get.back<void>(),
       backToHome: () async => NavigationHelper.offAllToMain<void>(),
+      requestAppReview: ClientBridge().requestAppReview,
       buildSignedParams: (path) {
         return ApiSignature(
           ApiClient.instance.config,
