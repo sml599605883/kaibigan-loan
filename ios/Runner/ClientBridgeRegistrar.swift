@@ -344,30 +344,50 @@ final class ClientBridgeRegistrar: NSObject, FlutterStreamHandler, CLLocationMan
       license,
       TDLivenessShowStylePresent,
       { successResult in
-        result(self.wrapLivenessResult(success: true, payload: successResult))
+        result(LivenessOutcome(successResult).dictionary)
       },
       { failResult in
-        result(self.wrapLivenessResult(success: false, payload: failResult))
+        result(LivenessOutcome(failResult).dictionary)
       }
     )
   }
 
-  private func wrapLivenessResult(success: Bool, payload: [AnyHashable: Any]?) -> [String: Any] {
-    let raw = (payload as? [String: Any]) ?? [:]
-    let code = (raw["code"] as? NSNumber)?.intValue ?? (success ? 0 : -1)
-    let message = raw["message"] as? String ?? ""
-    let image = raw["image"] as? String ?? ""
-    let sequenceId = raw["sequence_id"] as? String ?? ""
-    let livenessId = raw["liveness_id"] as? String ?? ""
-    return [
-      "success": success,
-      "code": code,
-      "message": message,
-      "image": image,
-      "sequence_id": sequenceId,
-      "liveness_id": livenessId,
-      "raw": raw
-    ]
+  /// Normalizes the SDK liveness payload. The verification outcome comes from
+  /// the reported `code`, so a non-zero error surfaced through the SDK's
+  /// success callback is still treated as a failure.
+  private struct LivenessOutcome {
+    private static let unknownCode = -1
+
+    private let fields: [String: Any]
+
+    init(_ payload: [AnyHashable: Any]?) {
+      fields = (payload as? [String: Any]) ?? [:]
+    }
+
+    private var code: Int {
+      switch fields["code"] {
+      case let number as NSNumber:
+        return number.intValue
+      case let text as String:
+        return Int(text) ?? Self.unknownCode
+      default:
+        return Self.unknownCode
+      }
+    }
+
+    private var isVerified: Bool { code == 0 }
+
+    var dictionary: [String: Any] {
+      [
+        "success": isVerified,
+        "code": code,
+        "message": fields["message"] as? String ?? "",
+        "image": fields["image"] as? String ?? "",
+        "sequence_id": fields["sequence_id"] as? String ?? "",
+        "liveness_id": fields["liveness_id"] as? String ?? "",
+        "raw": fields
+      ]
+    }
   }
 
   private func topViewController(
