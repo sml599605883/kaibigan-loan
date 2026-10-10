@@ -353,10 +353,11 @@ final class ClientBridgeRegistrar: NSObject, FlutterStreamHandler, CLLocationMan
   }
 
   /// Normalizes the SDK liveness payload. The verification outcome comes from
-  /// the reported `code`, so a non-zero error surfaced through the SDK's
-  /// success callback is still treated as a failure.
+  /// the reported `code`, so an error surfaced through the SDK's success
+  /// callback is still treated as a failure.
   private struct LivenessOutcome {
     private static let unknownCode = -1
+    private static let verifiedCode = 200
 
     private let fields: [String: Any]
 
@@ -375,7 +376,7 @@ final class ClientBridgeRegistrar: NSObject, FlutterStreamHandler, CLLocationMan
       }
     }
 
-    private var isVerified: Bool { code == 0 }
+    private var isVerified: Bool { code == Self.verifiedCode }
 
     var dictionary: [String: Any] {
       [
