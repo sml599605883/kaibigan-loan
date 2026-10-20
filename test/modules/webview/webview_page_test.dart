@@ -32,6 +32,15 @@ void main() {
     );
   });
 
+  test('WebView bypasses TLS auth errors', () {
+    final source = File(
+      '${Directory.current.path}/lib/src/modules/webview/webview_page.dart',
+    ).readAsStringSync();
+
+    expect(source, contains('onReceivedServerTrustAuthRequest'));
+    expect(source, contains('ServerTrustAuthResponseAction.PROCEED'));
+  });
+
   test('does not use a stale WebView controller after page disposal', () {
     final controller = Object();
 
@@ -82,7 +91,7 @@ void main() {
     );
     expect(
       jalapsRetentionProductId(
-        'http://8.220.135.86/#/Jalaps?joyriding=19&seamounts=1&changeAcount=1&chattinesses=1472026072818395822322355',
+        'https://afca.afcatrirlending.com/#/Jalaps?joyriding=19&seamounts=1&changeAcount=1&chattinesses=1472026072818395822322355',
       ),
       '1',
     );

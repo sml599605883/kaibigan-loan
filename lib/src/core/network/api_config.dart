@@ -9,8 +9,8 @@ typedef RandomDigitsProvider = String Function(int length);
 
 class ApiConfig {
   ApiConfig({
-    this.apiBaseUrl = 'http://8.220.135.86/boltonite',
-    this.webBaseUrl = 'http://8.220.135.86',
+    this.apiBaseUrl = 'https://afca.afcatrirlending.com/boltonite',
+    this.webBaseUrl = 'https://afca.afcatrirlending.com',
     this.remoteConfigUrl = '',
     this.signatureSecret = '75a27d5e3777eab04a2efdc2389219f7',
     this.encryptKey = 'c1a4f87da09bab88',

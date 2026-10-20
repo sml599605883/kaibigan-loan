@@ -418,6 +418,11 @@ class _WebViewPageState extends State<WebViewPage> with WidgetsBindingObserver {
                         setState(() => _loading = false);
                       }
                     },
+                    onReceivedServerTrustAuthRequest:
+                        (controller, challenge) async =>
+                            ServerTrustAuthResponse(
+                              action: ServerTrustAuthResponseAction.PROCEED,
+                            ),
                     onReceivedError: (controller, request, error) {
                       if (mounted) {
                         setState(() {

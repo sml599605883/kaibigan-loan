@@ -25,6 +25,11 @@ class ApiClient {
       ..receiveTimeout = const Duration(seconds: 20)
       ..contentType = Headers.formUrlEncodedContentType
       ..validateStatus = (_) => true;
+    if (dio == null) {
+      this.dio.httpClientAdapter = IOHttpClientAdapter(
+        createHttpClient: () => _createHttpClient(allowBadCertificates: true),
+      );
+    }
   }
 
   static ApiClient get instance => getx.Get.find<ApiClient>();
@@ -36,9 +41,11 @@ class ApiClient {
   bool _handlingAuthExpired = false;
   String? _proxyHost;
   int? _proxyPort;
+  bool _allowBadCertificates = true;
 
   String? get proxyHost => _proxyHost;
   int? get proxyPort => _proxyPort;
+  bool get allowBadCertificates => _allowBadCertificates;
 
   Future<ApiResponse> homePage() {
     return get(
@@ -545,20 +552,34 @@ class ApiClient {
   void setProxy({
     required String host,
     required int port,
-    bool allowBadCertificates = false,
+    bool allowBadCertificates = true,
   }) {
     _proxyHost = host;
     _proxyPort = port;
+    _allowBadCertificates = allowBadCertificates;
     dio.httpClientAdapter.close(force: true);
     dio.httpClientAdapter = IOHttpClientAdapter(
-      createHttpClient: () {
-        final client = HttpClient()..findProxy = (_) => 'PROXY $host:$port;';
-        if (allowBadCertificates) {
-          client.badCertificateCallback = (certificate, host, port) => true;
-        }
-        return client;
-      },
+      createHttpClient: () => _createHttpClient(
+        proxyHost: host,
+        proxyPort: port,
+        allowBadCertificates: allowBadCertificates,
+      ),
     );
+  }
+
+  HttpClient _createHttpClient({
+    String? proxyHost,
+    int? proxyPort,
+    required bool allowBadCertificates,
+  }) {
+    final client = HttpClient();
+    if (proxyHost != null && proxyPort != null) {
+      client.findProxy = (_) => 'PROXY $proxyHost:$proxyPort;';
+    }
+    if (allowBadCertificates) {
+      client.badCertificateCallback = (certificate, host, port) => true;
+    }
+    return client;
   }
 
   Future<ApiResponse> get(

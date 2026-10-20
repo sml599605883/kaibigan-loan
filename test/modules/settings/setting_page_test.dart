@@ -13,6 +13,7 @@ import 'package:kaibigan_loan/src/modules/main/main_controller.dart';
 import 'package:kaibigan_loan/src/modules/settings/setting_page.dart';
 import 'package:kaibigan_loan/src/theme/app_colors.dart';
 import 'package:kaibigan_loan/src/utils/app_toast.dart';
+import 'package:package_info_plus/package_info_plus.dart';
 
 void main() {
   late _FakeApiClient apiClient;
@@ -20,6 +21,13 @@ void main() {
   late SessionStore sessionStore;
 
   setUp(() async {
+    PackageInfo.setMockInitialValues(
+      appName: 'Kaibigan Loan',
+      packageName: 'kaibigan_loan',
+      version: '1.2.3',
+      buildNumber: '45',
+      buildSignature: '',
+    );
     Get.testMode = true;
     sessionStore = SessionStore.memory();
     await sessionStore.setLoggedIn(true);

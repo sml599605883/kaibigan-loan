@@ -117,6 +117,7 @@ void main() {
     expect(bootstrapCompleted, isTrue);
     expect(apiClient.proxyHost, '127.0.0.1');
     expect(apiClient.proxyPort, 8888);
+    expect(apiClient.allowBadCertificates, isTrue);
   });
 }
 

@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
+import 'package:package_info_plus/package_info_plus.dart';
 
 import '../../assets/app_assets.dart';
 import '../../core/network/api_client.dart';
@@ -14,9 +15,8 @@ import 'setting_confirm_dialog.dart';
 class SettingPage extends StatelessWidget {
   const SettingPage({super.key});
 
-  static const _website = 'XXXXXXXXXXXXXXX';
-  static const _email = 'XXXXXXX';
-  static const _version = 'V1.1.1';
+  static const _website = 'www.afcatrirlending.com';
+  static const _email = 'support@afcatrirlending.com';
 
   @override
   Widget build(BuildContext context) {
@@ -228,9 +228,27 @@ class _InfoPanel extends StatelessWidget {
           SizedBox(height: 10.h),
           const _InfoRow(label: 'E-mail', value: SettingPage._email),
           SizedBox(height: 10.h),
-          const _InfoRow(label: 'Version', value: SettingPage._version),
+          const _VersionInfoRow(),
         ],
       ),
+    );
+  }
+}
+
+class _VersionInfoRow extends StatelessWidget {
+  const _VersionInfoRow();
+
+  @override
+  Widget build(BuildContext context) {
+    return FutureBuilder<PackageInfo>(
+      future: PackageInfo.fromPlatform(),
+      builder: (context, snapshot) {
+        final version = snapshot.data?.version.trim() ?? '';
+        return _InfoRow(
+          label: 'Version',
+          value: version.isEmpty ? '' : 'V$version',
+        );
+      },
     );
   }
 }

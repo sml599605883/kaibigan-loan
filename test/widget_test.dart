@@ -8,8 +8,19 @@ import 'package:kaibigan_loan/src/core/network/api_client.dart';
 import 'package:kaibigan_loan/src/core/network/api_config.dart';
 import 'package:kaibigan_loan/src/core/network/api_response.dart';
 import 'package:kaibigan_loan/src/core/session/session_store.dart';
+import 'package:package_info_plus/package_info_plus.dart';
 
 void main() {
+  setUp(() {
+    PackageInfo.setMockInitialValues(
+      appName: 'Kaibigan Loan',
+      packageName: 'kaibigan_loan',
+      version: '1.2.3',
+      buildNumber: '45',
+      buildSignature: '',
+    );
+  });
+
   tearDown(Get.reset);
 
   testWidgets('main shell renders three GetX tabs', (tester) async {
@@ -115,9 +126,11 @@ void main() {
 
     expect(find.text('Kaibigan Loan'), findsOneWidget);
     expect(find.text('Website'), findsOneWidget);
+    expect(find.text('www.afcatrirlending.com'), findsOneWidget);
     expect(find.text('E-mail'), findsOneWidget);
+    expect(find.text('support@afcatrirlending.com'), findsOneWidget);
     expect(find.text('Version'), findsOneWidget);
-    expect(find.text('V1.1.1'), findsOneWidget);
+    expect(find.text('V1.2.3'), findsOneWidget);
     expect(find.text('Deactivate Account'), findsOneWidget);
     expect(find.text('Logout'), findsOneWidget);
   });

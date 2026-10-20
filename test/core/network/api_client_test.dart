@@ -30,6 +30,13 @@ void main() {
     );
   });
 
+  test('defaults use the afca host and keep the API path prefix', () {
+    final config = ApiConfig();
+
+    expect(config.webBaseUrl, 'https://afca.afcatrirlending.com');
+    expect(config.apiBaseUrl, 'https://afca.afcatrirlending.com/boltonite');
+  });
+
   test('GET puts business params with signed common params in query', () async {
     await client.get('/plater/fas', params: const {'ghastful': 'a'});
 
@@ -676,6 +683,7 @@ void main() {
 
     expect(proxyClient.proxyHost, '127.0.0.1');
     expect(proxyClient.proxyPort, proxyServer.port);
+    expect(proxyClient.allowBadCertificates, isTrue);
     expect(proxiedRequests, hasLength(1));
     expect(proxiedRequests.single.uri.toString(), contains('/plater/fas'));
   });
