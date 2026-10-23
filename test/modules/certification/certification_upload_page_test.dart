@@ -1,5 +1,6 @@
 import 'package:dio/dio.dart';
 import 'package:flutter/cupertino.dart';
+import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:get/get.dart';
 import 'package:kaibigan_loan/src/app_routes.dart';
@@ -14,6 +15,7 @@ import 'package:kaibigan_loan/src/modules/certification/widgets/certification_pr
 import 'package:kaibigan_loan/src/modules/certification/widgets/certification_selection_sheet.dart';
 import 'package:kaibigan_loan/src/theme/app_colors.dart';
 import 'package:kaibigan_loan/src/utils/app_toast.dart';
+import 'package:kaibigan_loan/src/utils/screen_adapter.dart';
 
 void main() {
   late SessionStore sessionStore;
@@ -30,6 +32,53 @@ void main() {
   tearDown(() {
     AppToast.presenter = const EasyLoadingToastPresenter();
     Get.reset();
+  });
+
+  testWidgets('prompt banner grows with the message while keeping 52 minimum', (
+    tester,
+  ) async {
+    tester.view.physicalSize = const Size(375, 812);
+    tester.view.devicePixelRatio = 1;
+    addTearDown(tester.view.resetPhysicalSize);
+    addTearDown(tester.view.resetDevicePixelRatio);
+
+    await tester.pumpWidget(
+      MaterialApp(
+        builder: (context, child) {
+          ScreenAdapter.init(context);
+          return child!;
+        },
+        home: const Scaffold(
+          body: CertificationPromptBanner(message: 'Short message'),
+        ),
+      ),
+    );
+
+    expect(tester.getSize(find.byType(CertificationPromptBanner)).height, 52);
+
+    const longMessage =
+        'This is a deliberately long certification message that must stay '
+        'within three lines while remaining readable for applicants.';
+    await tester.pumpWidget(
+      MaterialApp(
+        builder: (context, child) {
+          ScreenAdapter.init(context);
+          return child!;
+        },
+        home: const Scaffold(
+          body: CertificationPromptBanner(message: longMessage),
+        ),
+      ),
+    );
+
+    final messageText = tester.widget<Text>(find.text(longMessage));
+    expect(messageText.maxLines, 3);
+    expect(messageText.overflow, TextOverflow.ellipsis);
+    expect(
+      tester.getSize(find.byType(CertificationPromptBanner)).height,
+      greaterThan(52),
+    );
+    expect(tester.takeException(), isNull);
   });
 
   testWidgets('renders upload page from design assets', (tester) async {

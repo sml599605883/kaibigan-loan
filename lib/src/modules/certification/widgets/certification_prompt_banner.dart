@@ -12,7 +12,7 @@ class CertificationPromptBanner extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Container(
-      height: 52.h,
+      constraints: BoxConstraints(minHeight: 52.h),
       padding: EdgeInsets.fromLTRB(5.w, 4.h, 25.w, 4.h),
       decoration: BoxDecoration(
         gradient: const LinearGradient(
@@ -37,7 +37,7 @@ class CertificationPromptBanner extends StatelessWidget {
           Expanded(
             child: Text(
               message,
-              maxLines: 2,
+              maxLines: 3,
               overflow: TextOverflow.ellipsis,
               style: TextStyle(
                 color: AppColors.certificationPromptText,
