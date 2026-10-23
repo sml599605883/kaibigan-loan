@@ -19,8 +19,8 @@ import UserNotifications
 final class ClientBridgeRegistrar: NSObject, FlutterStreamHandler, CLLocationManagerDelegate {
   static let shared = ClientBridgeRegistrar()
 
-  private let trustDecisionPartnerCode = "boqin_ph"
-  private let trustDecisionPartnerKey = "1dc25522f2adc77f5347816c0f7fa31b"
+  private let trustDecisionPartnerCode = "kaibigan_loan"
+  private let trustDecisionPartnerKey = "3faff016b306b9ec2e1f90310774d438"
   private let pushTokenKey = "report.apple_push_token"
   private let networkMonitor = NWPathMonitor()
   private let networkMonitorQueue = DispatchQueue(label: "kaibigan_loan.network_monitor")
